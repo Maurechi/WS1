@@ -1,0 +1,11 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}"; cd "${__dir__}"/../
+
+eval $(./ops/configure-for lcl)
+export PGDATABASE="${DIAAS_BEDB_PGDATABASE}"
+export PGHOST="127.0.0.1"
+export PGPASSWORD="${DIAAS_BEDB_PGPASSWORD}"
+export PGPORT="${DIAAS_BEDB_PGPORT}"
+export PGUSER="${DIAAS_BEDB_PGUSER}"
+
+pgcli

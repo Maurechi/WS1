@@ -1,0 +1,51 @@
+version: "3.7"
+
+services:
+  be:
+    user: $DIAAS_UID:$DIAAS_GID
+    build:
+      context: "../"
+      dockerfile: "./be/Dockerfile"
+    environment:
+      - DIAAS_BEDB_PGDATABASE
+      - DIAAS_BEDB_PGHOST
+      - DIAAS_BEDB_PGPASSWORD
+      - DIAAS_BEDB_PGPORT
+      - DIAAS_BEDB_PGUSER
+      - DIAAS_DEPLOYMENT_COMMIT_REF_NAME
+      - DIAAS_DEPLOYMENT_COMMIT_SHA
+      - DIAAS_DEPLOYMENT_COMMIT_TITLE
+      - DIAAS_DEPLOYMENT_ENVIRONMENT
+      - DIAAS_INTERNAL_API_TOKEN
+      - FLASK_DEBUG
+      - FLASK_ENV
+      - DIAAS_SESSION_SECRET_KEY
+      - DIAAS_SESSION_STORE_DIR=/opt/diaas/session-store/
+      - DIAAS_INSTALL_DIR=/opt/diaas/
+      - DIAAS_ENABLE_SENTRY
+      - DIAAS_SENTRY_DSN
+    volumes:
+      - "SESSION_STORE:/opt/diaas/session-store/"
+      - "../be/:/opt/diaas/be/"
+    ports:
+      - "0.0.0.0:8080:8080"
+    healthcheck:
+      test: "curl --fail 127.0.0.1:8080/api/_/health"
+      timeout: 60s
+      interval: 7s
+      retries: 4
+  bedb:
+    build:
+      context: "../"
+      dockerfile: "./bedb/Dockerfile"
+    environment:
+      - "POSTGRES_PASSWORD=$DIAAS_BEDB_PGPASSWORD"
+    ports:
+      - "0.0.0.0:$DIAAS_BEDB_PGPORT:5432"
+    volumes:
+      - "PGDATA:/var/lib/postgresql/data"
+
+volumes:
+  PGDATA: { }
+  SESSION_STORE: { }
+
