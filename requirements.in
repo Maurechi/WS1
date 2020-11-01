@@ -1,0 +1,8 @@
+black
+docker-compose
+flake8
+isort
+pip-tools
+python-slugify
+tabulate
+pgcli

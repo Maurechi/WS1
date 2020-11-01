@@ -1,0 +1,11 @@
+#!/bin/bash
+set -u ; source "${LEUKOS_SH_V1}";
+cd "${__dir__}"/../
+
+eval $(./ops/configure-for lcl)
+export DIAAS_UID="$(id -u)"
+export DIAAS_GID="$(id -g)"
+docker-compose -p "diaas_${DIAAS_DEPLOYMENT_BRANCH}_${DIAAS_DEPLOYMENT_ENVIRONMENT}" \
+               -f ./ops/docker-compose.yaml \
+               up --build "$@" \
+    | ts -s

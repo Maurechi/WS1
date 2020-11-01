@@ -1,0 +1,8 @@
+Flask
+Flask-Alembic
+Flask-JSON
+Flask-SQLAlchemy
+Flask-shell-ipython
+arrow
+psycopg2
+sentry-sdk

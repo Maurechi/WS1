@@ -1,0 +1,5 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}"; cd "${__dir__}"/../
+
+docker exec -it -e "IPYTHONDIR=/tmp/" diaas_head_lcl_be_1 flask "$@"
+
