@@ -7,7 +7,8 @@ import _sh
 
 
 def docker_compose(args):
-    return _sh.call(""" docker-compose -p 'diaas_'${DIAAS_DEPLOYMENT_BRANCH}'_'${DIAAS_DEPLOYMENT_ENVIRONMENT} -f ./ops/docker-compose.yaml """ + args, cwd=Path(__file__).parent.parent)
+    working_dir = Path(__file__).parent.parent
+    return _sh.call(""" docker-compose -p 'diaas_'${DIAAS_DEPLOYMENT_BRANCH}'_'${DIAAS_DEPLOYMENT_ENVIRONMENT} -f ./ops/docker-compose.yaml """ + args, cwd=working_dir)
 
 
 @click.command()

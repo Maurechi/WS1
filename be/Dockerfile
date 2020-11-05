@@ -6,4 +6,5 @@ ADD ./be/ /opt/diaas/be/
 
 ENV PYTHONPATH=/opt/diaas/be/src/
 ENV FLASK_APP=diaas.app
-CMD exec flask run -h 0.0.0.0 -p 8080
+ENTRYPOINT ["/opt/diaas/be/Dockerfile.entrypoint"]
+CMD flask run -h 0.0.0.0 -p 8080

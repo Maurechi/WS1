@@ -21,5 +21,6 @@ def session_post():
     s = Session()
     db.session.add(s)
     db.session.commit()
+    s.ensure_local_data()
     session['id'] = s.id
     return {'id': s.id}

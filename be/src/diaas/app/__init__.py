@@ -14,7 +14,7 @@ if CONFIG.ENABLE_SENTRY:
 
 def create_app():
     app = Flask(__name__)
-    app.register_blueprint(api_v1, url_prefix='/api/v1')
+    app.register_blueprint(api_v1, url_prefix='/api/1')
     app.register_blueprint(internal_api, url_prefix='/api/_')
     app.config['SQLALCHEMY_DATABASE_URI'] = CONFIG.SQLALCHEMY_DATABASE_URI
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

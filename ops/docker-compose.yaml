@@ -2,10 +2,10 @@ version: "3.7"
 
 services:
   be:
-    user: $DIAAS_UID:$DIAAS_GID
     build:
       context: "../"
       dockerfile: "./be/Dockerfile"
+    command: flask run -h 0.0.0.0 -p 8080
     environment:
       - DIAAS_BEDB_PGDATABASE
       - DIAAS_BEDB_PGHOST
@@ -16,14 +16,16 @@ services:
       - DIAAS_DEPLOYMENT_COMMIT_SHA
       - DIAAS_DEPLOYMENT_COMMIT_TITLE
       - DIAAS_DEPLOYMENT_ENVIRONMENT
+      - DIAAS_ENABLE_SENTRY
+      - DIAAS_INSTALL_DIR=/opt/diaas/
       - DIAAS_INTERNAL_API_TOKEN
-      - FLASK_DEBUG
-      - FLASK_ENV
+      - DIAAS_SENTRY_DSN
       - DIAAS_SESSION_SECRET_KEY
       - DIAAS_SESSION_STORE_DIR=/opt/diaas/session-store/
-      - DIAAS_INSTALL_DIR=/opt/diaas/
-      - DIAAS_ENABLE_SENTRY
-      - DIAAS_SENTRY_DSN
+      - DIAAS_UID
+      - DIAAS_GID
+      - FLASK_DEBUG
+      - FLASK_ENV
     volumes:
       - "be_SESSION_STORE:/opt/diaas/session-store/"
       - "../be/:/opt/diaas/be/"
@@ -48,4 +50,3 @@ services:
 volumes:
   bedb_PGDATA: { }
   be_SESSION_STORE: { }
-
