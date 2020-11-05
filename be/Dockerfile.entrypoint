@@ -1,6 +1,0 @@
-#!/bin/bash
-set -euo pipefail
-groupadd --gid $DIAAS_GID diaas
-useradd -N -M --uid $DIAAS_UID --gid $DIAAS_GID diaas
-chown -R diaas:diaas /opt/diaas/session-store
-/sbin/runuser -u diaas -g diaas -- /bin/bash -c "$*"

@@ -87,9 +87,9 @@ class Configuration(BaseConfiguration):
 
     def app_config(self):
         if self.with_fe:
-            api_baseurl = self.if_env(lcl="http://localhost:8080", otherwise=None)
-            api_baseurl = from_env("REACT_APP_API_BASEURL", default=api_baseurl)
-            self._set(REACT_APP_API_BASEURL=api_baseurl)
+            if not self.is_lcl:
+                api_baseurl = from_env("REACT_APP_API_BASEURL", required=True)
+                self._set(REACT_APP_API_BASEURL=api_baseurl)
 
         if self.with_be:
             self._flask_config()
@@ -98,7 +98,6 @@ class Configuration(BaseConfiguration):
                 DIAAS_SESSION_STORE_DIR="/dev/null",
                 DIAAS_INSTALL_DIR=str(Path(__file__).parent.parent)
             )
-
 
     def sentry_config(self):
         dsn = self.if_env(

@@ -3,9 +3,8 @@ version: "3.7"
 services:
   be:
     build:
-      context: "../"
-      dockerfile: "./be/Dockerfile"
-    command: flask run -h 0.0.0.0 -p 8080
+      context: "../../"
+      dockerfile: "./ops/lcl/be.Dockerfile"
     environment:
       - DIAAS_BEDB_PGDATABASE
       - DIAAS_BEDB_PGHOST
@@ -28,24 +27,38 @@ services:
       - FLASK_ENV
     volumes:
       - "be_SESSION_STORE:/opt/diaas/session-store/"
-      - "../be/:/opt/diaas/be/"
+      - "../../be/:/opt/diaas/be/"
     ports:
       - "0.0.0.0:8080:8080"
-    healthcheck:
-      test: "curl --fail 127.0.0.1:8080/api/_/health"
-      timeout: 60s
-      interval: 31s
-      retries: 2
+#    healthcheck:
+#      test: "curl --fail 127.0.0.1:8080/api/_/health"
+#      timeout: 60s
+#      interval: 31s
+#      retries: 2
   bedb:
     build:
-      context: "../"
-      dockerfile: "./bedb/Dockerfile"
+      context: "../../"
+      dockerfile: "./ops/lcl/bedb.Dockerfile"
     environment:
       - "POSTGRES_PASSWORD=$DIAAS_BEDB_PGPASSWORD"
     ports:
       - "0.0.0.0:$DIAAS_BEDB_PGPORT:5432"
     volumes:
       - "bedb_PGDATA:/var/lib/postgresql/data"
+  fe:
+    build:
+      context: "../../"
+      dockerfile: "./ops/lcl/fe.Dockerfile"
+    ports:
+      - "0.0.0.0:3000:3000"
+    volumes:
+      - "../../fe/src:/opt/diaas/fe/src"
+      - "../../fe/public:/opt/diaas/fe/public"
+      - "../../fe/jsconfig.json:/opt/diaas/fe/jsconfig.json"
+    environment:
+      - DIAAS_UID
+      - DIAAS_GID
+      - "REACT_APP_API_BASEURL=http://be:8080/"
 
 volumes:
   bedb_PGDATA: { }

@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+import click  # noqa: E402
+import os  # noqa: E402
+from configuration import Configuration  # noqa: E402
+import _sh  # noqa: E402
+
+
+def docker_compose(args):
+    working_dir = Path(__file__).parent.parent.parent
+    cmd = """
+        docker-compose -p 'diaas_'${DIAAS_DEPLOYMENT_BRANCH}'_'${DIAAS_DEPLOYMENT_ENVIRONMENT}
+                       -f ./ops/lcl/docker-compose.yaml
+    """
+    cmd_no_newlines = "".join(cmd.split('\n'))
+    full_cmd = cmd_no_newlines + args
+    return _sh.call(full_cmd, cwd=working_dir)
+
+
+@click.command()
+@click.option('-r', '--recreate', default=False, is_flag=True)
+@click.argument('up_args', nargs=-1)
+def main(recreate, up_args):
+    os.environ["DIAAS_UID"] = _sh.output("id -u")
+    os.environ["DIAAS_GID"] = _sh.output("id -g")
+    Configuration(environment="lcl").inject_into_environ()
+    if recreate:
+        docker_compose("down -v --rmi local")
+    docker_compose(f"up --build {_sh.join(up_args)} | ts -s")
+
+
+if __name__ == '__main__':
+    main()

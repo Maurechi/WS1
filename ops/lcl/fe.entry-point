@@ -1,0 +1,4 @@
+#!/bin/bash
+source /opt/diaas/ops/lcl/_entry-point
+entry_point "$@"
+
