@@ -32,8 +32,8 @@ services:
     healthcheck:
       test: "curl --fail 127.0.0.1:8080/api/_/health"
       timeout: 60s
-      interval: 7s
-      retries: 4
+      interval: 31s
+      retries: 2
   bedb:
     build:
       context: "../"
