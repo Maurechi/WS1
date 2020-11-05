@@ -5,20 +5,20 @@ import subprocess
 join = shlex.join
 
 
-def output(arg):
+def output(arg, cwd=None):
     if isinstance(arg, str):
         shell = True
     else:
         shell = False
-    return subprocess.check_output(arg, text=True, shell=shell).rstrip()
+    return subprocess.check_output(arg, text=True, shell=shell, cwd=cwd).rstrip()
 
 
-def call(arg):
+def call(arg, cwd=None):
     if isinstance(arg, str):
         shell = True
     else:
         shell = False
-    return subprocess.check_call(arg, text=True, shell=shell)
+    return subprocess.check_call(arg, text=True, shell=shell, cwd=cwd)
 
 
 def exec(arg):

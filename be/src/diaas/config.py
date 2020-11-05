@@ -56,5 +56,8 @@ class Config:
         args = f"host={self.BEDB_PGHOST}&port={self.BEDB_PGPORT}"
         return f"{schema}://{credentials}@/{dbname}?{args}"
 
+    def session_dir(self, session_id):
+        return Path(self.SESSION_STORE_DIR) / session_id
+
 
 CONFIG = Config()

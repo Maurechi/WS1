@@ -1,3 +1,4 @@
+from diaas.config import CONFIG
 from datetime import datetime
 from diaas.db import db
 
@@ -11,6 +12,15 @@ class Session(db.Model):
     code = db.Column(db.String(), hashid_computed("id"))
     first_created = db.Column(db.DateTime(), server_default=db.text("now()::timestamp"))
     last_modified = db.Column(db.DateTime(), server_default=db.text("now()::timestamp"), onupdate=datetime.utcnow)
+
+    def create_local_data(self, local_dir):
+        local_dir.mkdir(parents=True, exist_ok=True)
+
+    def ensure_local_data(self):
+        local_dir = CONFIG.session_dir(self.code)
+        if not local_dir.exists():
+            self.create_local_data()
+        return local_dir
 
 
 class User(db.Model):

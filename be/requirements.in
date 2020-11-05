@@ -4,5 +4,6 @@ Flask-JSON
 Flask-SQLAlchemy
 Flask-shell-ipython
 arrow
-psycopg2
+psycopg2-binary
 sentry-sdk
+pygit2
