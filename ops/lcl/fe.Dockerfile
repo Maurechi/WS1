@@ -1,4 +1,4 @@
-FROM node:15-buster
+FROM node:lts
 ADD ./fe/package.json /opt/diaas/fe/package.json
 ADD ./fe/package-lock.json /opt/diaas/fe/package-lock.json
 WORKDIR /opt/diaas/fe/
