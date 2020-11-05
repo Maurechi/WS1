@@ -1,11 +1,25 @@
-#!/bin/bash
-set -u ; source "${LEUKOS_SH_V1}";
-cd "${__dir__}"/../
+#!/usr/bin/env python3
+import click
+import os
+from configuration import Configuration
+import _sh
 
-eval $(./ops/configure-for lcl)
-export DIAAS_UID="$(id -u)"
-export DIAAS_GID="$(id -g)"
-docker-compose -p "diaas_${DIAAS_DEPLOYMENT_BRANCH}_${DIAAS_DEPLOYMENT_ENVIRONMENT}" \
-               -f ./ops/docker-compose.yaml \
-               up --build "$@" \
-    | ts -s
+
+def docker_compose(args):
+    return _sh.call(""" docker-compose -p 'diaas_'${DIAAS_DEPLOYMENT_BRANCH}'_'${DIAAS_DEPLOYMENT_ENVIRONMENT} -f ./ops/docker-compose.yaml """ + args)
+
+
+@click.command()
+@click.option('-r', '--recreate', default=False, is_flag=True)
+@click.argument('up_args', nargs=-1)
+def main(recreate, up_args):
+    os.environ["DIAAS_UID"] = _sh.output("id -u")
+    os.environ["DIAAS_GID"] = _sh.output("id -g")
+    Configuration(environment="lcl").inject_into_environ()
+    if recreate:
+        docker_compose("down -v --rmi local")
+    docker_compose(f"up --build {_sh.join(up_args)} | ts -s")
+
+
+if __name__ == '__main__':
+    main()

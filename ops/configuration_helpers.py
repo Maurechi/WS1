@@ -4,7 +4,6 @@ import tabulate
 import datetime
 import shlex
 import os
-import slugify
 
 
 def from_env(name, type=str, default=None, required=False):
@@ -29,31 +28,21 @@ def from_env(name, type=str, default=None, required=False):
         raise ValueError(f"Unknown type {type}")
 
 
-def _values_for_shell(dict):
-    values = {}
-    for k, v in dict.items():
-        if v is None:
-            continue
-        if isinstance(v, bool):
-            v = "true" if v else "false"
-        else:
-            v = str(v)
-
-        try:
-            quoted_value = shlex.quote(v)
-        except Exception as e:
-            raise ValueError(f"Failure quoting `{v}` (from `{dict[k]}`): {e}")
-        values[k] = quoted_value
-
-    return values
-
-
 class BaseConfiguration:
-    def __init__(self, with_fe=True, with_be=True):
+    def __init__(self, with_fe=True, with_be=True, environment=None):
         self.with_fe = with_fe
         self.with_be = with_be
         self.values = {}
         self.timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+        if environment is None:
+            environment = from_env("DIAAS_DEPLOYMENT_ENVIRONMENT", required=True)
+        if environment in ["prd", "stg", "lcl"]:
+            self.environment = environment
+            self._set(DIAAS_DEPLOYMENT_ENVIRONMENT=self.environment)
+        else:
+            raise ValueError(
+                f"Unknown environment {environment}, must be one of prd, stg, or lcl."
+            )
 
     def _set(self, **kwargs):
         keys = list(kwargs.keys())
@@ -70,16 +59,6 @@ class BaseConfiguration:
     def branch(self):
         branch = self.if_env(prd="master", stg="master", lcl="HEAD")
         return from_env("DIAAS_DEPLOYMENT_BRANCH", default=branch)
-
-    @property
-    def environment(self):
-        e = from_env("DIAAS_DEPLOYMENT_ENVIRONMENT", required=True)
-        if e in ["prd", "stg", "lcl"]:
-            return e
-        else:
-            raise ValueError(
-                f"Unknown environment {e}, must be one of prd, stg, or lcl."
-            )
 
     @property
     def is_prd(self):
@@ -106,15 +85,40 @@ class BaseConfiguration:
     def is_master(self):
         return self.branch == "master"
 
+    def _values_as_strings(self):
+        values = {}
+        for k, v in self.values.items():
+            if v is not None:
+                if isinstance(v, bool):
+                    v = "true" if v else "false"
+                else:
+                    v = str(v)
+                values[k] = v
+        return values
+
+    def _values_for_shell(self):
+        values = {}
+        for k, v in self._values_as_strings().items():
+            try:
+                quoted_value = shlex.quote(v)
+            except Exception as e:
+                raise ValueError(f"Failure quoting value `{v}` (from `{dict[k]}`): {e}")
+            try:
+                quoted_key = shlex.quote(k)
+            except Exception as e:
+                raise ValueError(f"Failure quoting key `{k}`: {e}")
+            values[quoted_key] = quoted_value
+        return values
+
     def print_as(self, format, fp=sys.stdout):
         if format == "json":
             text = json.dumps(self.values, sort_keys=True)
         elif format == "table":
-            values = _values_for_shell(self.values)
+            values = self._values_for_shell()
             table = [[key, values[key]] for key in sorted(values.keys())]
             text = tabulate.tabulate(table)
         else:
-            values = _values_for_shell(self.values)
+            values = self._values_for_shell()
             lines = []
             for key in sorted(values.keys()):
                 value = values[key]
@@ -134,3 +138,7 @@ class BaseConfiguration:
                 text = "\n".join(lines)
         if text:
             print(text, file=fp)
+
+    def inject_into_environ(self):
+        os.environ.update(self._values_as_strings())
+        return os.environ

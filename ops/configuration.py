@@ -47,7 +47,6 @@ class Configuration(BaseConfiguration):
             return
 
         self._set_all(
-            DIAAS_DEPLOYMENT_ENVIRONMENT=self.environment,
             DIAAS_DEPLOYMENT_BRANCH=self.branch,
         )
 
