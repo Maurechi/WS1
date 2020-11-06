@@ -60,59 +60,39 @@ const Loading = () => {
   );
 };
 
-const Login = () => <p>Login with google.</p>;
-
-const App = () => (
+const Login = () => (
   <div style={{ position: "static" }}>
     <Navigation>
-      <p>DIAAS WorkBench.</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
+      <p>Login with google.</p>
     </Navigation>
   </div>
 );
 
-const Splash = observer(({ state }) => {
-  if (!state.isInitialized()) {
+const AppContent = () => (
+  <div style={{ position: "static" }}>
+    <Navigation>
+      <p>DIAAS WorkBench.</p>
+    </Navigation>
+  </div>
+);
+
+const App = observer(({ state }) => {
+  useEffect(() => {
     state.initialize();
+  }, []);
+  if (!state.isInitialized()) {
     return <Loading />;
-  } else if (!state.hasUser()) {
+  } else if (!state.isAuthenticated()) {
     return <Login />;
   } else {
-    return <App />;
+    return <AppContent />;
   }
 });
 
 ReactDOM.render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
-      <Splash state={STATE} />
+      <App state={STATE} />
     </ThemeProvider>
   </React.StrictMode>,
   document.getElementById("root")

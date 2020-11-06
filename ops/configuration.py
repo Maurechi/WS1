@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 from pathlib import Path
+
+from configuration_helpers import BaseConfiguration, from_env
 from slugify import slugify
-from configuration_helpers import (
-    BaseConfiguration,
-    from_env,
-)
 
 
 class Configuration(BaseConfiguration):
@@ -78,11 +76,13 @@ class Configuration(BaseConfiguration):
                 DIAAS_SESSION_SECRET_KEY="i0jQcU0ksBJgIeqPCT9I",
             )
         else:
-            raise ValueError(f"Don't know how to configure flask for {self.environment}")
+            raise ValueError(
+                f"Don't know how to configure flask for {self.environment}"
+            )
 
         self._set_all(
             FLASK_DEBUG=self.if_env(prd=None, otherwise="1"),
-            FLASK_ENV=self.if_env(prd="production", otherwise="development")
+            FLASK_ENV=self.if_env(prd="production", otherwise="development"),
         )
 
     def app_config(self):
@@ -96,17 +96,22 @@ class Configuration(BaseConfiguration):
             self._db_config()
             self._set_all(
                 DIAAS_SESSION_STORE_DIR="/dev/null",
-                DIAAS_INSTALL_DIR=str(Path(__file__).parent.parent)
+                DIAAS_INSTALL_DIR=str(Path(__file__).parent.parent),
             )
 
     def sentry_config(self):
         dsn = self.if_env(
             prd="https://f3551f0329dd4a9cbe4030f5f5507be5@o469059.ingest.sentry.io/5497805",
-            otherwise="https://7e144b9b33bb467ba432cacd5ef608ab@o469059.ingest.sentry.io/5497814")
+            otherwise="https://7e144b9b33bb467ba432cacd5ef608ab@o469059.ingest.sentry.io/5497814",
+        )
 
         enable_sentry = self.is_prd
-        diaas_enable_sentry = from_env("DIAAS_ENABLE_SENTRY", default=enable_sentry, type=bool)
-        react_app_enable_sentry = from_env("REACT_APP_ENABLE_SENTRY", default=enable_sentry, type=bool)
+        diaas_enable_sentry = from_env(
+            "DIAAS_ENABLE_SENTRY", default=enable_sentry, type=bool
+        )
+        react_app_enable_sentry = from_env(
+            "REACT_APP_ENABLE_SENTRY", default=enable_sentry, type=bool
+        )
 
         if self.with_be:
             self._set(DIAAS_ENABLE_SENTRY=diaas_enable_sentry)
@@ -123,7 +128,8 @@ class Configuration(BaseConfiguration):
                 self._set_all(
                     REACT_APP_SENTRY_DSN=dsn,
                     REACT_APP_SENTRY_ENVIRONMENT=self.environment,
-                    REACT_APP_SENTRY_RELEASE="diaas@" + self.values["REACT_APP_COMMIT_SHA"],
+                    REACT_APP_SENTRY_RELEASE="diaas@"
+                    + self.values["REACT_APP_COMMIT_SHA"],
                 )
 
     def tracker_config(self):
@@ -131,7 +137,9 @@ class Configuration(BaseConfiguration):
             return
 
         enable_trackers = self.is_prd
-        enable_trackers = from_env("REACT_APP_ENABLE_TRACKERS", default=enable_trackers, type=bool)
+        enable_trackers = from_env(
+            "REACT_APP_ENABLE_TRACKERS", default=enable_trackers, type=bool
+        )
 
         self._set(REACT_APP_ENABLE_TRACKERS=enable_trackers)
         if enable_trackers:

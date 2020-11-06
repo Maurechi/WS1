@@ -30,11 +30,11 @@ services:
       - "../../be/:/opt/diaas/be/"
     ports:
       - "0.0.0.0:8080:8080"
-#    healthcheck:
-#      test: "curl --fail 127.0.0.1:8080/api/_/health"
-#      timeout: 60s
-#      interval: 31s
-#      retries: 2
+  #    healthcheck:
+  #      test: "curl --fail 127.0.0.1:8080/api/_/health"
+  #      timeout: 60s
+  #      interval: 31s
+  #      retries: 2
   bedb:
     build:
       context: "../../"
@@ -61,5 +61,5 @@ services:
       - "REACT_APP_API_BASEURL=http://be:8080/"
 
 volumes:
-  bedb_PGDATA: { }
-  be_SESSION_STORE: { }
+  bedb_PGDATA: {}
+  be_SESSION_STORE: {}

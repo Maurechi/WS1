@@ -5,23 +5,30 @@ import { BACKEND } from "diaas/backend";
 class State {
   session = null;
   user = null;
+  initialized = false;
 
   constructor() {
     makeAutoObservable(this);
   }
 
-  hasUser() {
+  isAuthenticated() {
     return this.user !== null;
   }
 
   isInitialized() {
-    return this.session !== null;
+    return this.initialized;
   }
 
   initialize() {
     return BACKEND.getSession().then((session) => {
-      this.session = session;
-      this.user = session.user;
+      if (session) {
+        this.session = session;
+        this.user = session.user;
+      } else {
+        this.session = null;
+        this.user = null;
+      }
+      this.initialized = true;
       return this;
     });
   }

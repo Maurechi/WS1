@@ -26,13 +26,13 @@ class Config:
 
     def configurable(self, key, type=str):
         if type is Path:
-            transform = (lambda v: Path(v.rstrip("/")))
+            transform = lambda v: Path(v.rstrip("/"))  # noqa: E731
         elif type is str:
-            transform = (lambda v: v)
+            transform = lambda v: v  # noqa: E731
         elif type is int:
-            transform = (lambda v: int(v))
+            transform = lambda v: int(v)  # noqa: E731
         elif type is bool:
-            transform = (lambda v: v.lower() in ["yes", "1", "true", "on"])
+            transform = lambda v: v.lower() in ["yes", "1", "true", "on"]  # noqa: E731
 
         v = os.environ.get(f"DIAAS_{key}", None)
         if v is None:

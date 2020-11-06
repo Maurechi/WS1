@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+
+./ops/reformat -c
+./ops/test-be
