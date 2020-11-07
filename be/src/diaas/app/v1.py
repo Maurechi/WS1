@@ -1,8 +1,7 @@
-from flask import Blueprint, session
+from flask import Blueprint, request, session
 
-from diaas.app.utils import as_json
-from diaas.db import db
-from diaas.model import Session
+from diaas.app.utils import Request, as_json
+from diaas.model import User, Warehouse, Workbench
 
 api_v1 = Blueprint("api_v1", __name__)
 
@@ -19,9 +18,6 @@ def session_get():
 @api_v1.route("/session", methods=["POST"])
 @as_json
 def session_post():
-    s = Session()
-    db.session.add(s)
-    db.session.commit()
-    s.ensure_local_data()
-    session["id"] = s.id
-    return {"id": s.id}
+    email = Request(request).get_value("email")
+    session["email"] = email
+    return {"email": email}

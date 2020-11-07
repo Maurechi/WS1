@@ -16,8 +16,9 @@ class Config:
         self.configurable("DEPLOYMENT_COMMIT_TITLE")
         self.configurable("DEPLOYMENT_ENVIRONMENT")
         self.configurable("INTERNAL_API_TOKEN")
-        self.configurable("SESSION_STORE_DIR", type=Path)
+        self.configurable("FILE_STORE", type=Path)
         self.configurable("INSTALL_DIR", type=Path)
+        self.configurable("SESSION_COOKIE_IS_SECURE", type=bool)
         self.configurable("SESSION_SECRET_KEY")
 
         self.configurable("ENABLE_SENTRY", type=bool)
@@ -55,9 +56,6 @@ class Config:
         dbname = self.BEDB_PGDATABASE
         args = f"host={self.BEDB_PGHOST}&port={self.BEDB_PGPORT}"
         return f"{schema}://{credentials}@/{dbname}?{args}"
-
-    def session_dir(self, session_id):
-        return Path(self.SESSION_STORE_DIR) / session_id
 
 
 CONFIG = Config()

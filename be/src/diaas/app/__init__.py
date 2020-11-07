@@ -1,5 +1,6 @@
 import sentry_sdk
 from flask import Flask
+from flask_session import Session
 
 from diaas.app.internal import internal_api
 from diaas.app.utils import flask_json
@@ -26,4 +27,12 @@ def create_app():
     flask_json.init_app(app)
     db.init_app(app)
     alembic.init_app(app)
+
+    app.config["SESSION_COOKIE_SECURE"] = CONFIG.SESSION_COOKIE_IS_SECURE
+    app.config["SESSION_TYPE"] = "sqlalchemy"
+    app.config["SESSION_USE_SIGNER"] = True
+    app.config["SESSION_SQLALCHEMY"] = db
+    s = Session()
+    s.init_app(app)
+
     return app

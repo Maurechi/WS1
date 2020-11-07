@@ -19,14 +19,15 @@ services:
       - DIAAS_INSTALL_DIR=/opt/diaas/
       - DIAAS_INTERNAL_API_TOKEN
       - DIAAS_SENTRY_DSN
+      - DIAAS_SESSION_COOKIE_IS_SECURE
       - DIAAS_SESSION_SECRET_KEY
-      - DIAAS_SESSION_STORE_DIR=/opt/diaas/session-store/
+      - DIAAS_FILE_STORE=/opt/diaas/file_store/
       - DIAAS_UID
       - DIAAS_GID
       - FLASK_DEBUG
       - FLASK_ENV
     volumes:
-      - "be_SESSION_STORE:/opt/diaas/session-store/"
+      - "be_FILE_STORE:/opt/diaas/file_store/"
       - "../../be/:/opt/diaas/be/"
     ports:
       - "0.0.0.0:8080:8080"
@@ -62,4 +63,4 @@ services:
 
 volumes:
   bedb_PGDATA: {}
-  be_SESSION_STORE: {}
+  be_FILE_STORE: {}

@@ -8,15 +8,17 @@ alembic==1.4.3            # via flask-alembic
 arrow==0.17.0             # via -r requirements.in
 backcall==0.2.0           # via ipython
 cached-property==1.5.2    # via pygit2
+cachelib==0.1.1           # via flask-session
 certifi==2020.6.20        # via sentry-sdk
 cffi==1.14.3              # via pygit2
 click==7.1.2              # via flask, flask-shell-ipython
 decorator==4.4.2          # via ipython
 flask-alembic==2.0.1      # via -r requirements.in
 flask-json==0.3.4         # via -r requirements.in
+flask-session==0.3.2      # via -r requirements.in
 flask-shell-ipython==0.4.1  # via -r requirements.in
 flask-sqlalchemy==2.4.4   # via -r requirements.in, flask-alembic
-flask==1.1.2              # via -r requirements.in, flask-alembic, flask-json, flask-shell-ipython, flask-sqlalchemy
+flask==1.1.2              # via -r requirements.in, flask-alembic, flask-json, flask-session, flask-shell-ipython, flask-sqlalchemy
 ipython-genutils==0.2.0   # via traitlets
 ipython==7.19.0           # via flask-shell-ipython
 itsdangerous==1.1.0       # via flask

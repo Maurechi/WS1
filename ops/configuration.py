@@ -81,6 +81,7 @@ class Configuration(BaseConfiguration):
             )
 
         self._set_all(
+            DIAAS_SESSION_COOKIE_IS_SECURE=not self.is_lcl,
             FLASK_DEBUG=self.if_env(prd=None, otherwise="1"),
             FLASK_ENV=self.if_env(prd="production", otherwise="development"),
         )
@@ -95,7 +96,7 @@ class Configuration(BaseConfiguration):
             self._flask_config()
             self._db_config()
             self._set_all(
-                DIAAS_SESSION_STORE_DIR="/dev/null",
+                DIAAS_FILE_STORE="/dev/null",
                 DIAAS_INSTALL_DIR=str(Path(__file__).parent.parent),
             )
 

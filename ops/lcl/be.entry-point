@@ -1,4 +1,4 @@
 #!/bin/bash
 source /opt/diaas/ops/lcl/_entry-point
-chown -R $user:$group /opt/diaas/session-store/
+chown -R $user:$group /opt/diaas/file_store/
 entry_point "$@"
