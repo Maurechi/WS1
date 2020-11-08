@@ -1,8 +1,7 @@
-import sqlalchemy.types as types
-
 from datetime import datetime
 
 import pygit2
+import sqlalchemy.types as types
 
 from diaas.config import CONFIG
 from diaas.db import db
@@ -29,7 +28,9 @@ class User(db.Model, ModifiedAtMixin):
 
     email = db.Column(db.String(), unique=True)
 
-    workbenches = db.relationship("Workbench", back_populates="user", cascade="all,delete-orphan")
+    workbenches = db.relationship(
+        "Workbench", back_populates="user", cascade="all,delete-orphan"
+    )
 
 
 class Warehouse(db.Model, ModifiedAtMixin):
@@ -38,17 +39,25 @@ class Warehouse(db.Model, ModifiedAtMixin):
 
     repo = db.Column(db.String(), nullable=False)
 
-    workbenches = db.relationship("Workbench", back_populates="warehouse", cascade="all,delete-orphan")
+    workbenches = db.relationship(
+        "Workbench", back_populates="warehouse", cascade="all,delete-orphan"
+    )
 
 
 class Workbench(db.Model, ModifiedAtMixin):
     wbid = db.Column(db.Integer(), primary_key=True)
     code = db.Column(db.String(), hashid_computed("wbid"))
 
-    uid = db.Column(db.Integer(), db.ForeignKey("user.uid", ondelete="cascade"), nullable=False)
+    uid = db.Column(
+        db.Integer(), db.ForeignKey("user.uid", ondelete="cascade"), nullable=False
+    )
     user = db.relationship("User", back_populates="workbenches")
 
-    whid = db.Column(db.Integer(), db.ForeignKey("warehouse.whid", ondelete="cascade"), nullable=False)
+    whid = db.Column(
+        db.Integer(),
+        db.ForeignKey("warehouse.whid", ondelete="cascade"),
+        nullable=False,
+    )
     warehouse = db.relationship("Warehouse", back_populates="workbenches")
 
     branch = db.Column(db.String(), default="master", nullable=False)

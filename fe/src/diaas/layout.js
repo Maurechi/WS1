@@ -22,7 +22,10 @@ import MenuIcon from "@material-ui/icons/Menu";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import clsx from "clsx";
+import { observer } from "mobx-react-lite";
 import React from "react";
+
+import { useAppState } from "diaas/state";
 
 export const HCenter = ({ children, ...props }) => (
   <Box display="flex" width="100%" justifyContent="center" {...props}>
@@ -120,6 +123,41 @@ export const AppSplash = ({ children }) => {
   );
 };
 
+const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
+  const state = useAppState();
+  const classes = useStyles();
+  return (
+    <Toolbar>
+      <IconButton
+        color="inherit"
+        aria-label="open drawer"
+        onClick={handleDrawerOpen}
+        edge="start"
+        className={clsx(classes.menuButton, {
+          [classes.hide]: drawerOpen,
+        })}
+      >
+        <MenuIcon />
+      </IconButton>
+      <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
+        DIAAS
+      </Typography>
+      <Button variant="contained" color="primary">
+        Branch: {state.user.workbenches[0].branch}
+      </Button>
+      <Button variant="contained" color="primary">
+        Warehouse: {state.user.workbenches[0].warehouse.whid}
+      </Button>
+      <Button variant="contained" color="primary">
+        Settings
+      </Button>
+      <Button variant="contained" color="primary">
+        Profile
+      </Button>
+    </Toolbar>
+  );
+});
+
 export const AppNavigation = ({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
@@ -141,23 +179,7 @@ export const AppNavigation = ({ children }) => {
           [classes.appBarShift]: open,
         })}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            className={clsx(classes.menuButton, {
-              [classes.hide]: open,
-            })}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
-            DIAAS
-          </Typography>
-          <Button>User</Button>
-        </Toolbar>
+        <AppNavigationToolbar handleDrawerOpen={handleDrawerOpen} drawerOpen={open} />
       </MUIAppBar>
       <Drawer
         variant="permanent"
