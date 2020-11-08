@@ -3,6 +3,19 @@ set -u; source "${LEUKOS_SH_V1}"; cd "$__root__";
 
 eval "$(./ops/configure-for lcl || echo 'exit 2')"
 name="diaas_bedb_${DIAAS_DEPLOYMENT_NAME}"
+
+while getopts "r" options; do
+    case "${options}" in
+        r)
+            docker ps -qa --filter "ancestor=$name" | xargs --no-run-if-empty docker rm
+            docker volume rm $name
+        ;;
+        *)
+            echo invalid arguments.
+            exit 2
+    esac
+done
+
 docker volume create $name
 docker build -t $name -f ./ops/lcl/bedb.Dockerfile .
 docker run -it -e POSTGRES_PASSWORD="$DIAAS_BEDB_PGPASSWORD" -v "$name:/var/lib/postgresql/data:rw" -p $DIAAS_BEDB_PGPORT:5432 $name

@@ -22,7 +22,6 @@ class Backend {
   }
 
   login(email) {
-    return Promise.resolve({ code: "abcd", email: email });
     return this.axios.post("user", { email: email }).then((res) => {
       if (res.status === 200) {
         return res.data.data;

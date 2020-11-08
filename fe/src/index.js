@@ -64,29 +64,31 @@ const Loading = () => {
 
 const Login = observer(() => {
   const state = useAppState();
-  const email = useFormValue();
+  const email = useFormValue("", { transform: (e) => v.trim(e) });
   const isValid = v.trim(email.v).length > 0 && v.search(email.v, /.@.+[.].+/) > -1;
-  console.log("Login state", state);
-  const submit = () => {
+  const submit = (e) => {
+    e.preventDefault();
     state.login(email.v);
   };
   return (
     <div style={{ position: "static" }}>
       <AppSplash>
-        <Grid container>
-          <Grid item xs={12}>
-            <HCenter>
-              <TextInput label="email" autoFocus={true} value={email} />
-            </HCenter>
+        <form onSubmit={submit}>
+          <Grid container>
+            <Grid item xs={12}>
+              <HCenter>
+                <TextInput label="email" autoFocus={true} value={email} />
+              </HCenter>
+            </Grid>
+            <Grid item xs={12}>
+              <HCenter pt={2}>
+                <Button variant="contained" color="primary" disabled={!isValid} onClick={submit}>
+                  Login
+                </Button>
+              </HCenter>
+            </Grid>
           </Grid>
-          <Grid item xs={12}>
-            <HCenter pt={2}>
-              <Button variant="contained" color="primary" disabled={!isValid} onClick={submit}>
-                Login
-              </Button>
-            </HCenter>
-          </Grid>
-        </Grid>
+        </form>
       </AppSplash>
     </div>
   );
@@ -102,7 +104,6 @@ const AppContent = () => (
 
 const App = observer(() => {
   const state = useAppState();
-  console.log("App state", state);
   useEffect(() => {
     state.initialize();
   }, [state]);
