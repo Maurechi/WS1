@@ -19,5 +19,3 @@ done
 docker volume create $name
 docker build -t $name -f ./ops/lcl/bedb.Dockerfile .
 docker run -it -e POSTGRES_PASSWORD="$DIAAS_BEDB_PGPASSWORD" -v "$name:/var/lib/postgresql/data:rw" -p $DIAAS_BEDB_PGPORT:5432 $name
-
-

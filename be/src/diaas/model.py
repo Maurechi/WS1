@@ -45,10 +45,10 @@ class Workbench(db.Model, ModifiedAtMixin):
     wbid = db.Column(db.Integer(), primary_key=True)
     code = db.Column(db.String(), hashid_computed("wbid"))
 
-    uid = db.Column(db.Integer(), db.ForeignKey("user.uid"), nullable=False)
+    uid = db.Column(db.Integer(), db.ForeignKey("user.uid", ondelete="cascade"), nullable=False)
     user = db.relationship("User", back_populates="workbenches")
 
-    whid = db.Column(db.Integer(), db.ForeignKey("warehouse.whid"), nullable=False)
+    whid = db.Column(db.Integer(), db.ForeignKey("warehouse.whid", ondelete="cascade"), nullable=False)
     warehouse = db.relationship("Warehouse", back_populates="workbenches")
 
     branch = db.Column(db.String(), default="master", nullable=False)

@@ -1,8 +1,8 @@
-"""initial workbench
+"""initial model
 
-Revision ID: e1fa3c2f24d2
+Revision ID: e77856ea6b27
 Revises: 3a947eec80a9
-Create Date: 2020-11-07 23:07:50.516885
+Create Date: 2020-11-08 23:15:08.457527
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e1fa3c2f24d2'
+revision = 'e77856ea6b27'
 down_revision = '3a947eec80a9'
 branch_labels = ()
 depends_on = None
@@ -44,8 +44,8 @@ def upgrade():
     sa.Column('uid', sa.Integer(), nullable=False),
     sa.Column('whid', sa.Integer(), nullable=False),
     sa.Column('branch', sa.String(), nullable=False),
-    sa.ForeignKeyConstraint(['uid'], ['user.uid'], ),
-    sa.ForeignKeyConstraint(['whid'], ['warehouse.whid'], ),
+    sa.ForeignKeyConstraint(['uid'], ['user.uid'], ondelete='cascade'),
+    sa.ForeignKeyConstraint(['whid'], ['warehouse.whid'], ondelete='cascade'),
     sa.PrimaryKeyConstraint('wbid')
     )
     # ### end Alembic commands ###
