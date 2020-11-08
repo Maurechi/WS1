@@ -2,7 +2,7 @@ import axios from "axios";
 import _ from "lodash";
 
 class Backend {
-  constructor(args) {
+  constructor() {
     this.axios = axios.create({
       baseURL: "//" + window.location.host + "/api/1/",
       validateStatus: (status) => _.includes([200, 201, 204, 404], status),

@@ -1,3 +1,4 @@
+import { Button, Grid } from "@material-ui/core";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
@@ -7,6 +8,8 @@ import v from "voca";
 import "./index.css";
 import logo from "./diaas-logo.png";
 import reportWebVitals from "./reportWebVitals";
+import { TextInput } from "diaas/form.js";
+import { HCenter } from "diaas/layout.js";
 import { Navigation } from "diaas/navigation";
 import { STATE } from "diaas/state.js";
 
@@ -63,7 +66,20 @@ const Loading = () => {
 const Login = () => (
   <div style={{ position: "static" }}>
     <Navigation>
-      <p>Login with google.</p>
+      <Grid container>
+        <Grid item xs={12}>
+          <HCenter>
+            <TextInput label="email" />
+          </HCenter>
+        </Grid>
+        <Grid item xs={12}>
+          <HCenter pt={2}>
+            <Button variant="contained" color="primary">
+              Login
+            </Button>
+          </HCenter>
+        </Grid>
+      </Grid>
     </Navigation>
   </div>
 );
