@@ -8,9 +8,9 @@ import v from "voca";
 import "./index.css";
 import logo from "./diaas-logo.png";
 import reportWebVitals from "./reportWebVitals";
-import { TextInput } from "diaas/form.js";
+import { TextInput, useFormValue } from "diaas/form.js";
 import { AppNavigation, AppSplash, HCenter } from "diaas/layout.js";
-import { STATE } from "diaas/state.js";
+import { AppState, useAppState } from "diaas/state.js";
 
 const theme = createMuiTheme({
   palette: {
@@ -62,26 +62,35 @@ const Loading = () => {
   );
 };
 
-const Login = () => (
-  <div style={{ position: "static" }}>
-    <AppSplash>
-      <Grid container>
-        <Grid item xs={12}>
-          <HCenter>
-            <TextInput label="email" />
-          </HCenter>
+const Login = observer(() => {
+  const state = useAppState();
+  const email = useFormValue();
+  const isValid = v.trim(email.v).length > 0 && v.search(email.v, /.@.+[.].+/) > -1;
+  console.log("Login state", state);
+  const submit = () => {
+    state.login(email.v);
+  };
+  return (
+    <div style={{ position: "static" }}>
+      <AppSplash>
+        <Grid container>
+          <Grid item xs={12}>
+            <HCenter>
+              <TextInput label="email" autoFocus={true} value={email} />
+            </HCenter>
+          </Grid>
+          <Grid item xs={12}>
+            <HCenter pt={2}>
+              <Button variant="contained" color="primary" disabled={!isValid} onClick={submit}>
+                Login
+              </Button>
+            </HCenter>
+          </Grid>
         </Grid>
-        <Grid item xs={12}>
-          <HCenter pt={2}>
-            <Button variant="contained" color="primary">
-              Login
-            </Button>
-          </HCenter>
-        </Grid>
-      </Grid>
-    </AppSplash>
-  </div>
-);
+      </AppSplash>
+    </div>
+  );
+});
 
 const AppContent = () => (
   <div style={{ position: "static" }}>
@@ -91,23 +100,27 @@ const AppContent = () => (
   </div>
 );
 
-const App = observer(({ state }) => {
+const App = observer(() => {
+  const state = useAppState();
+  console.log("App state", state);
   useEffect(() => {
     state.initialize();
-  }, []);
-  if (!state.isInitialized()) {
+  }, [state]);
+  if (!state.initialized) {
     return <Loading />;
-  } else if (!state.isAuthenticated()) {
-    return <Login />;
-  } else {
+  } else if (state.user) {
     return <AppContent />;
+  } else {
+    return <Login />;
   }
 });
 
 ReactDOM.render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
-      <App state={STATE} />
+      <AppState>
+        <App />
+      </AppState>
     </ThemeProvider>
   </React.StrictMode>,
   document.getElementById("root")

@@ -1,6 +1,7 @@
 import {
   AppBar as MUIAppBar,
   Box,
+  Button,
   Divider,
   Drawer,
   IconButton,
@@ -152,9 +153,10 @@ export const AppNavigation = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap>
+          <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
             DIAAS
           </Typography>
+          <Button>User</Button>
         </Toolbar>
       </MUIAppBar>
       <Drawer
