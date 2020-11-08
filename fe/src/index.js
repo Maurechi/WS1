@@ -9,8 +9,7 @@ import "./index.css";
 import logo from "./diaas-logo.png";
 import reportWebVitals from "./reportWebVitals";
 import { TextInput } from "diaas/form.js";
-import { HCenter } from "diaas/layout.js";
-import { Navigation } from "diaas/navigation";
+import { AppNavigation, AppSplash, HCenter } from "diaas/layout.js";
 import { STATE } from "diaas/state.js";
 
 const theme = createMuiTheme({
@@ -65,7 +64,7 @@ const Loading = () => {
 
 const Login = () => (
   <div style={{ position: "static" }}>
-    <Navigation>
+    <AppSplash>
       <Grid container>
         <Grid item xs={12}>
           <HCenter>
@@ -80,15 +79,15 @@ const Login = () => (
           </HCenter>
         </Grid>
       </Grid>
-    </Navigation>
+    </AppSplash>
   </div>
 );
 
 const AppContent = () => (
   <div style={{ position: "static" }}>
-    <Navigation>
+    <AppNavigation>
       <p>DIAAS WorkBench.</p>
-    </Navigation>
+    </AppNavigation>
   </div>
 );
 
