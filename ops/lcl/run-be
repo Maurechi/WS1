@@ -1,0 +1,7 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}";
+
+cd $__root__
+
+eval "$(./ops/configure-for lcl --without-fe || echo 'exit 2')"
+exec ./ops/lcl/flask run -h 127.0.0.1 -p 8080

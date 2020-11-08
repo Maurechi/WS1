@@ -59,15 +59,21 @@ class Configuration(BaseConfiguration):
             else:
                 branch = slugify(text=self.branch, max_length=48)
                 deployment_url = f"https://{branch}-{self.environment}.diaas.dev"
-        self._set(DIAAS_DEPLOYMENT_URL=deployment_url)
+        self._set_all(
+            DIAAS_DEPLOYMENT_NAME=slugify(
+                self.environment + "-" + self.branch, max_length=60
+            ),
+            DIAAS_DEPLOYMENT_URL=deployment_url,
+        )
 
     def _db_config(self):
-        self._set(DIAAS_BEDB_PGDATABASE="postgres")
-        self._set(DIAAS_BEDB_PGHOST="bedb")
-        self._set(DIAAS_BEDB_PGPASSWORD="KFvZLY65Mv0GahRMBL")
-        self._set(DIAAS_BEDB_PGPORT="5432")
-        self._set(DIAAS_BEDB_PGUSER="postgres")
-        self._set(DIAAS_BEDB_PGDATABASE="postgres")
+        self._set_all(
+            DIAAS_BEDB_PGDATABASE="postgres",
+            DIAAS_BEDB_PGHOST="127.0.0.1",
+            DIAAS_BEDB_PGPASSWORD="KFvZLY65Mv0GahRMBL",
+            DIAAS_BEDB_PGPORT="5432",
+            DIAAS_BEDB_PGUSER="postgres",
+        )
 
     def _flask_config(self):
         if self.is_lcl:
@@ -88,17 +94,26 @@ class Configuration(BaseConfiguration):
 
     def app_config(self):
         if self.with_fe:
-            if not self.is_lcl:
-                api_baseurl = from_env("REACT_APP_API_BASEURL", required=True)
-                self._set(REACT_APP_API_BASEURL=api_baseurl)
+            if self.is_lcl:
+                self._set(REACT_APP_API_BASEURL="http://127.0.0.1:8080/")
+            else:
+                raise ValueError(
+                    f"Sorry, don't know what REACT_APP_API_BASEURL to sue for {self.environment}"
+                )
 
         if self.with_be:
             self._flask_config()
             self._db_config()
-            self._set_all(
-                DIAAS_FILE_STORE="/dev/null",
-                DIAAS_INSTALL_DIR=str(Path(__file__).parent.parent),
-            )
+            install_dir = Path(__file__).resolve().parent.parent
+            self._set(DIAAS_INSTALL_DIR=install_dir)
+            if self.is_lcl:
+                file_store = install_dir / "tmp/lcl-file-store"
+                file_store.mkdir(parents=True, exist_ok=True)
+                self._set(DIAAS_FILE_STORE=file_store)
+            else:
+                raise ValueError(
+                    f"Don't know value for DIAAS_FILE_STORE for env {self.environment}"
+                )
 
     def sentry_config(self):
         dsn = self.if_env(
