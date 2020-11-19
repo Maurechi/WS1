@@ -3,6 +3,8 @@ import _ from "lodash";
 import { action, makeAutoObservable } from "mobx";
 import { createContext, useContext } from "react";
 
+import { ignore } from "diaas/utils.js";
+
 class Backend {
   constructor() {
     this.axios = axios.create({
@@ -32,6 +34,21 @@ class Backend {
   }
 }
 
+const MOCK_USER = {
+  uid: "q18y",
+  workbenches: [
+    {
+      wbid: "kauw",
+      name: "master",
+      branch: "master",
+      warehouse: {
+        whid: "a7rt",
+        name: "Astrospace GmbH",
+      },
+    },
+  ],
+};
+
 class AppStateObject {
   user = null;
   initialized = false;
@@ -45,7 +62,7 @@ class AppStateObject {
     this.backend.getCurrentUser().then(
       action("setCurrentUser", (user) => {
         this.initialized = true;
-        this.user = user;
+        this.user = MOCK_USER;
       })
     );
   }
@@ -53,7 +70,8 @@ class AppStateObject {
   login(email) {
     this.backend.login(email).then(
       action("login", (user) => {
-        this.user = user;
+        ignore(user);
+        this.user = MOCK_USER;
       })
     );
   }

@@ -16,6 +16,7 @@ import { makeStyles, useTheme } from "@material-ui/core/styles";
 import BuildIcon from "@material-ui/icons/Build";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import ChevronRightIcon from "@material-ui/icons/ChevronRight";
+import CollectionsBookmarkIcon from "@material-ui/icons/CollectionsBookmark";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import InfoIcon from "@material-ui/icons/Info";
 import MenuIcon from "@material-ui/icons/Menu";
@@ -24,6 +25,7 @@ import SettingsIcon from "@material-ui/icons/Settings";
 import clsx from "clsx";
 import { observer } from "mobx-react-lite";
 import React from "react";
+import { Link } from "react-router-dom";
 
 import { useAppState } from "diaas/state";
 
@@ -140,13 +142,15 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
         <MenuIcon />
       </IconButton>
       <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
-        DIAAS
+        <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>
+          DIAAS
+        </Link>
       </Typography>
       <Button variant="contained" color="primary">
         Branch: {state.user.workbenches[0].branch}
       </Button>
       <Button variant="contained" color="primary">
-        Warehouse: {state.user.workbenches[0].warehouse.whid}
+        Warehouse: {state.user.workbenches[0].warehouse.name}
       </Button>
       <Button variant="contained" color="primary">
         Settings
@@ -201,34 +205,43 @@ export const AppNavigation = ({ children }) => {
         </div>
         <Divider />
         <List>
-          <ListItem button key="Extract">
+          <ListItem button component={Link} to="/modules" key="Modules">
             <ListItemIcon>
-              <GetAppIcon />
+              <CollectionsBookmarkIcon />
             </ListItemIcon>
-            <ListItemText primary="Extract" />
-          </ListItem>
-          <ListItem button key="Transform">
-            <ListItemIcon>
-              <BuildIcon />
-            </ListItemIcon>
-            <ListItemText primary="Transform" />
-          </ListItem>
-          <ListItem button key="Analyze">
-            <ListItemIcon>
-              <SearchIcon />
-            </ListItemIcon>
-            <ListItemText primary="Analyze" />
+            <ListItemText primary="Modules" />
           </ListItem>
         </List>
         <Divider />
         <List>
-          <ListItem button key="Monitor">
+          <ListItem button component={Link} to="/sources" key="Sources">
+            <ListItemIcon>
+              <GetAppIcon />
+            </ListItemIcon>
+            <ListItemText primary="Sources" />
+          </ListItem>
+          <ListItem button component={Link} to="/transformations" key="Transformations">
+            <ListItemIcon>
+              <BuildIcon />
+            </ListItemIcon>
+            <ListItemText primary="Transformations" />
+          </ListItem>
+          <ListItem button component={Link} to="/analytics" key="Analytics">
+            <ListItemIcon>
+              <SearchIcon />
+            </ListItemIcon>
+            <ListItemText primary="Analytics" />
+          </ListItem>
+        </List>
+        <Divider />
+        <List>
+          <ListItem button component={Link} to="/monitoring" key="Monitoring">
             <ListItemIcon>
               <InfoIcon />
             </ListItemIcon>
-            <ListItemText primary="Monitor" />
+            <ListItemText primary="Monitoring" />
           </ListItem>
-          <ListItem button key="Settings">
+          <ListItem button component={Link} to="/settings" key="Settings">
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>
@@ -238,7 +251,7 @@ export const AppNavigation = ({ children }) => {
       </Drawer>
       <main className={classes.content}>
         <div className={classes.toolbar} />
-        {children}
+        <Box p={4}>{children}</Box>
       </main>
     </div>
   );

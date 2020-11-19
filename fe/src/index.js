@@ -3,13 +3,15 @@ import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import v from "voca";
 
 import "./index.css";
 import logo from "./diaas-logo.png";
 import reportWebVitals from "./reportWebVitals";
-import { TextInput, useFormValue } from "diaas/form.js";
+import { TextField, useFormValue } from "diaas/form.js";
 import { AppNavigation, AppSplash, HCenter } from "diaas/layout.js";
+import { SourceContent } from "diaas/Source";
 import { AppState, useAppState } from "diaas/state.js";
 
 const theme = createMuiTheme({
@@ -77,7 +79,7 @@ const Login = observer(() => {
           <Grid container>
             <Grid item xs={12}>
               <HCenter>
-                <TextInput label="email" autoFocus={true} value={email} />
+                <TextField label="email" autoFocus={true} value={email} />
               </HCenter>
             </Grid>
             <Grid item xs={12}>
@@ -96,9 +98,23 @@ const Login = observer(() => {
 
 const AppContent = () => (
   <div style={{ position: "static" }}>
-    <AppNavigation>
-      <p>DIAAS WorkBench.</p>
-    </AppNavigation>
+    <Router>
+      <AppNavigation>
+        <Switch>
+          <Route path="/modules/">Modules</Route>
+          <Route path="/sources/">
+            <SourceContent />
+          </Route>
+          <Route path="/transformations/">Transformations</Route>
+          <Route path="/analytics/">Analytics</Route>
+          <Route path="/monitoring/">Monitoring</Route>
+          <Route path="/settings/">Settings</Route>
+          <Route path="/">
+            <p>Welcome to DIAAS.</p>
+          </Route>
+        </Switch>
+      </AppNavigation>
+    </Router>
   </div>
 );
 
