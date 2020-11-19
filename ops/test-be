@@ -4,5 +4,5 @@ set -u; source "${LEUKOS_SH_V1}";
 ROOT=$(cd "${__dir__}/../" && pwd)
 
 eval "$("$ROOT/ops/configure-for" lcl)"
-PYTHONPATH="$ROOT/be/src/" pytest "$@" "$ROOT/be/tests/"
+PYTHONPATH="$ROOT/be/src/:$ROOT/be/tests/" pytest -vvv "$@" "$ROOT/be/tests/"
 
