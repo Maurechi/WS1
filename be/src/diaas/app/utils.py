@@ -1,11 +1,12 @@
-from pathlib import Path
 import decimal
 from collections.abc import Mapping, Sequence
 from functools import wraps
+from pathlib import Path
 from pprint import pformat
 
 import arrow
 from flask_json import FlaskJSON, json_response, request
+
 from diaas.db import db
 
 
@@ -72,7 +73,8 @@ class AlreadyExistsError(ApiError):
         title = f"Entity of type {entity_type}, found by {key}, already exists with key {key}."
         source = dict(type=entity_type, key=key, existing_id=existing_id)
         super().__init__(
-            source=source, title=title,
+            source=source,
+            title=title,
         )
 
 
@@ -145,3 +147,14 @@ def no_autoflush(view):
             return view(*args, **kwargs)
 
     return wrapped
+
+
+class Request:
+    def __init__(self, request):
+        self.request = request
+
+    def json(self):
+        return self.request.get_json(force=True)
+
+    def get_value(self, key):
+        return self.json().get(key, None)

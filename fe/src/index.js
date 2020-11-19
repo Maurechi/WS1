@@ -1,3 +1,4 @@
+import { Button, Grid } from "@material-ui/core";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
@@ -7,8 +8,9 @@ import v from "voca";
 import "./index.css";
 import logo from "./diaas-logo.png";
 import reportWebVitals from "./reportWebVitals";
-import { Navigation } from "diaas/navigation";
-import { STATE } from "diaas/state.js";
+import { TextInput, useFormValue } from "diaas/form.js";
+import { AppNavigation, AppSplash, HCenter } from "diaas/layout.js";
+import { AppState, useAppState } from "diaas/state.js";
 
 const theme = createMuiTheme({
   palette: {
@@ -60,59 +62,66 @@ const Loading = () => {
   );
 };
 
-const Login = () => <p>Login with google.</p>;
+const Login = observer(() => {
+  const state = useAppState();
+  const email = useFormValue("", { transform: (e) => v.trim(e) });
+  const isValid = v.trim(email.v).length > 0 && v.search(email.v, /.@.+[.].+/) > -1;
+  const submit = (e) => {
+    e.preventDefault();
+    state.login(email.v);
+  };
+  return (
+    <div style={{ position: "static" }}>
+      <AppSplash>
+        <form onSubmit={submit}>
+          <Grid container>
+            <Grid item xs={12}>
+              <HCenter>
+                <TextInput label="email" autoFocus={true} value={email} />
+              </HCenter>
+            </Grid>
+            <Grid item xs={12}>
+              <HCenter pt={2}>
+                <Button variant="contained" color="primary" disabled={!isValid} onClick={submit}>
+                  Login
+                </Button>
+              </HCenter>
+            </Grid>
+          </Grid>
+        </form>
+      </AppSplash>
+    </div>
+  );
+});
 
-const App = () => (
+const AppContent = () => (
   <div style={{ position: "static" }}>
-    <Navigation>
+    <AppNavigation>
       <p>DIAAS WorkBench.</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-      <p>1</p>
-    </Navigation>
+    </AppNavigation>
   </div>
 );
 
-const Splash = observer(({ state }) => {
-  if (!state.isInitialized()) {
+const App = observer(() => {
+  const state = useAppState();
+  useEffect(() => {
     state.initialize();
+  }, [state]);
+  if (!state.initialized) {
     return <Loading />;
-  } else if (!state.hasUser()) {
-    return <Login />;
+  } else if (state.user) {
+    return <AppContent />;
   } else {
-    return <App />;
+    return <Login />;
   }
 });
 
 ReactDOM.render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
-      <Splash state={STATE} />
+      <AppState>
+        <App />
+      </AppState>
     </ThemeProvider>
   </React.StrictMode>,
   document.getElementById("root")

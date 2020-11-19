@@ -16,8 +16,9 @@ class Config:
         self.configurable("DEPLOYMENT_COMMIT_TITLE")
         self.configurable("DEPLOYMENT_ENVIRONMENT")
         self.configurable("INTERNAL_API_TOKEN")
-        self.configurable("SESSION_STORE_DIR", type=Path)
+        self.configurable("FILE_STORE", type=Path)
         self.configurable("INSTALL_DIR", type=Path)
+        self.configurable("SESSION_COOKIE_IS_SECURE", type=bool)
         self.configurable("SESSION_SECRET_KEY")
 
         self.configurable("ENABLE_SENTRY", type=bool)
@@ -26,13 +27,13 @@ class Config:
 
     def configurable(self, key, type=str):
         if type is Path:
-            transform = (lambda v: Path(v.rstrip("/")))
+            transform = lambda v: Path(v.rstrip("/"))  # noqa: E731
         elif type is str:
-            transform = (lambda v: v)
+            transform = lambda v: v  # noqa: E731
         elif type is int:
-            transform = (lambda v: int(v))
+            transform = lambda v: int(v)  # noqa: E731
         elif type is bool:
-            transform = (lambda v: v.lower() in ["yes", "1", "true", "on"])
+            transform = lambda v: v.lower() in ["yes", "1", "true", "on"]  # noqa: E731
 
         v = os.environ.get(f"DIAAS_{key}", None)
         if v is None:
@@ -55,9 +56,6 @@ class Config:
         dbname = self.BEDB_PGDATABASE
         args = f"host={self.BEDB_PGHOST}&port={self.BEDB_PGPORT}"
         return f"{schema}://{credentials}@/{dbname}?{args}"
-
-    def session_dir(self, session_id):
-        return Path(self.SESSION_STORE_DIR) / session_id
 
 
 CONFIG = Config()

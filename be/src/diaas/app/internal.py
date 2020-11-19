@@ -1,13 +1,14 @@
-import os
-from pprint import pformat
-import traceback
-import psycopg2
 import logging
+import os
+import traceback
+from pprint import pformat
+
+import alembic
+import psycopg2
 from flask import Blueprint, request
+
 from diaas.app.utils import NotFoundError, as_json
 from diaas.config import CONFIG
-import alembic
-
 
 internal_api = Blueprint("internal_api", __name__, static_folder=None)
 
@@ -88,7 +89,7 @@ def _db_health():
     if len(row) != 3:
         return {"ok": False, "data": pformat(res)}
 
-    heads = [] # alembic.heads()
+    heads = []  # alembic.heads()
 
     return {
         "ok": True,
@@ -129,3 +130,9 @@ def health():
         health,
         200 if health["ok"] else 503,
     )
+
+
+@internal_api.route("/echo")
+@as_json
+def echo():
+    return dict(ok=True)

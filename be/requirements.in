@@ -3,6 +3,7 @@ Flask-Alembic
 Flask-JSON
 Flask-SQLAlchemy
 Flask-shell-ipython
+Flask-Session
 arrow
 psycopg2-binary
 sentry-sdk

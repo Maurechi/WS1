@@ -1,14 +1,18 @@
-import AppBar from "@material-ui/core/AppBar";
-import Divider from "@material-ui/core/Divider";
-import Drawer from "@material-ui/core/Drawer";
-import IconButton from "@material-ui/core/IconButton";
-import List from "@material-ui/core/List";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemText from "@material-ui/core/ListItemText";
+import {
+  AppBar as MUIAppBar,
+  Box,
+  Button,
+  Divider,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+} from "@material-ui/core";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
-import Toolbar from "@material-ui/core/Toolbar";
-import Typography from "@material-ui/core/Typography";
 import BuildIcon from "@material-ui/icons/Build";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import ChevronRightIcon from "@material-ui/icons/ChevronRight";
@@ -18,7 +22,16 @@ import MenuIcon from "@material-ui/icons/Menu";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import clsx from "clsx";
+import { observer } from "mobx-react-lite";
 import React from "react";
+
+import { useAppState } from "diaas/state";
+
+export const HCenter = ({ children, ...props }) => (
+  <Box display="flex" width="100%" justifyContent="center" {...props}>
+    {children}
+  </Box>
+);
 
 const drawerWidth = 240;
 
@@ -86,7 +99,66 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export const Navigation = ({ children }) => {
+export const AppSplash = ({ children }) => {
+  const classes = useStyles();
+  return (
+    <div className={classes.root}>
+      <MUIAppBar
+        position="fixed"
+        className={clsx(classes.appBar, {
+          [classes.appBarShift]: false,
+        })}
+      >
+        <Toolbar>
+          <Typography variant="h6" noWrap>
+            DIAAS
+          </Typography>
+        </Toolbar>
+      </MUIAppBar>
+      <main className={classes.content}>
+        <div className={classes.toolbar} />
+        {children}
+      </main>
+    </div>
+  );
+};
+
+const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
+  const state = useAppState();
+  const classes = useStyles();
+  return (
+    <Toolbar>
+      <IconButton
+        color="inherit"
+        aria-label="open drawer"
+        onClick={handleDrawerOpen}
+        edge="start"
+        className={clsx(classes.menuButton, {
+          [classes.hide]: drawerOpen,
+        })}
+      >
+        <MenuIcon />
+      </IconButton>
+      <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
+        DIAAS
+      </Typography>
+      <Button variant="contained" color="primary">
+        Branch: {state.user.workbenches[0].branch}
+      </Button>
+      <Button variant="contained" color="primary">
+        Warehouse: {state.user.workbenches[0].warehouse.whid}
+      </Button>
+      <Button variant="contained" color="primary">
+        Settings
+      </Button>
+      <Button variant="contained" color="primary">
+        Profile
+      </Button>
+    </Toolbar>
+  );
+});
+
+export const AppNavigation = ({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
@@ -101,29 +173,14 @@ export const Navigation = ({ children }) => {
 
   return (
     <div className={classes.root}>
-      <AppBar
+      <MUIAppBar
         position="fixed"
         className={clsx(classes.appBar, {
           [classes.appBarShift]: open,
         })}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            className={clsx(classes.menuButton, {
-              [classes.hide]: open,
-            })}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap>
-            DIAAS
-          </Typography>
-        </Toolbar>
-      </AppBar>
+        <AppNavigationToolbar handleDrawerOpen={handleDrawerOpen} drawerOpen={open} />
+      </MUIAppBar>
       <Drawer
         variant="permanent"
         className={clsx(classes.drawer, {

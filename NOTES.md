@@ -6,3 +6,10 @@
   '<branch-name-slug>.leukos.dev' to the install. will reuire some
   messing aroudn with scripts in the pipeline, but we'll get "per
   branch installs" which is good.
+
+# online javascript code editors
+
+- https://microsoft.github.io/monaco-editor/
+- https://ace.c9.io/
+- https://codemirror.net/ and checkout https://marijnhaverbeke.nl/
+- https://en.wikipedia.org/wiki/Comparison_of_JavaScript-based_source_code_editors

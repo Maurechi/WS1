@@ -2,12 +2,12 @@
 
 const proxy = require("http-proxy-middleware");
 
-module.exports = function(app) {
+module.exports = function (app) {
   app.use(
     "/api",
     proxy({
       target: process.env.REACT_APP_API_BASEURL,
-      changeOrigin: true
+      changeOrigin: true,
     })
   );
 };
