@@ -13,6 +13,7 @@ import { TextField, useFormValue } from "diaas/form.js";
 import { AppNavigation, AppSplash, HCenter } from "diaas/layout.js";
 import { SourceContent } from "diaas/Source";
 import { AppState, useAppState } from "diaas/state.js";
+import { TransformationContent } from "diaas/Transformation";
 
 const theme = createMuiTheme({
   palette: {
@@ -105,7 +106,9 @@ const AppContent = () => (
           <Route path="/sources/">
             <SourceContent />
           </Route>
-          <Route path="/transformations/">Transformations</Route>
+          <Route path="/transformations/">
+            <TransformationContent />
+          </Route>
           <Route path="/analytics/">Analytics</Route>
           <Route path="/catalog/">Catalog</Route>
           <Route path="/monitoring/">Monitoring</Route>
