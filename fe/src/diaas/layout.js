@@ -20,6 +20,7 @@ import CollectionsBookmarkIcon from "@material-ui/icons/CollectionsBookmark";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import InfoIcon from "@material-ui/icons/Info";
 import MenuIcon from "@material-ui/icons/Menu";
+import MenuBookIcon from "@material-ui/icons/MenuBook";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import clsx from "clsx";
@@ -205,7 +206,7 @@ export const AppNavigation = ({ children }) => {
         </div>
         <Divider />
         <List>
-          <ListItem button component={Link} to="/modules" key="Modules">
+          <ListItem button component={Link} to="/modules/" key="Modules">
             <ListItemIcon>
               <CollectionsBookmarkIcon />
             </ListItemIcon>
@@ -214,19 +215,19 @@ export const AppNavigation = ({ children }) => {
         </List>
         <Divider />
         <List>
-          <ListItem button component={Link} to="/sources" key="Sources">
+          <ListItem button component={Link} to="/sources/" key="Sources">
             <ListItemIcon>
               <GetAppIcon />
             </ListItemIcon>
             <ListItemText primary="Sources" />
           </ListItem>
-          <ListItem button component={Link} to="/transformations" key="Transformations">
+          <ListItem button component={Link} to="/transformations/" key="Transformations">
             <ListItemIcon>
               <BuildIcon />
             </ListItemIcon>
             <ListItemText primary="Transformations" />
           </ListItem>
-          <ListItem button component={Link} to="/analytics" key="Analytics">
+          <ListItem button component={Link} to="/analytics/" key="Analytics">
             <ListItemIcon>
               <SearchIcon />
             </ListItemIcon>
@@ -235,13 +236,19 @@ export const AppNavigation = ({ children }) => {
         </List>
         <Divider />
         <List>
-          <ListItem button component={Link} to="/monitoring" key="Monitoring">
+          <ListItem button component={Link} key="Catalog" to="/catalog/">
+            <ListItemIcon>
+              <MenuBookIcon />
+            </ListItemIcon>
+            <ListItemText primary="Catalog" />
+          </ListItem>
+          <ListItem button component={Link} to="/monitoring/" key="Monitoring">
             <ListItemIcon>
               <InfoIcon />
             </ListItemIcon>
             <ListItemText primary="Monitoring" />
           </ListItem>
-          <ListItem button component={Link} to="/settings" key="Settings">
+          <ListItem button component={Link} to="/settings/" key="Settings">
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>

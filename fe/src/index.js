@@ -107,6 +107,7 @@ const AppContent = () => (
           </Route>
           <Route path="/transformations/">Transformations</Route>
           <Route path="/analytics/">Analytics</Route>
+          <Route path="/catalog/">Catalog</Route>
           <Route path="/monitoring/">Monitoring</Route>
           <Route path="/settings/">Settings</Route>
           <Route path="/">
