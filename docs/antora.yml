@@ -1,0 +1,5 @@
+name: diaas
+title: DIAAS
+version: master
+start_page: ROOT:dev.adoc
+nav: [ modules/ROOT/nav.adoc ]
