@@ -1,1 +1,2 @@
 * xref:dev.adoc[Local Development]
+* xref:notes.adoc[Notes]
