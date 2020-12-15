@@ -53,7 +53,7 @@ class BaseConfiguration:
 
     def _set_all(self, **kwargs):
         for key, value in kwargs.items():
-            self.values[key] = value
+            self.values[key] = from_env(key, default=value)
 
     @property
     def branch(self):
