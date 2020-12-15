@@ -53,7 +53,12 @@ const MOCK_USER = {
               name: "rockets_d.sql",
               details: "Locally Modified",
               lastModified: "Today",
-              code: "select * from ext.rockets_r;",
+              code:
+                "select\n" +
+                "  timestamp(json_extract(data, '$.launchDate')) as launch_date\n" +
+                "  ,json_extract(data, '$.status')) as status\n" +
+                "  ,upper(json_extract(data, '$.launchPad'))) as launch_pad\n" +
+                "from rockets_r;",
             },
             orhj: {
               id: "orhj",

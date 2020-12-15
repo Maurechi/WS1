@@ -1,18 +1,17 @@
 import "@inovua/reactdatagrid-community/index.css";
-import "ace-builds/src-noconflict/mode-python";
-import "ace-builds/src-noconflict/mode-sql";
-import "ace-builds/src-noconflict/theme-solarized_light";
 import ReactDataGrid from "@inovua/reactdatagrid-community";
 import { Box } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
 import React from "react";
-import AceEditor from "react-ace";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
+import "diaas/AceEditor_A_Editor";
+import "diaas/AceEditor_B_Dependencies";
+import AceEditor from "diaas/AceEditor";
 import { useAppState } from "diaas/state.js";
 import { ButtonLink } from "diaas/ui.js";
 
-export const TransformationNew = () => <p>New</p>;
+export const NewFile = () => <p>New</p>;
 
 export const CodeEditor = ({ code, mode }) => {
   const options = {
@@ -24,7 +23,7 @@ export const CodeEditor = ({ code, mode }) => {
   );
 };
 
-export const TransformationEdit = observer(() => {
+export const Editor = observer(() => {
   const { user } = useAppState();
   const { fid } = useParams();
   const wb = user.workbenches[0];
@@ -37,17 +36,17 @@ export const TransformationEdit = observer(() => {
         <Box>
           <Box display="flex">
             <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
+              <ButtonLink variant="contained" color="primary" target="/workbench/new/">
                 Save & Test
               </ButtonLink>
             </Box>
             <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
+              <ButtonLink variant="contained" color="primary" target="/workbench/new/">
                 Save
               </ButtonLink>
             </Box>
             <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
+              <ButtonLink variant="contained" color="primary" target="/workbench/new/">
                 Commit
               </ButtonLink>
             </Box>
@@ -59,7 +58,7 @@ export const TransformationEdit = observer(() => {
   );
 });
 
-export const TransformationsTable = observer(() => {
+export const FileTable = observer(() => {
   const { user } = useAppState();
   const wb = user.workbenches[0];
   const branch = wb.branches[wb.branch];
@@ -85,7 +84,7 @@ export const TransformationsTable = observer(() => {
   return (
     <Box>
       <Box display="flex" mb={3}>
-        <Box style={{ flexGrow: 1 }}>Sources:</Box>
+        <Box style={{ flexGrow: 1 }}>Workbench:</Box>
         <Box>
           <Box display="flex">
             <Box mx={1}>
@@ -122,23 +121,23 @@ export const TransformationsTable = observer(() => {
   );
 });
 
-export const TransformationBrowser = () => {
-  return <TransformationsTable />;
+export const Browser = () => {
+  return <FileTable />;
 };
 
-export const TransformationContent = () => {
+export const WorkbenchContent = () => {
   let { path } = useRouteMatch();
   console.log("path is", path);
   return (
     <Switch>
       <Route path={`${path}new/`}>
-        <TransformationNew />
+        <NewFile />
       </Route>
       <Route path={`${path}:fid`}>
-        <TransformationEdit />
+        <Editor />
       </Route>
       <Route path={path}>
-        <TransformationBrowser />
+        <Browser />
       </Route>
     </Switch>
   );

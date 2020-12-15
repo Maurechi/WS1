@@ -158,6 +158,20 @@ export const NewSourceChooser = () => {
 
       <Box mb={2}>
         <Box mb={2}>
+          <Typography variant="h6">SaaS Platforms</Typography>
+        </Box>
+        <Grid container spacing={4}>
+          <Grid item xs={4}>
+            <ConnectorCard name="Salesforce" logo="salesforce.webp" />
+          </Grid>
+          <Grid item xs={4}>
+            <ConnectorCard name="Pipedrive" logo="pipedrive.svg" />
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box mb={2}>
+        <Box mb={2}>
           <Typography variant="h6">Data Sources</Typography>
         </Box>
         <Grid container spacing={4}>
@@ -165,7 +179,13 @@ export const NewSourceChooser = () => {
             <ConnectorCard logo="postgresql.svg" name="PostgreSQL" />
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard name="CSV" />
+            <ConnectorCard name="CSV" logo="csv.png" />
+          </Grid>
+          <Grid item xs={4}>
+            <ConnectorCard name="BigQuery" logo="bigquery.png" />
+          </Grid>
+          <Grid item xs={4}>
+            <ConnectorCard name="Redshift" logo="redshift.png" />
           </Grid>
         </Grid>
       </Box>
@@ -173,7 +193,7 @@ export const NewSourceChooser = () => {
   );
 };
 
-export const SourceContent = () => {
+export const SourcesContent = () => {
   let { path } = useRouteMatch();
   console.log("path is", path);
   return (

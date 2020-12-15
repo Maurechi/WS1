@@ -9,11 +9,14 @@ import v from "voca";
 import "./index.css";
 import logo from "./diaas-logo.png";
 import reportWebVitals from "./reportWebVitals";
+import { AnalyticsContent } from "diaas/Analytics";
 import { TextField, useFormValue } from "diaas/form.js";
+import { JobsContent } from "diaas/Jobs";
 import { AppNavigation, AppSplash, HCenter } from "diaas/layout.js";
-import { SourceContent } from "diaas/Source";
+import { ModulesContent } from "diaas/Modules";
+import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
-import { TransformationContent } from "diaas/Transformation";
+import { WorkbenchContent } from "diaas/Workbench";
 
 const theme = createMuiTheme({
   palette: {
@@ -102,14 +105,21 @@ const AppContent = () => (
     <Router>
       <AppNavigation>
         <Switch>
-          <Route path="/modules/">Modules</Route>
+          <Route path="/modules/">
+            <ModulesContent />
+          </Route>
           <Route path="/sources/">
-            <SourceContent />
+            <SourcesContent />
           </Route>
-          <Route path="/transformations/">
-            <TransformationContent />
+          <Route path="/workbench/">
+            <WorkbenchContent />
           </Route>
-          <Route path="/analytics/">Analytics</Route>
+          <Route path="/jobs/">
+            <JobsContent />
+          </Route>
+          <Route path="/analytics/">
+            <AnalyticsContent />
+          </Route>
           <Route path="/catalog/">Catalog</Route>
           <Route path="/monitoring/">Monitoring</Route>
           <Route path="/settings/">Settings</Route>

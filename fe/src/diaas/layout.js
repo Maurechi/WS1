@@ -21,12 +21,14 @@ import GetAppIcon from "@material-ui/icons/GetApp";
 import InfoIcon from "@material-ui/icons/Info";
 import MenuIcon from "@material-ui/icons/Menu";
 import MenuBookIcon from "@material-ui/icons/MenuBook";
+import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import clsx from "clsx";
 import { observer } from "mobx-react-lite";
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import v from "voca";
 
 import { useAppState } from "diaas/state";
 
@@ -114,7 +116,7 @@ export const AppSplash = ({ children }) => {
       >
         <Toolbar>
           <Typography variant="h6" noWrap>
-            DIAAS
+            Caravel
           </Typography>
         </Toolbar>
       </MUIAppBar>
@@ -144,7 +146,7 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
       </IconButton>
       <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
         <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>
-          DIAAS
+          Caravel
         </Link>
       </Typography>
       <Button variant="contained" color="primary">
@@ -175,6 +177,11 @@ export const AppNavigation = ({ children }) => {
   const handleDrawerClose = () => {
     setOpen(false);
   };
+
+  const loc = useLocation();
+  const typeographyOnLocation = (prefix) => ({
+    color: v.startsWith(loc.pathname, prefix) ? "secondary" : "primary",
+  });
 
   return (
     <div className={classes.root}>
@@ -210,7 +217,7 @@ export const AppNavigation = ({ children }) => {
             <ListItemIcon>
               <CollectionsBookmarkIcon />
             </ListItemIcon>
-            <ListItemText primary="Modules" />
+            <ListItemText primary="Modules" primaryTypographyProps={typeographyOnLocation("/modules")} />
           </ListItem>
         </List>
         <Divider />
@@ -219,19 +226,25 @@ export const AppNavigation = ({ children }) => {
             <ListItemIcon>
               <GetAppIcon />
             </ListItemIcon>
-            <ListItemText primary="Sources" />
+            <ListItemText primary="Sources" primaryTypographyProps={typeographyOnLocation("/sources")} />
           </ListItem>
-          <ListItem button component={Link} to="/transformations/" key="Transformations">
+          <ListItem button component={Link} to="/workbench/" key="Workbench">
             <ListItemIcon>
               <BuildIcon />
             </ListItemIcon>
-            <ListItemText primary="Transformations" />
+            <ListItemText primary="Workbench" primaryTypographyProps={typeographyOnLocation("/workbench")} />
+          </ListItem>
+          <ListItem button component={Link} to="/jobs/" key="Jobs">
+            <ListItemIcon>
+              <PlayArrowIcon />
+            </ListItemIcon>
+            <ListItemText primary="Jobs" primaryTypographyProps={typeographyOnLocation("/jobs")} />
           </ListItem>
           <ListItem button component={Link} to="/analytics/" key="Analytics">
             <ListItemIcon>
               <SearchIcon />
             </ListItemIcon>
-            <ListItemText primary="Analytics" />
+            <ListItemText primary="Analytics" primaryTypographyProps={typeographyOnLocation("/analytics")} />
           </ListItem>
         </List>
         <Divider />
