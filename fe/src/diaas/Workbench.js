@@ -5,6 +5,15 @@ import { observer } from "mobx-react-lite";
 import React from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
+// NOTE this is a disaster. i know. eslint wants to reoder import
+// alphabetically (which is somthing we generally want in this code
+// base). however AceEditor needs to be loaded before its dependencies
+// (and this is really AceEditor's fault). So we have to split the
+// laods into 2 files, name them so that eslint wan't swap the load
+// order, and then finally re import everything. would be great to
+// have a way to tell eslint "don't reorder these 3 lines", but i
+// wasn't able to find it.
+// 20201215:mb
 import "diaas/AceEditor_A_Editor";
 import "diaas/AceEditor_B_Dependencies";
 import AceEditor from "diaas/AceEditor";
