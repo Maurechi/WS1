@@ -20,7 +20,7 @@ class Config:
         self.configurable("INSTALL_DIR", type=Path)
         self.configurable("SESSION_COOKIE_IS_SECURE", type=bool)
         self.configurable("SESSION_SECRET_KEY")
-
+        self.configurable("PG_HASHIDS_SALT")
         self.configurable("ENABLE_SENTRY", type=bool)
         if self.ENABLE_SENTRY:
             self.configurable("SENTRY_DSN")

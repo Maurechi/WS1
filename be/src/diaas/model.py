@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import pygit2
-import sqlalchemy.types as types
 
 from diaas.config import CONFIG
 from diaas.db import db
@@ -9,7 +8,7 @@ from diaas.db import db
 
 def hashid_computed(column_name):
     return db.Computed(
-        f"id_encode({column_name}, 'U69XD2b3YaIJe2plIN31', 1, 'abcdefghjkmnpqrstuwxyz1234567890')"
+        f"id_encode({column_name}, '{CONFIG.PG_HASHIDS_SALT}', 1, 'abcdefghjkmnpqrstuwxyz1234567890')"
     )
 
 

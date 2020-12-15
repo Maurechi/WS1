@@ -114,6 +114,7 @@ class Configuration(BaseConfiguration):
                 raise ValueError(
                     f"Don't know value for DIAAS_FILE_STORE for env {self.environment}"
                 )
+            self._set(DIAAS_PG_HASHIDS_SALT="U69XD2b3YaIJe2plIN31")
 
     def sentry_config(self):
         dsn = self.if_env(

@@ -101,30 +101,22 @@ def _db_health():
 
 
 def _runtime_info():
-    runtime = {}
-
-    runtime["config"] = CONFIG.data
-    runtime["env"] = os.environ.copy()
-
-    return runtime
+    return
 
 
 @internal_api.route("/health")
 @as_json
 def health():
-    health = {}
-
-    token = request.args.get("token")
-
     app = _app_health()
     db = _db_health()
 
-    health["ok"] = app["ok"] and db["ok"]
+    health = dict(ok=app["ok"] and db["ok"])
 
+    token = request.args.get("token")
     if token == CONFIG.INTERNAL_API_TOKEN:
         health["app"] = app
         health["database"] = db
-        health["runtime"] = _runtime_info()
+        health["runtime"] = dict(confg=CONFIG.data, env=os.environ.copy())
 
     return (
         health,
