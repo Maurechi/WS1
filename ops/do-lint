@@ -1,9 +1,11 @@
 #!/bin/bash
-set -u; source "${LEUKOS_SH_V1}"; cd "${__dir__}/../"
+set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}"
 
+check_only="true"
 if [[ ${1:-} == "-c" ]]; then
     check_only="true"
-else
+fi
+if [[ ${1:-} == "-w" ]]; then
     check_only="false"
 fi
 

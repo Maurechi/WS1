@@ -16,14 +16,19 @@ import { makeStyles, useTheme } from "@material-ui/core/styles";
 import BuildIcon from "@material-ui/icons/Build";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import ChevronRightIcon from "@material-ui/icons/ChevronRight";
+import CollectionsBookmarkIcon from "@material-ui/icons/CollectionsBookmark";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import InfoIcon from "@material-ui/icons/Info";
 import MenuIcon from "@material-ui/icons/Menu";
+import MenuBookIcon from "@material-ui/icons/MenuBook";
+import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import clsx from "clsx";
 import { observer } from "mobx-react-lite";
 import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import v from "voca";
 
 import { useAppState } from "diaas/state";
 
@@ -111,7 +116,7 @@ export const AppSplash = ({ children }) => {
       >
         <Toolbar>
           <Typography variant="h6" noWrap>
-            DIAAS
+            Caravel
           </Typography>
         </Toolbar>
       </MUIAppBar>
@@ -140,13 +145,15 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
         <MenuIcon />
       </IconButton>
       <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
-        DIAAS
+        <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>
+          Caravel
+        </Link>
       </Typography>
       <Button variant="contained" color="primary">
         Branch: {state.user.workbenches[0].branch}
       </Button>
       <Button variant="contained" color="primary">
-        Warehouse: {state.user.workbenches[0].warehouse.whid}
+        Warehouse: {state.user.workbenches[0].warehouse.name}
       </Button>
       <Button variant="contained" color="primary">
         Settings
@@ -170,6 +177,11 @@ export const AppNavigation = ({ children }) => {
   const handleDrawerClose = () => {
     setOpen(false);
   };
+
+  const loc = useLocation();
+  const typeographyOnLocation = (prefix) => ({
+    color: v.startsWith(loc.pathname, prefix) ? "secondary" : "primary",
+  });
 
   return (
     <div className={classes.root}>
@@ -201,34 +213,55 @@ export const AppNavigation = ({ children }) => {
         </div>
         <Divider />
         <List>
-          <ListItem button key="Extract">
+          <ListItem button component={Link} to="/modules/" key="Modules">
             <ListItemIcon>
-              <GetAppIcon />
+              <CollectionsBookmarkIcon />
             </ListItemIcon>
-            <ListItemText primary="Extract" />
-          </ListItem>
-          <ListItem button key="Transform">
-            <ListItemIcon>
-              <BuildIcon />
-            </ListItemIcon>
-            <ListItemText primary="Transform" />
-          </ListItem>
-          <ListItem button key="Analyze">
-            <ListItemIcon>
-              <SearchIcon />
-            </ListItemIcon>
-            <ListItemText primary="Analyze" />
+            <ListItemText primary="Modules" primaryTypographyProps={typeographyOnLocation("/modules")} />
           </ListItem>
         </List>
         <Divider />
         <List>
-          <ListItem button key="Monitor">
+          <ListItem button component={Link} to="/sources/" key="Sources">
+            <ListItemIcon>
+              <GetAppIcon />
+            </ListItemIcon>
+            <ListItemText primary="Sources" primaryTypographyProps={typeographyOnLocation("/sources")} />
+          </ListItem>
+          <ListItem button component={Link} to="/workbench/" key="Workbench">
+            <ListItemIcon>
+              <BuildIcon />
+            </ListItemIcon>
+            <ListItemText primary="Workbench" primaryTypographyProps={typeographyOnLocation("/workbench")} />
+          </ListItem>
+          <ListItem button component={Link} to="/jobs/" key="Jobs">
+            <ListItemIcon>
+              <PlayArrowIcon />
+            </ListItemIcon>
+            <ListItemText primary="Jobs" primaryTypographyProps={typeographyOnLocation("/jobs")} />
+          </ListItem>
+          <ListItem button component={Link} to="/analytics/" key="Analytics">
+            <ListItemIcon>
+              <SearchIcon />
+            </ListItemIcon>
+            <ListItemText primary="Analytics" primaryTypographyProps={typeographyOnLocation("/analytics")} />
+          </ListItem>
+        </List>
+        <Divider />
+        <List>
+          <ListItem button component={Link} key="Catalog" to="/catalog/">
+            <ListItemIcon>
+              <MenuBookIcon />
+            </ListItemIcon>
+            <ListItemText primary="Catalog" />
+          </ListItem>
+          <ListItem button component={Link} to="/monitoring/" key="Monitoring">
             <ListItemIcon>
               <InfoIcon />
             </ListItemIcon>
-            <ListItemText primary="Monitor" />
+            <ListItemText primary="Monitoring" />
           </ListItem>
-          <ListItem button key="Settings">
+          <ListItem button component={Link} to="/settings/" key="Settings">
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>
@@ -238,7 +271,7 @@ export const AppNavigation = ({ children }) => {
       </Drawer>
       <main className={classes.content}>
         <div className={classes.toolbar} />
-        {children}
+        <Box p={4}>{children}</Box>
       </main>
     </div>
   );

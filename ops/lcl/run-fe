@@ -4,4 +4,4 @@ set -u; source "${LEUKOS_SH_V1}"; cd "$__root__";
 cd fe
 
 eval "$(../ops/configure-for lcl --without-be || echo 'exit 2')"
-"$NVM_DIR"/nvm-exec npm run start
+IS_DEV_SERVER=true "$NVM_DIR"/nvm-exec npm run start
