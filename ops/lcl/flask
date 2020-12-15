@@ -1,9 +1,9 @@
 #!/bin/bash
-set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}"
+set -u; source "${LEUKOS_SH_V1}";
 
-export PYTHONPATH="$(cd ./be/src && pwd)"
+cd "${__root__}"/be
+export PYTHONPATH="$(cd ./src && pwd)"
 export PYTHONUNBUFFERED=1
 export FLASK_APP=diaas.app
-eval "$(./ops/configure-for lcl || echo 'exit 2')"
+eval "$(../ops/configure-for lcl || echo 'exit 2')"
 exec flask "$@"
-
