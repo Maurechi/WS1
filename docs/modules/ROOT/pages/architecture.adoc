@@ -1,0 +1,70 @@
+= DIAAS Architecture
+
+Core entites:
+
+Users - a human being, someone using the system. Given consultants and agnecies we'll want one person to be able to access multiple organisations or projects.
+
+A workbench - really the core thing we have, since a workbench is kind of everything it's hard to concisely describe what it is, but it's pretty easy to talk about how it works.
+
+all of the data for a work bench is stored as files in a repo (as opposed to rows in a db).
+
+"production" in this case is the master branch of that repo.
+
+every user gets a clone of the repo/workbench. nb: this is per user, not per session. two browsers for the same user will be working on the same files. we could have gone the other way, but making a logout (or brower crash) cause data lose seems too drastic, and a "recover lost sessoin" UI seems to complicated. this should keep things simple.
+
+every user have a (single, global) directory somewhere with one subdir per workbench. so when you login the first question is "where's my 'current' workbench" thne hte API works on that.
+
+there are two important seletors in the UI, one for the current workbench and one for the current branch.
+
+pushing straight to master is allowed, but fast forward only (so you can't push if your loalbranch isn't up to date). in the future we should provide a more fine rained way to control this (so PR based work flow)
+
+don't forget: checking out the code locally should be a first class citizen. the webapp is an IDE, not "the" UI. We're assuming this is important to our cusotmers, time will tell.
+
+so how do we allow both click-based UIs and code based "whatever"? YAML to the rescue!! Basically all the click based things, so basically all the extractors, are backed by a .yaml file in the /extractors/managed/ directory. in the /extractors/standard.py file we load these files (so one could technically disable this behaviour, though i'm not all sure why you'd want to), something like:
+
+[source]
+----
+from diaas.extractors import YamlExtractor
+
+YamlExtractor.load_from_dir(Path(__file__) / 'managed/')
+----
+
+one file in managed is one extractor, with a unique file name (i don't think we strictly need a unique name per extractor, but it feels like it'll make things easier, so we're going with it for now)
+
+that is a comman approach for the UI vs code mix: The UI edits a yaml file, one .py file loads the yaml and builds an extracttor or transformation or whatever. other py files can be written by hand.
+
+
+the repo layout is as follows:
+
+- /extractors/
+- /transforms/
+- /visuals/ - currently empty
+
+there's no code reason for the split into directories, it's just about
+interal organisation. DIAAS itself will always load all the code in
+order to generate airflow DAGs or run dbt transformations.
+
+one thing to debate is if the central /diaas.py file configures this layout, in which case a user could change it, or not. if the user changes it it makes the UI much less useful, so why allow that?
+
+we are running random code on our servers. we need something like a
+server per workbench (maybe per git checkout is a better way to put
+it). we will run the user's pyhton code, which could be malicous, on
+our servers to collect and load and transform data. even if the code
+isn't malicious we need some way to protect against infinte loops or
+crazy resource usage. for now we are more than happy to ignore this
+problem, but the moment we have 2 users on the same installation we
+need to think about it. (one solution of course is to not have 2 users
+on one installation and everyone gets their own infra (snowflake seems
+to do this), not a bad idea, but probably a bit of over head). even
+before we solve this we need a way for the backend to ask "what
+extractions/transformations/modules/etc. live in thsi dir?" We should
+put a `Dockerfile` in the root of the repo and this, single, image
+will be used to run all the work bench's code (including airflow
+itself). airflow's dependencies are weird, so at some point you want the airflow to be hidden and use dockeroperator to run the code, but that's not v0.
+
+maybe we want to introduce the "organization" as a concept. each org
+has one set of infra, it can have multiple work benches (though
+generally i'd have only one) and user mgmt and permissions are al
+per org. this would certainly make some things simpler.
+
+we will have a minimal git tool in the UI. pull from master. commit (which is different from save). push. merge to master. reset hard. no rebase.
