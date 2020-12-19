@@ -1,11 +1,14 @@
-import traceback
-import yaml
-from pprint import pprint, pformat  # noqa: F401
-import sys
 import json
+import sys
+import traceback
+from pprint import pformat, pprint  # noqa: F401
+
 import click
+import yaml
 from flask import Flask, current_app, jsonify, request
 from flask.cli import AppGroup
+
+from diaas.dss.data_stack import DataStack
 
 app = Flask(__name__)
 
@@ -21,6 +24,8 @@ class MissingRequiredProperty(ValidationError):
 
 @app.errorhandler(Exception)
 def base_error_handler(e):
+    bt = traceback.format_exc()
+    print(bt, file=sys.stderr)
     return jsonify(dict(e=repr(e), traceback=traceback.format_exc())), 500
 
 
@@ -40,21 +45,36 @@ class Request:
         else:
             self.json = {}
 
-    def get(self, name, required=True, default=None):
+    def get(self, name, required=True, default=None, type=str):
         val = self.json.get(name, self)
         if val is self:
             if required:
                 raise MissingRequiredProperty(name, self.json)
             else:
                 val = default
-        return val
+        if type == str:
+            return val
+        if type == int:
+            return int(val)
+        if type == bool:
+            if val in [True, False]:
+                return val
+            else:
+                raise ValidationError(
+                    f"Property {name}'s value '{val}' is not a boolean."
+                )
+        raise ValueError(f"Unknown value type {type}")
 
 
 @app.route("/", methods=["POST"])
 def initialize_data_stack():
     req = Request()
     directory = req.get("directory", required=True)
-    return jsonify(dict(directory=directory)), 200
+    force = req.get("force", default=False, type=bool)
+
+    DataStack(directory).initialize(force=force)
+
+    return jsonify(dict(ok=True)), 200
 
 
 @app.route("/modules/", methods=["GET"])
@@ -84,7 +104,9 @@ def req(method, endpoint, data):
     with app.test_client() as client:
         method = method.upper()
         endpoint = "/" + endpoint.lstrip("/")
-        res = client.open(method=method, path=endpoint, follow_redirects=True, data=data)
+        res = client.open(
+            method=method, path=endpoint, follow_redirects=True, data=data
+        )
         out = dict(
             status_code=res.status_code,
             status=res.status,

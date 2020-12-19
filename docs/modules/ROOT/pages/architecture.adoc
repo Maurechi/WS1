@@ -73,7 +73,7 @@ method is either get or post (maybe put and patch, but not yet). endpoint is an 
 
 DSS inspects/loads/evaluates the code in the data stack's directory to compute these values. There's also a dss server command and, probably, a dss airflow.
 
-Note: DSS is the only service that runs the user's code.
+Note: DSS is the only service that runs the user's code. Since we allow, and expect, user code to be loaded into DSS it requirements should be kept to a minimal (for now we'd like to avoid having to docker'ify user code just because the user's dependencies and ours conflict)
 
 == First Time Setup / Login
 
