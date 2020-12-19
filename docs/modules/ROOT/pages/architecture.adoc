@@ -1,8 +1,10 @@
 = DIAAS Architecture
 
-== DataStack
+== Entites
 
-The core thing we have.
+=== DataStack
+
+The reason we exist.
 
 tied 1-1 with a git repo (and its production branch is production branch is production).
 
@@ -12,15 +14,23 @@ Don't forget: checking out the code locally should be a first class citizen. The
 
 A DataStack would be a project in gcloud, or an account in AWS.
 
-== User
+the repo layout is as follows:
+
+- /extractors/
+- /transforms/
+- /modules/
+- /database.py - we aren't allowing more than one DB for the DWH.
+- /visuals/ - currently empty
+
+there's no code reason for the split into directories, it's just about interal organisation. DIAAS itself will always load all the code in order to generate airflow DAGs or run dbt transformations.
+
+one thing to debate is if the central /diaas.py file configures this layout, in which case a user could change it, or not. if the user changes it it makes the UI much less useful, so why allow that?
+
+=== User
 
 a human being, someone using the system. Given consultants and agnecies we'll want one person to be able to access multiple organisations or projects.
 
-== Teams and Roles
-
-We'll need these at some point to provide enough enterprise like permissions and access control. for now we can ignore them.
-
-== WorkBench
+=== WorkBench
 
 Every user has (exactly) one WorkBench, and can pick which branch of which DataStack they want to work on at any one time (it is not possible for a user to be working on multiple branches/data stacks simultaneously.
 
@@ -32,9 +42,44 @@ We could have made the WorkBench's state per-session, but making a logout (or br
 
 there are two important seletors in the UI, one for the current DataStack and one for the current branch in that stack.
 
+== Services
+
+=== BE
+
+flask backend. handles stuff like sessions and logins and calling out to the right DSS. DSS does the actual data stack specific logic (and runs in its own process with its own libraries and modules).
+
+=== FE
+
+This is the IDE, what the user perceives as diaas/caravel. It's a react based FE.
+
+=== DSS
+
+"server" or just a thing which proxys to a data stack's directory (runs in one data stack + branch).
+
+The idea doing it this way is that the web part remains an IDE, and the actual per-data-stack logic, like how yaml files translate to extraction operations, can be kept in the dss script/server and run locally when needed (ideally this will make testing and development simpler, but that's still TBD).
+
+Can be used a CLI, but is build to be called by the BE:
+
+----
+dss --directory /path/to/data/stack req <method> <endpoint>
+----
+
+method is either get or post (maybe put and patch, but not yet). endpoint is an endpoint:
+
+- `/modules/`
+- `/extractors/`
+- `/databases/`
+- `/transformations/`
+
+DSS inspects/loads/evaluates the code in the data stack's directory to compute these values. There's also a dss server command and, probably, a dss airflow.
+
+Note: DSS is the only service that runs the user's code.
+
 == First Time Setup / Login
 
 We don't have an explicit login/registratino step (for better or for wrose) so every time a new sessin is created we need to check "does this user exist" and if not setup an initial DataStack and WorkBench for them.
+
+When a user creates a new account they get a data stack named whatever their email starts with. and a workbench on that stack and with the production branch checked out.
 
 == Managing the IDE/GUI and direct code changes
 
@@ -51,38 +96,16 @@ one file in managed is one extractor, with a unique file name (i don't think we 
 
 that is a comman approach for the UI vs code mix: The UI edits a yaml file, one .py file loads the yaml and builds an extracttor or transformation or whatever. other py files can be written by hand.
 
+== Security
 
-the repo layout is as follows:
+we are running random code on our servers. we need something like a server per workbench (maybe per git checkout is a better way to put it). we will run the user's pyhton code, which could be malicous, on our servers to collect and load and transform data. even if the code isn't malicious we need some way to protect against infinte loops or crazy resource usage. for now we are more than happy to ignore this problem, but the moment we have 2 users on the same installation we need to think about it. (one solution of course is to not have 2 users on one installation and everyone gets their own infra (snowflake seems to do this), not a bad idea, but probably a bit of over head). even before we solve this we need a way for the backend to ask "what extractions/transformations/modules/etc. live in thsi dir?" We should put a `Dockerfile` in the root of the repo and this, single, image will be used to run all the work bench's code (including airflow itself). airflow's dependencies are weird, so at some point you want the airflow to be hidden and use dockeroperator to run the code, but that's not v0.
 
-- /extractors/
-- /transforms/
-- /visuals/ - currently empty
-
-there's no code reason for the split into directories, it's just about
-interal organisation. DIAAS itself will always load all the code in
-order to generate airflow DAGs or run dbt transformations.
-
-one thing to debate is if the central /diaas.py file configures this layout, in which case a user could change it, or not. if the user changes it it makes the UI much less useful, so why allow that?
-
-we are running random code on our servers. we need something like a
-server per workbench (maybe per git checkout is a better way to put
-it). we will run the user's pyhton code, which could be malicous, on
-our servers to collect and load and transform data. even if the code
-isn't malicious we need some way to protect against infinte loops or
-crazy resource usage. for now we are more than happy to ignore this
-problem, but the moment we have 2 users on the same installation we
-need to think about it. (one solution of course is to not have 2 users
-on one installation and everyone gets their own infra (snowflake seems
-to do this), not a bad idea, but probably a bit of over head). even
-before we solve this we need a way for the backend to ask "what
-extractions/transformations/modules/etc. live in thsi dir?" We should
-put a `Dockerfile` in the root of the repo and this, single, image
-will be used to run all the work bench's code (including airflow
-itself). airflow's dependencies are weird, so at some point you want the airflow to be hidden and use dockeroperator to run the code, but that's not v0.
-
-maybe we want to introduce the "organization" as a concept. each org
-has one set of infra, it can have multiple work benches (though
-generally i'd have only one) and user mgmt and permissions are al
-per org. this would certainly make some things simpler.
+== GIT
 
 we will have a minimal git tool in the UI. pull from master. commit (which is different from save). push. merge to master. reset hard. no rebase.
+
+== Teams and Roles
+
+We'll need these at some point to provide enough enterprise like permissions and access control. for now we can ignore them.
+
+Maybe we want to introduce the "organization" as a concept. Each org can have multiple data stacks, but user mgmt and permissions are al per org. this would make some things simler but at the cost of making all the simpler things more complicated.
