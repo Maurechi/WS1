@@ -1,4 +1,4 @@
-conf = {
+module.exports = {
   extends: ["eslint:recommended", "react-app", "prettier"],
   plugins: ["simple-import-sort", "unused-imports"],
   rules: {
@@ -10,7 +10,7 @@ conf = {
     "unused-imports/no-unused-imports": 2,
     "unused-imports/no-unused-vars": 1,
     "simple-import-sort/sort": [
-      "error",
+      "warn",
       {
         groups: [["^(?!\\u0000?(?:diaas|[.])/)"]],
       },
@@ -20,9 +20,3 @@ conf = {
   },
   globals: {},
 };
-
-if (process.env.IS_DEV_SERVER === "true") {
-  module.exports = {};
-} else {
-  module.exports = conf;
-}

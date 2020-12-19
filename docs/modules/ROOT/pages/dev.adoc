@@ -1,12 +1,8 @@
 = DIAAS
 
-Data Infrastructe As A Service.
+Data Infrastructure As A Service.
 
 == local develoment
-
-We had a docker-compose based setup for a while, but file system watcher were hard, enviorment variable management was hard, scripting and tooling so it was convneient to use was hard, it just wasn't worhth the complexity.
-
-pyenv and npm provide very good isolated local environments, and tmux provides a more than good enough (for local dev) way to run all the services including restarting and debugging them as needed.
 
 Use link:https://duckduckgo.com/?q=tmuxinator&t=newext&atb=v243-1&ia=web[tmuxinator]
 
@@ -28,3 +24,21 @@ windows:
         - (cd fe && nvm use && npm i && ../ops/lcl/run-fe)
         - ./ops/lcl/run-db
 ----
+
+== What's the name again?
+
+Internal code name is DIAAS, but the product is called Caravel (the
+product name and brnading can change, the internal repo/lubrary name
+needn't).
+
+== Why not docker-compose?
+
+Since we deploy with docker, it's fair to ask: why don't we use docker
+for local dev as well?
+
+We had a docker-compose based setup for a while, but file system
+watcher were hard, enviorment variable management was hard, scripting
+and tooling so it was convneient to use was hard, it just wasn't worth
+the complexity.
+
+pyenv and npm provide very good isolated local environments, and tmux provides a more than good enough (for local dev) way to run all the services including restarting and debugging them as needed.

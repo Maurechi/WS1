@@ -53,11 +53,11 @@ const Loading = () => {
           color: "white",
         }}
       >
-        <img style={{ pointerEvents: "none", width: "420px" }} src={logo} alt="DIAAS WorkBench Logo" />
+        <img style={{ pointerEvents: "none", width: "420px" }} src={logo} alt="Caravel WorkBench Logo" />
         <div style={{ position: "relative", top: "0px", left: "0px" }}>
-          <p style={{ color: "#2e3631", opacity: 0 }}>Loading the DIAAS WorkBench, please wait...</p>
+          <p style={{ color: "#2e3631", opacity: 0 }}>Loading the Caravel WorkBench, please wait...</p>
           <p style={{ position: "absolute", top: "0px", left: "0px" }}>
-            Loading the DIAAS WorkBench, please wait
+            Loading the Caravel WorkBench, please wait
             <span>{v.repeat(".", tick + 1)}</span>
           </p>
         </div>
@@ -122,7 +122,7 @@ const AppContent = () => (
           <Route path="/monitoring/">Monitoring</Route>
           <Route path="/settings/">Settings</Route>
           <Route path="/">
-            <p>Welcome to DIAAS.</p>
+            <p>Welcome to Caravel.</p>
           </Route>
         </Switch>
       </AppNavigation>

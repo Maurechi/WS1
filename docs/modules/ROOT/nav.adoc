@@ -1,2 +1,3 @@
+* xref:architcture.adoc[Architecture]
 * xref:dev.adoc[Local Development]
 * xref:notes.adoc[Notes]

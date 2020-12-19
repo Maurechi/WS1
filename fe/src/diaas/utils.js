@@ -1,1 +1,2 @@
-export const ignore = (v) => v;
+// eslint-disable-next-line
+export const ignore = (v) => null;
