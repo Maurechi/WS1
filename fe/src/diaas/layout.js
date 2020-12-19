@@ -32,8 +32,8 @@ import v from "voca";
 
 import { useAppState } from "diaas/state";
 
-export const HCenter = ({ children, ...props }) => (
-  <Box display="flex" width="100%" justifyContent="center" {...props}>
+export const HCenter = ({ children, ...BoxProps }) => (
+  <Box display="flex" width="100%" justifyContent="center" {...BoxProps}>
     {children}
   </Box>
 );

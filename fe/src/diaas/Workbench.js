@@ -23,10 +23,6 @@ import { ButtonLink } from "diaas/ui.js";
 export const NewFile = () => <p>New</p>;
 
 export const CodeEditor = ({ code, mode }) => {
-  const options = {
-    selectOnLineNumbers: true,
-  };
-
   return (
     <AceEditor width="100%" mode={mode} theme="solarized_light" name="UNIQUE_ID_OF_DIV" value={code} fontSize={18} />
   );
