@@ -1,5 +1,5 @@
 import { Button, Grid } from "@material-ui/core";
-import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
+import { ThemeProvider, unstable_createMuiStrictModeTheme as createMuiTheme } from "@material-ui/core/styles";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
@@ -7,6 +7,7 @@ import v from "voca";
 
 import "./App.css";
 import logo from "./App.logo.png";
+import { AccountProfileContent } from "diaas/Account.js";
 import { AnalyticsContent } from "diaas/Analytics";
 import { TextField, useFormValue } from "diaas/form.js";
 import { JobsContent } from "diaas/Jobs";
@@ -14,7 +15,7 @@ import { AppNavigation, AppSplash, HCenter } from "diaas/layout.js";
 import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
-import { WorkbenchContent } from "diaas/Workbench";
+import { WorkbenchContent } from "diaas/Workbench.js";
 
 const theme = createMuiTheme({
   palette: {
@@ -121,6 +122,9 @@ const AppContent = () => (
           <Route path="/catalog/">Catalog</Route>
           <Route path="/monitoring/">Monitoring</Route>
           <Route path="/settings/">Settings</Route>
+          <Route path="/account/profile">
+            <AccountProfileContent />
+          </Route>
           <Route path="/">
             <p>Welcome to Caravel.</p>
           </Route>

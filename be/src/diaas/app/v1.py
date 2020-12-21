@@ -92,20 +92,21 @@ MOCK_USER = dict(
 )
 
 
-@api_v1.route("/user", methods=["GET"])
+@api_v1.route("/session", methods=["GET"])
 @as_json
 def session_get():
     if "uid" in session:
         u = User.query.filter(User.uid == session["uid"]).one_or_none()
         if u is None:
-            return {}, 404
+            return None, 404
         else:
-            return MOCK_USER  # _user_as_json(u)
+            # return _user_as_json(u)
+            return MOCK_USER
     else:
-        return {}, 404
+        return None, 404
 
 
-@api_v1.route("/user", methods=["POST"])
+@api_v1.route("/session", methods=["POST"])
 @as_json
 def session_post():
     email = Request(request).get_value("email")
@@ -114,4 +115,12 @@ def session_post():
         u = initial_user_setup(email)
 
     session["uid"] = u.uid
-    return _user_as_json(u)
+    # return _user_as_json(u)
+    return MOCK_USER
+
+
+@api_v1.route("/session", methods=["DELETE"])
+@as_json
+def session_delete():
+    session.clear()
+    return None, 200

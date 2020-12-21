@@ -6,4 +6,5 @@ pip-tools
 python-slugify
 tabulate
 pgcli
+psycopg2
 google-cloud-secret-manager

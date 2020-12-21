@@ -12,7 +12,7 @@ class Configuration(BaseConfiguration):
         self.commit_config()
         self.deployment_config()
         self.app_config()
-        self.sentry_config()
+        self.monitoring_config()
         self.tracker_config()
 
     def commit_config(self):
@@ -116,7 +116,7 @@ class Configuration(BaseConfiguration):
                 )
             self._set(DIAAS_PG_HASHIDS_SALT="U69XD2b3YaIJe2plIN31")
 
-    def sentry_config(self):
+    def monitoring_config(self):
         dsn = self.if_env(
             prd="https://f3551f0329dd4a9cbe4030f5f5507be5@o469059.ingest.sentry.io/5497805",
             otherwise="https://7e144b9b33bb467ba432cacd5ef608ab@o469059.ingest.sentry.io/5497814",
@@ -148,6 +148,7 @@ class Configuration(BaseConfiguration):
                     REACT_APP_SENTRY_RELEASE="diaas@"
                     + self.values["REACT_APP_COMMIT_SHA"],
                 )
+            self._set(REACT_APP_ENABLE_WEB_VITALS=self.is_prd)
 
     def tracker_config(self):
         if not self.with_fe:

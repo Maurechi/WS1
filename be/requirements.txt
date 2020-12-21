@@ -15,7 +15,7 @@ click==7.1.2              # via flask, flask-shell-ipython
 decorator==4.4.2          # via ipython
 flask-alembic==2.0.1      # via -r requirements.in
 flask-json==0.3.4         # via -r requirements.in
-flask-session==0.3.2      # via -r requirements.in
+git+https://github.com/segv/flask-session.git@8134a2e9c8ff5f2741376ceff6ff7bdee71cf295  # via -r requirements.in
 flask-shell-ipython==0.4.1  # via -r requirements.in
 flask-sqlalchemy==2.4.4   # via -r requirements.in, flask-alembic
 flask==1.1.2              # via -r requirements.in, flask-alembic, flask-json, flask-session, flask-shell-ipython, flask-sqlalchemy

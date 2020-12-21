@@ -28,11 +28,17 @@ def create_app():
     db.init_app(app)
     alembic.init_app(app)
 
-    app.config["SESSION_COOKIE_SECURE"] = CONFIG.SESSION_COOKIE_IS_SECURE
+    app.config["SESSION_COOKIE_SAMESITE"] = "Strict"
+    if CONFIG.SESSION_COOKIE_IS_SECURE:
+        app.config["SESSION_COOKIE_SECURE"] = True
+        app.config["SESSION_COOKIE_HTTPONLY"] = True
+    else:
+        app.config["SESSION_COOKIE_SECURE"] = False
+        app.config["SESSION_COOKIE_HTTPONLY"] = False
+
     app.config["SESSION_TYPE"] = "sqlalchemy"
     app.config["SESSION_USE_SIGNER"] = True
     app.config["SESSION_SQLALCHEMY"] = db
-    s = Session()
-    s.init_app(app)
+    Session(app)
 
     return app

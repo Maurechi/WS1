@@ -1,9 +1,7 @@
 import axios from "axios";
 import _ from "lodash";
-import { action, makeAutoObservable } from "mobx";
+import { makeAutoObservable } from "mobx";
 import { createContext, useContext } from "react";
-
-import { ignore } from "diaas/utils.js";
 
 class Backend {
   constructor() {
@@ -14,7 +12,7 @@ class Backend {
   }
 
   getCurrentUser() {
-    return this.axios.get("user").then((res) => {
+    return this.axios.get("session").then((res) => {
       if (res.status === 404) {
         return null;
       } else {
@@ -24,8 +22,18 @@ class Backend {
   }
 
   login(email) {
-    return this.axios.post("user", { email: email }).then((res) => {
+    return this.axios.post("session", { email: email }).then((res) => {
       if (res.status === 200) {
+        return res.data.data;
+      } else {
+        return null;
+      }
+    });
+  }
+
+  logout() {
+    return this.axios.delete("session").then((res) => {
+      if (res.status === 201) {
         return res.data.data;
       } else {
         return null;
@@ -43,17 +51,21 @@ class AppStateObject {
     this.backend = new Backend();
   }
 
+  setCurrentUser(user) {
+    this.initialized = true;
+    this.user = user;
+  }
+
   initialize() {
-    this.backend.getCurrentUser().then(
-      action("setCurrentUser", (user) => {
-        this.initialized = true;
-        this.user = user;
-      })
-    );
+    this.backend.getCurrentUser().then((user) => this.setCurrentUser(user));
   }
 
   login(email) {
-    this.backend.login(email).then(action("login", (user) => ignore(user)));
+    return this.backend.login(email).then((user) => this.setCurrentUser(user));
+  }
+
+  logout() {
+    return this.backend.logout().then(() => this.setCurrentUser(null));
   }
 }
 

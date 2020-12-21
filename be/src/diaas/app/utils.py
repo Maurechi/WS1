@@ -129,13 +129,15 @@ def as_json(view):
     def wrapped(*args, **kwargs):
         data, status, headers = _parse_view_result(view(*args, **kwargs))
 
-        if not isinstance(data, (Mapping, Sequence, int, str, float)):
+        if data is None or isinstance(data, (Mapping, Sequence, int, str, float)):
+            return json_response(
+                status_=status, data_=dict(data=data), headers_=headers
+            )
+        else:
             raise Exception(
                 f"as_json decorated functions must return a dict or a seq; "
                 f"not a `{pformat(data)}` of type `{type(data)}`"
             )
-
-        return json_response(status_=status, data_=dict(data=data), headers_=headers)
 
     return wrapped
 
