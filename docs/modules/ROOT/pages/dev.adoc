@@ -4,26 +4,7 @@ Data Infrastructure As A Service.
 
 == local develoment
 
-Use link:https://duckduckgo.com/?q=tmuxinator&t=newext&atb=v243-1&ia=web[tmuxinator]
-
-[source,yaml]
-----
-# ./.local/tmuxinator/diaas.yml
-
-name: diaas
-root: ~/leukos/diaas/
-
-windows:
-  - serve:
-      layout: main-vertical
-      # Synchronize all panes of this window, can be enabled before or after the pane commands run.
-      # 'before' represents legacy functionality and will be deprecated in a future release, in favour of 'after'
-      # synchronize: after
-      panes:
-        - ./ops/lcl/run-be
-        - (cd fe && nvm use && npm i && ../ops/lcl/run-fe)
-        - ./ops/lcl/run-db
-----
+There are scripts in `./ops/lcl/` to run each service, to run them all from the terminal install link:https://duckduckgo.com/?q=tmuxinator&t=newext&atb=v243-1&ia=web[tmuxinator] and run `./ops/lcl/run-in-tmux` (have a look at that file, it's very short, to see how exactly things are started).
 
 == What's the name again?
 
