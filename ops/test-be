@@ -1,8 +1,7 @@
 #!/bin/bash
 set -u; source "${LEUKOS_SH_V1}";
 
-ROOT=$(cd "${__dir__}/../" && pwd)
-
-eval "$("$ROOT/ops/configure-for" lcl)"
-PYTHONPATH="$ROOT/be/src/:$ROOT/be/tests/" pytest -vvv "$@" "$ROOT/be/tests/"
+cd "${__root__}/be/"
+eval "$("${__root__}/ops/configure-for" lcl)"
+PYTHONPATH="${__root__}/be/src/:${__root__}/be/tests/" pytest -vvv "$@" "${__root__}/be/tests/"
 

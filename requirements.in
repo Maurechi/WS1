@@ -1,10 +1,10 @@
 black
 docker-compose
 flake8
+google-cloud-secret-manager
 isort
+pgcli
 pip-tools
+psycopg2
 python-slugify
 tabulate
-pgcli
-psycopg2
-google-cloud-secret-manager

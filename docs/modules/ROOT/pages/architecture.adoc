@@ -34,7 +34,7 @@ a human being, someone using the system. Given consultants and agnecies we'll wa
 
 Every user has (exactly) one WorkBench, and can pick which branch of which DataStack they want to work on at any one time (it is not possible for a user to be working on multiple branches/data stacks simultaneously.
 
-A WorkBench is just a directoroy containing a bunch or git repos.
+A WorkBench is just a directory containing a bunch of git repos.
 
 Note that a WorkBench is per user, not per session. So mulitple logins from differents devies will access the same set of files.
 

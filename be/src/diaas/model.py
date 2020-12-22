@@ -1,11 +1,14 @@
+import subprocess
+from uuid import uuid4
 from datetime import datetime
-
-import pygit2
 
 from diaas.config import CONFIG
 from diaas.db import db
 
 
+# NOTE To make this work the first migration will need
+# op.execute("CREATE EXTENSION pg_hashids;") op.execute("DROP
+# EXTENSION pg_hashids") 20201222:mb
 def hashid_computed(column_name):
     return db.Computed(
         f"id_encode({column_name}, '{CONFIG.PG_HASHIDS_SALT}', 1, 'abcdefghjkmnpqrstuwxyz1234567890')"
@@ -21,60 +24,53 @@ class ModifiedAtMixin:
     )
 
 
+class DataStack(db.Model, ModifiedAtMixin):
+    dsid = db.Column(db.String(), primary_key=True)
+
+    users = db.relationship("User", secondary="user_data_stack")
+
+    @property
+    def directory(self):
+        return CONFIG.DS_STORE / self.dsid
+
+
+class UserDataStack(db.Model):
+    dsid = db.Column(db.String(), db.ForeignKey("data_stack.dsid"))
+    uid = db.Column(db.Integer(), db.ForeignKey("user.uid"))
+    __table_args__ = (db.PrimaryKeyConstraint(dsid, uid), {})
+
+
 class User(db.Model, ModifiedAtMixin):
+    # Bump this up to something nice with op.execute("ALTER SEQUENCE
+    # user_uid_seq RESTART WITH 1000 START WITH 1000 MINVALUE 1000;")
+    # in the migration.
+
     uid = db.Column(db.Integer(), primary_key=True)
     code = db.Column(db.String(), hashid_computed("uid"))
 
     email = db.Column(db.String(), unique=True)
 
-    workbenches = db.relationship(
-        "Workbench", back_populates="user", cascade="all,delete-orphan"
-    )
+    data_stacks = db.relationship("DataStack", secondary="user_data_stack", back_populates="users")
 
+    @property
+    def display_name(self):
+        email_parts = self.email.split("@")
+        return email_parts[0].lower()
 
-class Warehouse(db.Model, ModifiedAtMixin):
-    whid = db.Column(db.Integer(), primary_key=True)
-    code = db.Column(db.String(), hashid_computed("whid"))
+    @classmethod
+    def ensure_user(cls, email):
+        u = User.query.filter(User.email == email).one_or_none()
+        if u is None:
+            u = User(email=email)
+            db.session.add(u)
+            db.session.commit()
 
-    repo = db.Column(db.String(), nullable=False)
+        if len(u.data_stacks) == 0:
+            ds = DataStack(dsid=str(uuid4()))
+            u.data_stacks.append(ds)
+            db.session.add(ds)
+            db.session.commit()
+            subprocess.check_call(["dss", "init", str(ds.directory)])
 
-    workbenches = db.relationship(
-        "Workbench", back_populates="warehouse", cascade="all,delete-orphan"
-    )
-
-
-class Workbench(db.Model, ModifiedAtMixin):
-    wbid = db.Column(db.Integer(), primary_key=True)
-    code = db.Column(db.String(), hashid_computed("wbid"))
-
-    uid = db.Column(
-        db.Integer(), db.ForeignKey("user.uid", ondelete="cascade"), nullable=False
-    )
-    user = db.relationship("User", back_populates="workbenches")
-
-    whid = db.Column(
-        db.Integer(),
-        db.ForeignKey("warehouse.whid", ondelete="cascade"),
-        nullable=False,
-    )
-    warehouse = db.relationship("Warehouse", back_populates="workbenches")
-
-    branch = db.Column(db.String(), default="master", nullable=False)
-
-
-def initial_user_setup(email):
-    wh = Warehouse(repo="/dev/null")
-    db.session.add(wh)
-    db.session.commit()
-    # NOTE the code is generated in the db (maybe that was a mistake?)
-    # so we need to commit and load it here 20201108:mb
-    repo_dir = str(CONFIG.FILE_STORE / "warehouse" / wh.code / "repo")
-    pygit2.init_repository(repo_dir)
-    wh.repo = repo_dir
-    u = User(email=email)
-    wb = Workbench(user=u, warehouse=wh, branch="master")
-    db.session.add(wh)
-    db.session.add(u)
-    db.session.add(wb)
-    db.session.commit()
-    return u
+        db.session.commit()
+        return u

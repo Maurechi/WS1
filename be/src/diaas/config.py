@@ -16,7 +16,7 @@ class Config:
         self.configurable("DEPLOYMENT_COMMIT_TITLE")
         self.configurable("DEPLOYMENT_ENVIRONMENT")
         self.configurable("INTERNAL_API_TOKEN")
-        self.configurable("FILE_STORE", type=Path)
+        self.configurable("DS_STORE", type=Path)
         self.configurable("INSTALL_DIR", type=Path)
         self.configurable("SESSION_COOKIE_IS_SECURE", type=bool)
         self.configurable("SESSION_SECRET_KEY")

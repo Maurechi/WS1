@@ -107,12 +107,12 @@ class Configuration(BaseConfiguration):
             install_dir = Path(__file__).resolve().parent.parent
             self._set(DIAAS_INSTALL_DIR=install_dir)
             if self.is_lcl:
-                file_store = install_dir / "tmp/lcl-file-store"
+                file_store = install_dir / "tmp/lcl-ds-store"
                 file_store.mkdir(parents=True, exist_ok=True)
-                self._set(DIAAS_FILE_STORE=file_store)
+                self._set(DIAAS_DS_STORE=file_store)
             else:
                 raise ValueError(
-                    f"Don't know value for DIAAS_FILE_STORE for env {self.environment}"
+                    f"Don't know value for DIAAS_DS_STORE for env {self.environment}"
                 )
             self._set(DIAAS_PG_HASHIDS_SALT="U69XD2b3YaIJe2plIN31")
 

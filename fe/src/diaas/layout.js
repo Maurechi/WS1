@@ -187,10 +187,10 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
         </Link>
       </Typography>
       <Button variant="contained" color="primary">
-        Branch: {state.user.workbenches[0].branch}
+        Branch: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].branch : '---'}
       </Button>
       <Button variant="contained" color="primary">
-        Warehouse: {state.user.workbenches[0].warehouse.name}
+        Data Stack: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].name : '---'}
       </Button>
       <AccountMenu />
     </Toolbar>
