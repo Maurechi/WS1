@@ -1,3 +1,0 @@
-#!/bin/bash
-set -euo pipefail; ROOT="$(cd $(dirname $BASH_SOURCE) && pwd)"; cd "${ROOT}" && cd ..
-docker build -t dss:latest .

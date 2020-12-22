@@ -1,6 +1,5 @@
 name: diaas-lcl
-root: "<%= @settings["__root__"] %>"
-
+root: '<%= @settings["__root__"] %>'
 windows:
   - serve:
       layout: main-vertical

@@ -59,6 +59,16 @@ class DataStack:
 
         return self
 
+    def clone(self, directory, force=False):
+        directory = Path(directory).resolve()
+        if directory.exists():
+            if force:
+                rm_tree(directory)
+            else:
+                raise ValueError(f"Target directory {directory} already exsts.")
+        pygit2.clone_repository(self.dir, directory)
+        return DataStack(directory)
+
     def delete(self):
         self.dir.unlink()
         return self

@@ -1,6 +1,6 @@
 import subprocess
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 from diaas.config import CONFIG
 from diaas.db import db
@@ -24,22 +24,6 @@ class ModifiedAtMixin:
     )
 
 
-class DataStack(db.Model, ModifiedAtMixin):
-    dsid = db.Column(db.String(), primary_key=True)
-
-    users = db.relationship("User", secondary="user_data_stack")
-
-    @property
-    def directory(self):
-        return CONFIG.DS_STORE / self.dsid
-
-
-class UserDataStack(db.Model):
-    dsid = db.Column(db.String(), db.ForeignKey("data_stack.dsid"))
-    uid = db.Column(db.Integer(), db.ForeignKey("user.uid"))
-    __table_args__ = (db.PrimaryKeyConstraint(dsid, uid), {})
-
-
 class User(db.Model, ModifiedAtMixin):
     # Bump this up to something nice with op.execute("ALTER SEQUENCE
     # user_uid_seq RESTART WITH 1000 START WITH 1000 MINVALUE 1000;")
@@ -50,12 +34,22 @@ class User(db.Model, ModifiedAtMixin):
 
     email = db.Column(db.String(), unique=True)
 
-    data_stacks = db.relationship("DataStack", secondary="user_data_stack", back_populates="users")
-
     @property
     def display_name(self):
         email_parts = self.email.split("@")
         return email_parts[0].lower()
+
+    @property
+    def workbench_path(self):
+        return (CONFIG.WORKBENCH_STORE / self.code).resolve()
+
+    @property
+    def data_stacks(self):
+        return [
+            path
+            for path in (self.workbench_path / "data-stacks/").glob("*")
+            if path.name not in [".", ".."]
+        ]
 
     @classmethod
     def ensure_user(cls, email):
@@ -65,12 +59,15 @@ class User(db.Model, ModifiedAtMixin):
             db.session.add(u)
             db.session.commit()
 
-        if len(u.data_stacks) == 0:
-            ds = DataStack(dsid=str(uuid4()))
-            u.data_stacks.append(ds)
-            db.session.add(ds)
-            db.session.commit()
-            subprocess.check_call(["dss", "init", str(ds.directory)])
+        u.workbench_path.mkdir(parents=True, exist_ok=True)
 
-        db.session.commit()
+        if len(u.data_stacks) == 0:
+            repo_path = CONFIG.DS_STORE / str(uuid4())
+            repo_path = repo_path.resolve()
+            repo_path = str(repo_path)
+            subprocess.check_call(["dss", "init", repo_path])
+            subprocess.check_call(
+                ["dss", "clone", repo_path, str(u.workbench_path / "data-stacks" / "0")]
+            )
+
         return u
