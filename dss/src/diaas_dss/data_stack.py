@@ -4,7 +4,7 @@ from pathlib import Path
 import pygit2
 from jinja2 import Environment, PackageLoader
 
-from diaas.dss.utils import rm_tree
+from diaas_dss.utils import rm_tree
 
 
 class DataStack:
@@ -22,7 +22,7 @@ class DataStack:
             if force:
                 rm_tree(self.dir)
             else:
-                raise ValueError("A DataStack already exsts at {self.dir}")
+                raise ValueError(f"A DataStack already exsts at {self.dir}")
         self.dir.mkdir(parents=True)
         repo = pygit2.init_repository(self.dir)
 
@@ -34,7 +34,7 @@ class DataStack:
         )
         repo.checkout("refs/heads/prd")
 
-        env = Environment(loader=PackageLoader("diaas.dss", "templates"))
+        env = Environment(loader=PackageLoader("diaas_dss", "templates"))
 
         vars = dict(now=datetime.datetime.utcnow().isoformat() + "Z")
 

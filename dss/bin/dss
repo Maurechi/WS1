@@ -1,4 +1,0 @@
-#!/bin/bash
-set -euo pipefail; ROOT="$(cd $(dirname $BASH_SOURCE) && cd .. && pwd)"
-
-"${ROOT}/bin/flask" dss "$@"

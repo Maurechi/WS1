@@ -5,11 +5,16 @@ with open("./requirements.txt") as requirements_txt:
 
 setup(
     name="diaas_dss",
-    version="unversioned",
+    version="0.0.0",
     author_email="tech@leukos.io",
     python_requires=">=3.8.0",
-    packages=find_packages(exclude=('tests',)),
-    scripts=['bin/dss'],
+    package_dir={'': "src"},
+    packages=find_packages('src'),
+    entry_points={
+        'console_scripts': [
+            'dss=diaas_dss.cli:cli',
+        ],
+    },
     install_requires=install_requires,
     include_package_data=True,
     license='All Right Reserverd',
