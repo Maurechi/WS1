@@ -1,0 +1,9 @@
+= API
+
+The API is just a BfF, we're not trying to be a general PAI others could build clients on.
+
+We expose hashids instead of the sequential interger primary keys
+(probably not worth it, but I like the aesthetics of it). This makes
+the sql code slightly more complicated (becuase know you need  around trip to the db to get the object values you want to return in the API reponse).
+
+It's a price i'm willing to pay because I'm vain and I like hiding the fact that we have so few users now.
