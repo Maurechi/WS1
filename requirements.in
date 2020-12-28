@@ -2,6 +2,7 @@ black
 docker-compose
 flake8
 google-cloud-secret-manager
+google-cloud-resource-manager
 isort
 pgcli
 pip-tools
