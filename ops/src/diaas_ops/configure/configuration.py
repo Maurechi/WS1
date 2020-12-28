@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-from pathlib import Path
-
-from configuration_helpers import BaseConfiguration, from_env
+from diaas_ops.configure.helpers import BaseConfiguration, from_env
 from slugify import slugify
 
 
@@ -104,12 +101,13 @@ class Configuration(BaseConfiguration):
         if self.with_be:
             self._flask_config()
             self._db_config()
-            install_dir = Path(__file__).resolve().parent.parent
-            self._set(DIAAS_INSTALL_DIR=install_dir)
+            if self.install_dir is None:
+                raise ValueError("Missing required input install_dir")
+            self._set(DIAAS_INSTALL_DIR=self.install_dir)
             if self.is_lcl:
                 self._set_all(
-                    DIAAS_DS_STORE=install_dir / "tmp/lcl-ds-store",
-                    DIAAS_WORKBENCH_STORE=install_dir / "tmp/lcl-workbench-store",
+                    DIAAS_DS_STORE=self.install_dir / "tmp/lcl-ds-store",
+                    DIAAS_WORKBENCH_STORE=self.install_dir / "tmp/lcl-workbench-store",
                 )
                 for key in ["DIAAS_DS_STORE", "DIAAS_WORKBENCH_STORE"]:
                     dir = self.values[key]

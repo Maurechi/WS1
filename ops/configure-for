@@ -1,23 +1,5 @@
-#!/usr/bin/env python3
-import os
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}";
 
-import click
-from configuration import Configuration
-
-
-@click.command()
-@click.option("--format", "-f", default="bash", type=str)
-@click.option("--with-be/--without-be", default=True)
-@click.option("--with-fe/--without-fe", default=True)
-@click.argument("environment", default=None, type=str, required=False)
-def main(environment, format, with_be, with_fe):
-    """Export bash code to set env vars configuring the given env and version."""
-    if environment is not None:
-        os.environ["DIAAS_DEPLOYMENT_ENVIRONMENT"] = environment
-    if "DIAAS_DEPLOYMENT_ENVIRONMENT" not in os.environ:
-        raise click.ClickException("ENVIRONMENT not specified.")
-    Configuration(with_be=with_be, with_fe=with_fe).print_as(format)
-
-
-if __name__ == "__main__":
-    main()
+cd "${__root__}"
+PYTHONPATH="${__root__}/ops/src/" python -m diaas_ops.configure.configure_for --install-dir "${__root__}/" "$@"
