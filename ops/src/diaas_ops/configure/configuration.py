@@ -1,3 +1,4 @@
+from pathlib import Path
 from diaas_ops.configure.helpers import BaseConfiguration, from_env
 from slugify import slugify
 
@@ -111,7 +112,7 @@ class Configuration(BaseConfiguration):
                 )
                 for key in ["DIAAS_DS_STORE", "DIAAS_WORKBENCH_STORE"]:
                     dir = self.values[key]
-                    dir.mkdir(parents=True, exist_ok=True)
+                    Path(dir).mkdir(parents=True, exist_ok=True)
             else:
                 raise ValueError(
                     f"Don't know what DIAAS_{{DS,WORKBENCH}}_STORE values to use for env {self.environment}"

@@ -1,5 +1,7 @@
+import subprocess
 from uuid import uuid4
 
+from diaas.config import CONFIG
 from diaas.model import User
 
 
@@ -13,4 +15,16 @@ def test_user_create(app):
         u2 = u = User.query.filter(User.email == email).one_or_none()
         assert u2
         assert len(u2.data_stacks) == 1
-        assert u2.data_stacks[0] is None
+        ds = u2.data_stacks[0]
+        assert ds.path.exists()
+        branch = subprocess.check_output(["git", "-C", str(ds.path), "branch", "--show-current"], text=True)
+        assert branch.strip() == "prd"
+
+        remote_name = subprocess.check_output(["git", "-C", str(ds.path), "remote", "show"], text=True)
+        assert remote_name.strip() == "origin"
+
+        remote_url = subprocess.check_output(["git", "-C", str(ds.path), "remote", "get-url", "origin"], text=True)
+        assert remote_url.strip().startswith(str(CONFIG.DS_STORE))
+
+        INFO = subprocess.check_output([str(ds.path / "run"), "ds", "info"], text=True)
+        assert INFO.strip() == "INFO"

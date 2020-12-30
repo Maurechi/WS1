@@ -2,6 +2,8 @@
 set -u; source "${LEUKOS_SH_V1}";
 
 cd "${__root__}/be/"
+store_root="$(mktemp -u -d -t test-be-XXXXXX -p "${__root__}"/tmp/tests/)"
+export DIAAS_DS_STORE="${store_root}/ds"
+export DIAAS_WORKBENCH_STORE="${store_root}/wb"
 eval "$("${__root__}/ops/configure-for" lcl)"
 PYTHONPATH="${__root__}/be/src/:${__root__}/be/tests/" pytest -vvv "$@" "${__root__}/be/tests/"
-
