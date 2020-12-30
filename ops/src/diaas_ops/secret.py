@@ -30,9 +30,11 @@ class Secret:
 
     @property
     def display_name(self):
-        m = re.match(r'^projects/([^/]+)/secrets/(.*)$', self.name)
+        m = re.match(r'^projects/(?P<project_number>[^/]+)/secrets/(?P<secret_id>.*)$', self.name)
         if m:
-            return self.client.project_name(m[1]) + "/" + m[2]
+            project_id = self.client.project_id(m.group("project_number"))
+            secret_id = m.group("secret_id")
+            return project_id + "/" + secret_id
         else:
             return self.name
 
@@ -92,8 +94,21 @@ class Client:
             return None
         return Secret(self, res)
 
-    def project_name(self, project_id):
-        return self.resource_manager.fetch_project(project_id).name
+    def create_secret(self, secret_id):
+        self.secret_manager.create_secret({
+            "parent": f"projects/{self.project}",
+            "secret_id": secret_id,
+            "secret": {"replication": {"automatic": {}}},
+        })
+        return self.get_secret(secret_id)
+
+    def project_id(self, project_number):
+        return self.resource_manager.fetch_project(project_number).name
+
+    def project_number(self, project_id):
+        prj = resource_manager.project.Project(project_id=project_id)
+        prj.reload()
+        return prj.project_number
 
 
 @click.group()
@@ -138,8 +153,7 @@ def set(ctx, secret_id, value):
     client = Client()
     s = client.get_secret(secret_id)
     if s is None:
-        click.echo(f"No secret named {secret_id}")
-        ctx.exit(2)
+        s = client.create_secret(secret_id)
     version = s.add_version(value)
     print(version.name)
 
