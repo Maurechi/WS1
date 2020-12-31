@@ -17,7 +17,7 @@ def from_env(name, type=str, default=None, required=False):
     elif type == str:
         return raw_value
     elif type == int:
-        return int(str)
+        return int(raw_value)
     elif type == bool:
         if default is None:
             default = False
