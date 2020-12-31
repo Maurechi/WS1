@@ -10,20 +10,31 @@ export GIT_COMMITTER_EMAIL="${GIT_AUTHOR_EMAIL}"
 cat <<'EOF' > ./Dockerfile
 FROM python:3.9
 RUN pip install git+https://gitlab.com/libds/libds.git
+RUN mkdir -p /opt/ds
+WORKDIR /opt/ds/
 EOF
-cat <<'EOF' > ./run
+
+cat <<'EOF' > ./build
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
+docker build --no-cache .
 container_id="$(docker build -q .)"
-if [[ $? -gt 0 ]]; then
-  echo docker build failed:
-  docker build .
-  exit 2
-fi
-docker run "${container_id}" "$@"
-EOF
+cat <<EORUN > ./run
+#!/bin/bash
+set -euo pipefail
+cd "\$(dirname "\${BASH_SOURCE[0]}")"
+docker run -v "\$(pwd)/:/opt/ds/" "${container_id}" "\$@"
+EORUN
 chmod +x ./run
+EOF
+
+chmod +x ./build
+./build
+
+cat <<EOF > ./data_stack.yaml
+created_at: "$(date --iso-8601=seconds)"
+EOF
 
 git init .
 git add .

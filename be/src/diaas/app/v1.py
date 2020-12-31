@@ -1,3 +1,6 @@
+import json
+import subprocess
+
 from flask import Blueprint, request, session
 
 from diaas.app.utils import Request, as_json
@@ -10,8 +13,15 @@ def _user_as_json(user):
     return {
         "uid": user.code,
         "displayName": user.display_name,
-        "dataStacks": [],
+        "dataStacks": [_data_stack_as_json(ds) for ds in user.data_stacks],
     }
+
+
+def _data_stack_as_json(ds):
+    info_text = subprocess.check_output(
+        [str(ds.path / "run"), "ds", "info", "-f", "json"]
+    )
+    return {"path": ds.path, "info": json.loads(info_text)}
 
 
 MOCK_USER = dict(

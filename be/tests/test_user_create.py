@@ -1,3 +1,4 @@
+import json
 import subprocess
 from uuid import uuid4
 
@@ -26,5 +27,7 @@ def test_user_create(app):
         remote_url = subprocess.check_output(["git", "-C", str(ds.path), "remote", "get-url", "origin"], text=True)
         assert remote_url.strip().startswith(str(CONFIG.DS_STORE))
 
-        INFO = subprocess.check_output([str(ds.path / "run"), "ds", "info"], text=True)
-        assert INFO.strip() == "INFO"
+        info_text = subprocess.check_output([str(ds.path / "run"), "ds", "info", "-f", "json"], text=True)
+        info = json.loads(info_text)
+        assert "extracts" in info
+        assert info["extracts"] == []
