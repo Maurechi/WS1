@@ -9,7 +9,7 @@ export GIT_COMMITTER_EMAIL="${GIT_AUTHOR_EMAIL}"
 
 cat <<'EOF' > ./Dockerfile
 FROM python:3.9
-RUN pip install git+https://gitlab.com/libds/libds.git
+RUN pip install git+https://git:obvUssSTkx3e_bswWQQy@gitlab.com/leukosio/libds.git
 RUN mkdir -p /opt/ds
 WORKDIR /opt/ds/
 EOF
