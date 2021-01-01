@@ -13,24 +13,21 @@ import {
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import React, { useState } from "react";
 import { Route, Switch, useRouteMatch } from "react-router-dom";
+import { observer } from "mobx-react-lite";
 
 import { Checkbox, Select, TextField, useFormValue } from "diaas/form.js";
 import { ButtonLink } from "diaas/ui.js";
+import { useAppState } from "diaas/state.js";
 
-export const SourcesTable = () => {
+export const SourcesTable = observer(() => {
   const columns = [
     { defaultFlex: 2, name: "name", header: "Name" },
     { defaultFlex: 1, name: "type", header: "Type" },
     { defaultFlex: 2, name: "details", header: "Details" },
   ];
 
-  const rows = [
-    { id: 1, name: "DE - fb", type: "Facebook", details: "All Accounts" },
-    { id: 2, name: "AT - fb", type: "Facebook", details: "Account 7 / daily sync" },
-    { id: 2, name: "DE - yt", type: "YouTube", details: "" },
-    { id: 2, name: "DE - adw", type: "Adwords", details: "All Accounts / stream" },
-    { id: 2, name: "DE - GA4", type: "Google Analytics 4", details: "All Accounts / stream" },
-  ];
+  const { user } = useAppState();
+  const rows = user.dataStacks[0].info.sources.map(s => ({name: s.name, type: s.type}));
 
   return (
     <Box>
@@ -45,7 +42,7 @@ export const SourcesTable = () => {
       <ReactDataGrid isProperty="id" columns={columns} dataSource={rows} style={{ minHeight: 550 }} />
     </Box>
   );
-};
+});
 
 export const ConnectorCard = ({ logo, name, target }) => {
   return (

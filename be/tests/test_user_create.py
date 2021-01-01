@@ -29,5 +29,5 @@ def test_user_create(app):
 
         info_text = subprocess.check_output([str(ds.path / "run"), "ds", "info", "-f", "json"], text=True)
         info = json.loads(info_text)
-        assert "extracts" in info
-        assert info["extracts"] == []
+        assert "source" in info
+        assert info["source"] == []
