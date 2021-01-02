@@ -19,7 +19,7 @@ def _user_as_json(user):
 
 def _data_stack_as_json(ds):
     info_text = subprocess.check_output(
-        [str(ds.path / "run"), "ds", "info", "-f", "json"]
+        [str(ds.path / "run")] + "ds -f json info".split()
     )
     return {"path": ds.path, "info": json.loads(info_text)}
 

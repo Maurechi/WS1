@@ -11,13 +11,27 @@ import {
   Typography,
 } from "@material-ui/core";
 import Autocomplete from "@material-ui/lab/Autocomplete";
-import React, { useState } from "react";
-import { Route, Switch, useRouteMatch } from "react-router-dom";
+import _ from "lodash";
 import { observer } from "mobx-react-lite";
+import React, { useState } from "react";
+import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 import { Checkbox, Select, TextField, useFormValue } from "diaas/form.js";
-import { ButtonLink } from "diaas/ui.js";
+import { Code } from "diaas/sources/Code.js";
+import { GoogleSheet } from "diaas/sources/GoogleSheet.js";
+import { StaticTable } from "diaas/sources/StaticTable.js";
 import { useAppState } from "diaas/state.js";
+import { ButtonLink } from "diaas/ui.js";
+
+// NOTE we could do something smarter here not have to edit this file
+// every time we define a new componnet. however we'd still need to
+// import the code and then we'd have unusedimports dangling around.
+// this feels like a decent comporommise to me. 20210102:mb
+const SOURCE_EDITOR_REGISTRY = {
+  "libds.source.google.GoogleSheet": GoogleSheet,
+  "libds.source.static.StaticTable": StaticTable,
+  __code__: Code,
+};
 
 export const SourcesTable = observer(() => {
   const columns = [
@@ -26,8 +40,19 @@ export const SourcesTable = observer(() => {
     { defaultFlex: 2, name: "details", header: "Details" },
   ];
 
+  const history = useHistory();
+  const { path } = useRouteMatch();
   const { user } = useAppState();
-  const rows = user.dataStacks[0].info.sources.map(s => ({name: s.name, type: s.type}));
+  const makeRow = (source) => ({ name: source.name, type: source.type, key: source.key });
+  const rows = user.dataStacks[0].info.sources.map(makeRow);
+
+  const onRenderRow = (rowProps) => {
+    const { onClick } = rowProps;
+    rowProps.onClick = (e) => {
+      onClick(e);
+      history.push(`${path}${rowProps.data.key}`);
+    };
+  };
 
   return (
     <Box>
@@ -39,7 +64,13 @@ export const SourcesTable = observer(() => {
           </ButtonLink>
         </Box>
       </Box>
-      <ReactDataGrid isProperty="id" columns={columns} dataSource={rows} style={{ minHeight: 550 }} />
+      <ReactDataGrid
+        isProperty="id"
+        columns={columns}
+        dataSource={rows}
+        style={{ minHeight: 550 }}
+        onRenderRow={onRenderRow}
+      />
     </Box>
   );
 });
@@ -190,19 +221,26 @@ export const NewSourceChooser = () => {
   );
 };
 
+const SourceEditor = observer(() => {
+  const { key } = useParams();
+  const { user } = useAppState();
+  const source = _.find(user.dataStacks[0].info.sources, (s) => s.key == key);
+
+  const Component = SOURCE_EDITOR_REGISTRY[source.definition["in"] === "code" ? "__code__" : source.type];
+
+  return <Component user={user} source={source} />;
+});
+
 export const SourcesContent = () => {
   let { path } = useRouteMatch();
   console.log("path is", path);
   return (
     <Switch>
-      <Route path={`${path}new/google-adwords`}>
-        <SourceNewGoogleAdwords />
-      </Route>
-      <Route path={`${path}new/facebook-ads`}>
-        <SourceNewFacebookAds />
-      </Route>
       <Route path={`${path}new`}>
         <NewSourceChooser />
+      </Route>
+      <Route path={`${path}:key`}>
+        <SourceEditor />
       </Route>
       <Route path={path}>
         <SourcesTable />
