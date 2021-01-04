@@ -5,9 +5,12 @@ from pathlib import Path
 from pprint import pformat
 
 import arrow
+from flask import g, session
 from flask_json import FlaskJSON, json_response, request
+from sentry_sdk import configure_scope
 
 from diaas.db import db
+from diaas.model import User
 
 
 class ApiError(Exception):
@@ -140,6 +143,32 @@ def as_json(view):
             )
 
     return wrapped
+
+
+def current_user():
+    if "uid" in session:
+        return User.query.filter(User.uid == session["uid"]).one_or_none()
+    else:
+        return None
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user" not in g or g.user is None:
+            g.user = current_user()
+            if g.user is None:
+                raise ApiError(401, "unauthorized")
+
+        with configure_scope() as scope:
+            scope.user = {"email": g.user.email}
+
+        if len(g.user.data_stacks) > 1:
+            raise ApiError(500, "too-many-data-stacks")
+
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 def no_autoflush(view):

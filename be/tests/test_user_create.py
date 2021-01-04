@@ -27,7 +27,8 @@ def test_user_create(app):
         remote_url = subprocess.check_output(["git", "-C", str(ds.path), "remote", "get-url", "origin"], text=True)
         assert remote_url.strip().startswith(str(CONFIG.DS_STORE))
 
-        info_text = subprocess.check_output([str(ds.path / "run"), "ds", "info", "-f", "json"], text=True)
+        subprocess.check_call([str(ds.path / "build")], text=True)
+        info_text = subprocess.check_output([str(ds.path / "run")] + "ds -f json info".split(), text=True)
         info = json.loads(info_text)
-        assert "source" in info
-        assert info["source"] == []
+        assert "sources" in info
+        assert info["sources"] == []

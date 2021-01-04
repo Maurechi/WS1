@@ -1,9 +1,7 @@
-import json
-import subprocess
+from flask import Blueprint, g, request, session
 
-from flask import Blueprint, request, session
-
-from diaas.app.utils import Request, as_json
+from diaas.app.utils import Request, as_json, login_required
+from diaas.config import CONFIG
 from diaas.model import User
 
 api_v1 = Blueprint("api_v1", __name__)
@@ -18,10 +16,10 @@ def _user_as_json(user):
 
 
 def _data_stack_as_json(ds):
-    info_text = subprocess.check_output(
-        [str(ds.path / "run")] + "ds -f json info".split()
-    )
-    return {"path": ds.path, "info": json.loads(info_text)}
+    return {
+        "path": ds.path.relative_to(CONFIG.WORKBENCH_STORE),
+        "info": ds.libds.info(),
+    }
 
 
 MOCK_USER = dict(
@@ -99,7 +97,7 @@ def session_get():
         if u is None:
             return None, 404
         else:
-            return _user_as_json(u)
+            return _user_as_json(u), 200
     else:
         return None, 404
 
@@ -118,3 +116,11 @@ def session_post():
 def session_delete():
     session.clear()
     return None, 200
+
+
+@api_v1.route("/sources/<path:id>", methods=["POST"])
+@login_required
+@as_json
+def source_update(id):
+    ds = g.user.data_stacks[0]
+    return ds.libds.update_source_config(id, request.get_json())

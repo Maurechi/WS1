@@ -1,47 +1,46 @@
 import { Grid } from "@material-ui/core";
+import { observer } from "mobx-react-lite";
 import React from "react";
 
 import { ActionButton } from "diaas/ActionButton.js";
 import { TextField, useFormValue } from "diaas/form.js";
+import { useAppState } from "diaas/state.js";
 
-export const StaticTable = ({ source }) => {
-  const { table } = source.definition.config;
-  const sourceValue = useFormValue(table);
-  const idValue = useFormValue(source.id);
-  const targetTableValue = useFormValue("SCHEMA.TABLE");
+export const StaticTable = observer(({ source }) => {
+  const state = useAppState();
+  const config = source.definition.config;
+  const data = useFormValue(config.data);
+  const id = useFormValue(source.id);
+  const targetTable = useFormValue(config.target_table);
 
   const submit = () => {
-    console.log("Will update to", sourceValue.v);
+    return saveAndLoad();
   };
   const saveAndLoad = () => {
-    return new Promise(() => null);
+    return state.backend.post(`/sources/${source.id}`, { data: data.v, target_table: targetTable.v }).then((res) => {
+      return res;
+    });
   };
   return (
     <form onSubmit={submit}>
       <Grid container>
         <Grid item xs={12}>
-          <TextField pb={4} label="ID" value={idValue} fullWidth={true} style={{ maxWidth: "600px" }} disabled={true} />
+          <TextField pb={4} label="ID" value={id} fullWidth={true} style={{ maxWidth: "600px" }} disabled={true} />
         </Grid>
         <Grid item xs={12}>
-          <TextField
-            pb={4}
-            label="Target Table"
-            value={targetTableValue}
-            fullWidth={true}
-            style={{ maxWidth: "600px" }}
-          />
+          <TextField pb={4} label="Target Table" value={targetTable} fullWidth={true} style={{ maxWidth: "600px" }} />
         </Grid>
       </Grid>
       <TextField
         label="Values"
-        value={sourceValue}
+        value={data}
         fullWidth={true}
         multiline={true}
         InputProps={{ style: { fontFamily: "monospace" } }}
       >
-        {table}
+        {data.v}
       </TextField>
       <ActionButton onClick={saveAndLoad}>Save and Load</ActionButton>
     </form>
   );
-};
+});

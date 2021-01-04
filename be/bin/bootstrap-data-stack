@@ -30,7 +30,7 @@ cat <<EORUN > ./run
 #!/bin/bash
 set -euo pipefail
 cd "\$(dirname "\${BASH_SOURCE[0]}")"
-declare -a run_args=( -v "\$(pwd)/:/opt/ds/" )
+declare -a run_args=( -i -v "\$(pwd)/:/opt/ds/" )
 if [[ -v LIBDS_DIR ]]; then
   run_args+=( -v "\${LIBDS_DIR}/:/opt/libds/")
 fi

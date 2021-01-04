@@ -7,6 +7,7 @@ import pygit2
 
 from diaas.config import CONFIG
 from diaas.db import db
+from diaas.libds import LibDS
 
 
 # NOTE To make this work the first migration will need
@@ -89,3 +90,7 @@ class DataStack:
             path.mkdir(parents=True)
         script = CONFIG.INSTALL_DIR / "be/bin/bootstrap-data-stack"
         subprocess.check_call([str(script)], cwd=path)
+
+    @property
+    def libds(self):
+        return LibDS(self.path)
