@@ -1,6 +1,6 @@
 import React from "react";
 
-export const StaticTable = ({ source, user }) => {
+export const StaticTable = ({ source }) => {
   const { table } = source.definition.config;
   return (
     <>

@@ -233,7 +233,6 @@ const SourceEditor = observer(() => {
 
 export const SourcesContent = () => {
   let { path } = useRouteMatch();
-  console.log("path is", path);
   return (
     <Switch>
       <Route path={`${path}new`}>

@@ -132,7 +132,6 @@ export const Browser = () => {
 
 export const WorkbenchContent = () => {
   let { path } = useRouteMatch();
-  console.log("path is", path);
   return (
     <Switch>
       <Route path={`${path}new/`}>

@@ -1,6 +1,6 @@
 import React from "react";
 
-export const GoogleSheet = ({ source, user }) => {
+export const GoogleSheet = ({ source }) => {
   const { spreadsheet_id, range } = source.definition.config;
   return (
     <>

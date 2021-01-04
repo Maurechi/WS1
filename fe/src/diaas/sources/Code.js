@@ -1,6 +1,6 @@
 import React from "react";
 
-export const Code = ({ source, user }) => {
+export const Code = ({ source }) => {
   const { filename } = source.definition;
   return (
     <>
