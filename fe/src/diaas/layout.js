@@ -34,12 +34,6 @@ import v from "voca";
 
 import { useAppState } from "diaas/state";
 
-export const HCenter = ({ children, ...BoxProps }) => (
-  <Box display="flex" width="100%" justifyContent="center" {...BoxProps}>
-    {children}
-  </Box>
-);
-
 const drawerWidth = 240;
 
 const useStyles = makeStyles((theme) => ({
