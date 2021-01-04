@@ -16,6 +16,7 @@ import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
+import { ErrorDialog } from "diaas/ErrorDialog.js";
 import { Checkbox, Select, TextField, useFormValue } from "diaas/form.js";
 import { Code } from "diaas/sources/Code.js";
 import { GoogleSheet } from "diaas/sources/GoogleSheet.js";
@@ -35,7 +36,7 @@ const SOURCE_EDITOR_REGISTRY = {
 
 export const SourcesTable = observer(() => {
   const columns = [
-    { defaultFlex: 2, name: "name", header: "Name" },
+    { defaultFlex: 2, name: "id", header: "ID" },
     { defaultFlex: 1, name: "type", header: "Type" },
     { defaultFlex: 2, name: "details", header: "Details" },
   ];
@@ -43,14 +44,14 @@ export const SourcesTable = observer(() => {
   const history = useHistory();
   const { path } = useRouteMatch();
   const { user } = useAppState();
-  const makeRow = (source) => ({ name: source.name, type: source.type, key: source.key });
+  const makeRow = (source) => ({ id: source.id, type: source.type });
   const rows = user.dataStacks[0].info.sources.map(makeRow);
 
   const onRenderRow = (rowProps) => {
     const { onClick } = rowProps;
     rowProps.onClick = (e) => {
       onClick(e);
-      history.push(`${path}${rowProps.data.key}`);
+      history.push(`${path}${rowProps.data.id}`);
     };
   };
 
@@ -222,13 +223,16 @@ export const NewSourceChooser = () => {
 };
 
 const SourceEditor = observer(() => {
-  const { key } = useParams();
+  const { id } = useParams();
   const { user } = useAppState();
-  const source = _.find(user.dataStacks[0].info.sources, (s) => s.key == key);
-
-  const Component = SOURCE_EDITOR_REGISTRY[source.definition["in"] === "code" ? "__code__" : source.type];
-
-  return <Component user={user} source={source} />;
+  const source = _.find(user.dataStacks[0].info.sources, (s) => s.id === id);
+  if (!source) {
+    console.log("error");
+    return <ErrorDialog title="This was not suppoed to happen." message={`No source found with id '${id}'`} />;
+  } else {
+    const Component = SOURCE_EDITOR_REGISTRY[source.definition["in"] === "code" ? "__code__" : source.type];
+    return <Component user={user} source={source} />;
+  }
 });
 
 export const SourcesContent = () => {
@@ -238,7 +242,7 @@ export const SourcesContent = () => {
       <Route path={`${path}new`}>
         <NewSourceChooser />
       </Route>
-      <Route path={`${path}:key`}>
+      <Route path={`${path}:id`}>
         <SourceEditor />
       </Route>
       <Route path={path}>
