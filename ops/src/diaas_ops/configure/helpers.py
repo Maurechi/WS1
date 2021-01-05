@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 import sys
 import tabulate
@@ -16,7 +17,7 @@ def from_env(name, type=str, default=None, required=False):
     elif type == str:
         return raw_value
     elif type == int:
-        return int(str)
+        return int(raw_value)
     elif type == bool:
         if default is None:
             default = False
@@ -29,10 +30,14 @@ def from_env(name, type=str, default=None, required=False):
 
 
 class BaseConfiguration:
-    def __init__(self, with_fe=True, with_be=True, environment=None):
+    def __init__(self, install_dir=None, with_fe=True, with_be=True, environment=None):
+        self.values = {}
         self.with_fe = with_fe
         self.with_be = with_be
-        self.values = {}
+        if install_dir is not None:
+            install_dir = Path(install_dir)
+        self.install_dir = install_dir
+
         self.timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
         if environment is None:
             environment = from_env("DIAAS_DEPLOYMENT_ENVIRONMENT", required=True)

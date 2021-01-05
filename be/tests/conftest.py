@@ -1,17 +1,16 @@
 import pytest
 from diaas_testing import Expect
 
-import diaas.app
+from diaas.app import create_app
 
 
 @pytest.fixture(scope="session")
 def app():
-    return diaas.app.create_app()
+    return create_app(testing=True)
 
 
 @pytest.fixture()
 def client(app):
-    app.config["TESTING"] = True
     return app.test_client()
 
 

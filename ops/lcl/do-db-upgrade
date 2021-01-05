@@ -1,0 +1,5 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}";
+
+exec "${__root__}"/ops/lcl/flask db upgrade
+

@@ -3,7 +3,6 @@ import os
 import traceback
 from pprint import pformat
 
-import alembic
 import psycopg2
 from flask import Blueprint, request
 
@@ -21,36 +20,6 @@ log = logging.getLogger(__name__)
 @internal_api.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
 def not_found(path):
     raise NotFoundError("route", request.url)
-
-
-@internal_api.route("/upgrade", methods=["POST"])
-@as_json
-def alembic_migrate():
-    revisions = []
-
-    have_work = [True]
-    while have_work[0]:
-
-        def do_upgrade(revision, context):
-            missing = alembic.script_directory._upgrade_revs("heads", revision)
-            if missing:
-                revisions.append(missing[0])
-                return [missing[0]]
-            else:
-                have_work[0] = False
-                return []
-
-        alembic.run_migrations(do_upgrade)
-
-    def _as_json(r):
-        return {
-            "doc": r.doc,
-            "revision": r.revision.revision,
-            "name": r.name,
-            "next": r.revision.nextrev,
-        }
-
-    return {"revisions": [_as_json(r) for r in revisions]}, 200
 
 
 def _app_health():

@@ -10,12 +10,12 @@ backcall==0.2.0           # via ipython
 cached-property==1.5.2    # via pygit2
 cachelib==0.1.1           # via flask-session
 certifi==2020.6.20        # via sentry-sdk
-cffi==1.14.3              # via pygit2
+cffi==1.14.4              # via pygit2
 click==7.1.2              # via flask, flask-shell-ipython
 decorator==4.4.2          # via ipython
 flask-alembic==2.0.1      # via -r requirements.in
 flask-json==0.3.4         # via -r requirements.in
-flask-session==0.3.2      # via -r requirements.in
+git+https://github.com/segv/flask-session.git@8134a2e9c8ff5f2741376ceff6ff7bdee71cf295  # via -r requirements.in
 flask-shell-ipython==0.4.1  # via -r requirements.in
 flask-sqlalchemy==2.4.4   # via -r requirements.in, flask-alembic
 flask==1.1.2              # via -r requirements.in, flask-alembic, flask-json, flask-session, flask-shell-ipython, flask-sqlalchemy
@@ -33,10 +33,11 @@ prompt-toolkit==3.0.8     # via ipython
 psycopg2-binary==2.8.6    # via -r requirements.in
 ptyprocess==0.6.0         # via pexpect
 pycparser==2.20           # via cffi
-pygit2==1.3.0             # via -r requirements.in
+pygit2==1.4.0             # via -r requirements.in
 pygments==2.7.2           # via ipython
 python-dateutil==2.8.1    # via alembic, arrow
 python-editor==1.0.4      # via alembic
+semver==2.13.0            # via -r requirements.in
 sentry-sdk==0.19.1        # via -r requirements.in
 six==1.15.0               # via python-dateutil
 sqlalchemy==1.3.20        # via alembic, flask-alembic, flask-sqlalchemy

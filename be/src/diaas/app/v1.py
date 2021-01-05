@@ -1,27 +1,24 @@
-from flask import Blueprint, request, session
+from flask import Blueprint, g, request, session
 
-from diaas.app.utils import Request, as_json
-from diaas.model import User, initial_user_setup
+from diaas.app.utils import Request, as_json, login_required
+from diaas.config import CONFIG
+from diaas.model import User
 
 api_v1 = Blueprint("api_v1", __name__)
-
-
-def _warehouse_as_json(wh):
-    return {"whid": wh.code}
-
-
-def _workbench_as_json(wb):
-    return {
-        "wbid": wb.code,
-        "branch": "null",
-        "warehouse": _warehouse_as_json(wb.warehouse),
-    }
 
 
 def _user_as_json(user):
     return {
         "uid": user.code,
-        "workbenches": [_workbench_as_json(wb) for wb in user.workbenches],
+        "displayName": user.display_name,
+        "dataStacks": [_data_stack_as_json(ds) for ds in user.data_stacks],
+    }
+
+
+def _data_stack_as_json(ds):
+    return {
+        "path": ds.path.relative_to(CONFIG.WORKBENCH_STORE),
+        "info": ds.libds.info(),
     }
 
 
@@ -92,26 +89,38 @@ MOCK_USER = dict(
 )
 
 
-@api_v1.route("/user", methods=["GET"])
+@api_v1.route("/session", methods=["GET"])
 @as_json
 def session_get():
     if "uid" in session:
         u = User.query.filter(User.uid == session["uid"]).one_or_none()
         if u is None:
-            return {}, 404
+            return None, 404
         else:
-            return MOCK_USER  # _user_as_json(u)
+            return _user_as_json(u), 200
     else:
-        return {}, 404
+        return None, 404
 
 
-@api_v1.route("/user", methods=["POST"])
+@api_v1.route("/session", methods=["POST"])
 @as_json
 def session_post():
     email = Request(request).get_value("email")
-    u = User.query.filter(User.email == email).one_or_none()
-    if u is None:
-        u = initial_user_setup(email)
-
+    u = User.ensure_user(email)
     session["uid"] = u.uid
     return _user_as_json(u)
+
+
+@api_v1.route("/session", methods=["DELETE"])
+@as_json
+def session_delete():
+    session.clear()
+    return None, 200
+
+
+@api_v1.route("/sources/<path:id>", methods=["POST"])
+@login_required
+@as_json
+def source_update(id):
+    ds = g.user.data_stacks[0]
+    return ds.libds.update_source_config(id, request.get_json())

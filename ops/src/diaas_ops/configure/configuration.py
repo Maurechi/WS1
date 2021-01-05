@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 from pathlib import Path
-
-from configuration_helpers import BaseConfiguration, from_env
+from diaas_ops.configure.helpers import BaseConfiguration, from_env
 from slugify import slugify
 
 
@@ -12,7 +10,7 @@ class Configuration(BaseConfiguration):
         self.commit_config()
         self.deployment_config()
         self.app_config()
-        self.sentry_config()
+        self.monitoring_config()
         self.tracker_config()
 
     def commit_config(self):
@@ -104,19 +102,24 @@ class Configuration(BaseConfiguration):
         if self.with_be:
             self._flask_config()
             self._db_config()
-            install_dir = Path(__file__).resolve().parent.parent
-            self._set(DIAAS_INSTALL_DIR=install_dir)
+            if self.install_dir is None:
+                raise ValueError("Missing required input install_dir")
+            self._set(DIAAS_INSTALL_DIR=self.install_dir)
             if self.is_lcl:
-                file_store = install_dir / "tmp/lcl-file-store"
-                file_store.mkdir(parents=True, exist_ok=True)
-                self._set(DIAAS_FILE_STORE=file_store)
+                self._set_all(
+                    DIAAS_DS_STORE=self.install_dir / "tmp/lcl-ds-store",
+                    DIAAS_WORKBENCH_STORE=self.install_dir / "tmp/lcl-workbench-store",
+                )
+                for key in ["DIAAS_DS_STORE", "DIAAS_WORKBENCH_STORE"]:
+                    dir = self.values[key]
+                    Path(dir).mkdir(parents=True, exist_ok=True)
             else:
                 raise ValueError(
-                    f"Don't know value for DIAAS_FILE_STORE for env {self.environment}"
+                    f"Don't know what DIAAS_{{DS,WORKBENCH}}_STORE values to use for env {self.environment}"
                 )
             self._set(DIAAS_PG_HASHIDS_SALT="U69XD2b3YaIJe2plIN31")
 
-    def sentry_config(self):
+    def monitoring_config(self):
         dsn = self.if_env(
             prd="https://f3551f0329dd4a9cbe4030f5f5507be5@o469059.ingest.sentry.io/5497805",
             otherwise="https://7e144b9b33bb467ba432cacd5ef608ab@o469059.ingest.sentry.io/5497814",
@@ -148,6 +151,7 @@ class Configuration(BaseConfiguration):
                     REACT_APP_SENTRY_RELEASE="diaas@"
                     + self.values["REACT_APP_COMMIT_SHA"],
                 )
+            self._set(REACT_APP_ENABLE_WEB_VITALS=self.is_prd)
 
     def tracker_config(self):
         if not self.with_fe:

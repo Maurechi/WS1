@@ -11,26 +11,49 @@ import {
   Typography,
 } from "@material-ui/core";
 import Autocomplete from "@material-ui/lab/Autocomplete";
+import _ from "lodash";
+import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
-import { Route, Switch, useRouteMatch } from "react-router-dom";
+import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
+import { ErrorDialog } from "diaas/ErrorDialog.js";
 import { Checkbox, Select, TextField, useFormValue } from "diaas/form.js";
+import { Code } from "diaas/sources/Code.js";
+import { GoogleSheet } from "diaas/sources/GoogleSheet.js";
+import { StaticTable } from "diaas/sources/StaticTable.js";
+import { useAppState } from "diaas/state.js";
 import { ButtonLink } from "diaas/ui.js";
 
-export const SourcesTable = () => {
+// NOTE we could do something smarter here not have to edit this file
+// every time we define a new componnet. however we'd still need to
+// import the code and then we'd have unusedimports dangling around.
+// this feels like a decent comporommise to me. 20210102:mb
+const SOURCE_EDITOR_REGISTRY = {
+  "libds.source.google.GoogleSheet": GoogleSheet,
+  "libds.source.static.StaticTable": StaticTable,
+  __code__: Code,
+};
+
+export const SourcesTable = observer(() => {
   const columns = [
-    { defaultFlex: 2, name: "name", header: "Name" },
+    { defaultFlex: 2, name: "id", header: "ID" },
     { defaultFlex: 1, name: "type", header: "Type" },
     { defaultFlex: 2, name: "details", header: "Details" },
   ];
 
-  const rows = [
-    { id: 1, name: "DE - fb", type: "Facebook", details: "All Accounts" },
-    { id: 2, name: "AT - fb", type: "Facebook", details: "Account 7 / daily sync" },
-    { id: 2, name: "DE - yt", type: "YouTube", details: "" },
-    { id: 2, name: "DE - adw", type: "Adwords", details: "All Accounts / stream" },
-    { id: 2, name: "DE - GA4", type: "Google Analytics 4", details: "All Accounts / stream" },
-  ];
+  const history = useHistory();
+  const { path } = useRouteMatch();
+  const { user } = useAppState();
+  const makeRow = (source) => ({ id: source.id, type: source.type });
+  const rows = user.dataStacks[0].info.sources.map(makeRow);
+
+  const onRenderRow = (rowProps) => {
+    const { onClick } = rowProps;
+    rowProps.onClick = (e) => {
+      onClick(e);
+      history.push(`${path}${rowProps.data.id}`);
+    };
+  };
 
   return (
     <Box>
@@ -42,10 +65,16 @@ export const SourcesTable = () => {
           </ButtonLink>
         </Box>
       </Box>
-      <ReactDataGrid isProperty="id" columns={columns} dataSource={rows} style={{ minHeight: 550 }} />
+      <ReactDataGrid
+        isProperty="id"
+        columns={columns}
+        dataSource={rows}
+        style={{ minHeight: 550 }}
+        onRenderRow={onRenderRow}
+      />
     </Box>
   );
-};
+});
 
 export const ConnectorCard = ({ logo, name, target }) => {
   return (
@@ -193,19 +222,28 @@ export const NewSourceChooser = () => {
   );
 };
 
+const SourceEditor = observer(() => {
+  const { id } = useParams();
+  const { user } = useAppState();
+  const source = _.find(user.dataStacks[0].info.sources, (s) => s.id === id);
+  if (!source) {
+    console.log("error");
+    return <ErrorDialog title="This was not suppoed to happen." message={`No source found with id '${id}'`} />;
+  } else {
+    const Component = SOURCE_EDITOR_REGISTRY[source.definition["in"] === "code" ? "__code__" : source.type];
+    return <Component user={user} source={source} />;
+  }
+});
+
 export const SourcesContent = () => {
   let { path } = useRouteMatch();
-  console.log("path is", path);
   return (
     <Switch>
-      <Route path={`${path}new/google-adwords`}>
-        <SourceNewGoogleAdwords />
-      </Route>
-      <Route path={`${path}new/facebook-ads`}>
-        <SourceNewFacebookAds />
-      </Route>
       <Route path={`${path}new`}>
         <NewSourceChooser />
+      </Route>
+      <Route path={`${path}:id`}>
+        <SourceEditor />
       </Route>
       <Route path={path}>
         <SourcesTable />

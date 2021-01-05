@@ -12,8 +12,9 @@ if CONFIG.ENABLE_SENTRY:
     sentry_sdk.init(CONFIG.SENTRY_DSN, traces_sample_rate=1.0)
 
 
-def create_app():
+def create_app(testing=False):
     app = Flask(__name__)
+    app.config["TESTING"] = testing
     app.register_blueprint(api_v1, url_prefix="/api/1")
     app.register_blueprint(internal_api, url_prefix="/api/_")
     app.config["SQLALCHEMY_DATABASE_URI"] = CONFIG.SQLALCHEMY_DATABASE_URI
@@ -28,11 +29,17 @@ def create_app():
     db.init_app(app)
     alembic.init_app(app)
 
-    app.config["SESSION_COOKIE_SECURE"] = CONFIG.SESSION_COOKIE_IS_SECURE
+    app.config["SESSION_COOKIE_SAMESITE"] = "Strict"
+    if CONFIG.SESSION_COOKIE_IS_SECURE:
+        app.config["SESSION_COOKIE_SECURE"] = True
+        app.config["SESSION_COOKIE_HTTPONLY"] = True
+    else:
+        app.config["SESSION_COOKIE_SECURE"] = False
+        app.config["SESSION_COOKIE_HTTPONLY"] = False
+
     app.config["SESSION_TYPE"] = "sqlalchemy"
     app.config["SESSION_USE_SIGNER"] = True
     app.config["SESSION_SQLALCHEMY"] = db
-    s = Session()
-    s.init_app(app)
+    Session(app)
 
     return app

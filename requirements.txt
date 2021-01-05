@@ -23,8 +23,10 @@ docker[ssh]==4.3.1        # via docker-compose
 dockerpty==0.4.1          # via docker-compose
 docopt==0.6.2             # via docker-compose
 flake8==3.8.4             # via -r requirements.in
-google-api-core[grpc]==1.24.0  # via google-cloud-secret-manager
+google-api-core[grpc]==1.24.0  # via google-cloud-core, google-cloud-secret-manager
 google-auth==1.24.0       # via google-api-core
+google-cloud-core==1.5.0  # via google-cloud-resource-manager
+google-cloud-resource-manager==0.30.3  # via -r requirements.in
 google-cloud-secret-manager==2.1.0  # via -r requirements.in
 googleapis-common-protos[grpc]==1.52.0  # via google-api-core, grpc-google-iam-v1
 grpc-google-iam-v1==0.12.3  # via google-cloud-secret-manager
@@ -44,7 +46,7 @@ pip-tools==5.4.0          # via -r requirements.in
 prompt-toolkit==3.0.8     # via pgcli
 proto-plus==1.13.0        # via google-cloud-secret-manager
 protobuf==3.14.0          # via google-api-core, googleapis-common-protos, proto-plus
-psycopg2==2.8.6           # via pgcli, pgspecial
+psycopg2==2.8.6           # via -r requirements.in, pgcli, pgspecial
 pyasn1-modules==0.2.8     # via google-auth
 pyasn1==0.4.8             # via pyasn1-modules, rsa
 pycodestyle==2.6.0        # via flake8
@@ -61,7 +63,7 @@ regex==2020.10.23         # via black
 requests==2.24.0          # via docker, docker-compose, google-api-core
 rsa==4.6                  # via google-auth
 setproctitle==1.1.10      # via pgcli
-six==1.15.0               # via bcrypt, configobj, cryptography, docker, dockerpty, google-api-core, google-auth, grpcio, jsonschema, pip-tools, protobuf, pynacl, websocket-client
+six==1.15.0               # via bcrypt, configobj, cryptography, docker, dockerpty, google-api-core, google-auth, google-cloud-core, grpcio, jsonschema, pip-tools, protobuf, pynacl, websocket-client
 sqlparse==0.3.1           # via pgcli, pgspecial
 tabulate[widechars]==0.8.7  # via -r requirements.in, cli-helpers
 terminaltables==3.1.0     # via cli-helpers

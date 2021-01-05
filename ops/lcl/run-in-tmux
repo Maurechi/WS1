@@ -1,0 +1,10 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}";
+
+if which tmuxinator > /dev/null; then
+    export TMUXINATOR_CONFIG="${__root__}/ops/lcl/"
+    tmuxinator start diaas-lcl -p "${__root__}/ops/lcl/tmuxinator-config.yaml" __root__="${__root__}"
+else
+    echo "tmuxinator not found, you'll have to start things yourself."
+    exit 1
+fi

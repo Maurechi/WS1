@@ -37,7 +37,6 @@ export const JobsTable = () => {
 
 export const JobsContent = () => {
   let { path } = useRouteMatch();
-  console.log("path is", path);
   return (
     <Switch>
       <Route path={path}>

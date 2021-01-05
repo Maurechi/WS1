@@ -1,11 +1,18 @@
+import subprocess
 from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
 
 import pygit2
 
 from diaas.config import CONFIG
 from diaas.db import db
+from diaas.libds import LibDS
 
 
+# NOTE To make this work the first migration will need
+# op.execute("CREATE EXTENSION pg_hashids;") op.execute("DROP
+# EXTENSION pg_hashids") 20201222:mb
 def hashid_computed(column_name):
     return db.Computed(
         f"id_encode({column_name}, '{CONFIG.PG_HASHIDS_SALT}', 1, 'abcdefghjkmnpqrstuwxyz1234567890')"
@@ -22,59 +29,68 @@ class ModifiedAtMixin:
 
 
 class User(db.Model, ModifiedAtMixin):
+    # Bump this up to something nice with op.execute("ALTER SEQUENCE
+    # user_uid_seq RESTART WITH 1000 START WITH 1000 MINVALUE 1000;")
+    # in the migration.
+
     uid = db.Column(db.Integer(), primary_key=True)
     code = db.Column(db.String(), hashid_computed("uid"))
 
     email = db.Column(db.String(), unique=True)
 
-    workbenches = db.relationship(
-        "Workbench", back_populates="user", cascade="all,delete-orphan"
-    )
+    @property
+    def display_name(self):
+        email_parts = self.email.split("@")
+        return email_parts[0].lower()
+
+    @property
+    def workbench_path(self):
+        return (CONFIG.WORKBENCH_STORE / self.code).resolve()
+
+    @property
+    def data_stacks(self):
+        return [
+            DataStack(path)
+            for path in (self.workbench_path / "data-stacks/").glob("*")
+            if path.name not in [".", ".."]
+        ]
+
+    @classmethod
+    def ensure_user(cls, email):
+        u = User.query.filter(User.email == email).one_or_none()
+        if u is None:
+            u = User(email=email)
+            db.session.add(u)
+            db.session.commit()
+
+        u.workbench_path.mkdir(parents=True, exist_ok=True)
+
+        if len(u.data_stacks) == 0:
+            origin_dir = CONFIG.DS_STORE / str(uuid4())
+            DataStack.create_origin(origin_dir)
+            u.clone_data_stack(origin_dir)
+
+        return u
+
+    def clone_data_stack(self, origin):
+        index = len(self.data_stacks)
+        pygit2.clone_repository(
+            url=origin, path=str(self.workbench_path / "data-stacks" / str(index))
+        )
 
 
-class Warehouse(db.Model, ModifiedAtMixin):
-    whid = db.Column(db.Integer(), primary_key=True)
-    code = db.Column(db.String(), hashid_computed("whid"))
+class DataStack:
+    def __init__(self, path):
+        self.path = Path(path)
 
-    repo = db.Column(db.String(), nullable=False)
+    @classmethod
+    def create_origin(cls, path):
+        path = Path(path)
+        if not path.exists():
+            path.mkdir(parents=True)
+        script = CONFIG.INSTALL_DIR / "be/bin/bootstrap-data-stack"
+        subprocess.check_call([str(script)], cwd=path)
 
-    workbenches = db.relationship(
-        "Workbench", back_populates="warehouse", cascade="all,delete-orphan"
-    )
-
-
-class Workbench(db.Model, ModifiedAtMixin):
-    wbid = db.Column(db.Integer(), primary_key=True)
-    code = db.Column(db.String(), hashid_computed("wbid"))
-
-    uid = db.Column(
-        db.Integer(), db.ForeignKey("user.uid", ondelete="cascade"), nullable=False
-    )
-    user = db.relationship("User", back_populates="workbenches")
-
-    whid = db.Column(
-        db.Integer(),
-        db.ForeignKey("warehouse.whid", ondelete="cascade"),
-        nullable=False,
-    )
-    warehouse = db.relationship("Warehouse", back_populates="workbenches")
-
-    branch = db.Column(db.String(), default="master", nullable=False)
-
-
-def initial_user_setup(email):
-    wh = Warehouse(repo="/dev/null")
-    db.session.add(wh)
-    db.session.commit()
-    # NOTE the code is generated in the db (maybe that was a mistake?)
-    # so we need to commit and load it here 20201108:mb
-    repo_dir = str(CONFIG.FILE_STORE / "warehouse" / wh.code / "repo")
-    pygit2.init_repository(repo_dir)
-    wh.repo = repo_dir
-    u = User(email=email)
-    wb = Workbench(user=u, warehouse=wh, branch="master")
-    db.session.add(wh)
-    db.session.add(u)
-    db.session.add(wb)
-    db.session.commit()
-    return u
+    @property
+    def libds(self):
+        return LibDS(self.path)

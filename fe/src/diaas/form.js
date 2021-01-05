@@ -1,4 +1,4 @@
-import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
+import { Box, Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
 import React, { useState } from "react";
 import v from "voca";
 
@@ -40,14 +40,29 @@ export const useFormValue = (initialValue, config) => {
   };
 };
 
-export const TextField = ({ value, ...TextFieldProps }) => (
-  <MUITextField
-    onChange={(e) => value.setter(e.target.value)}
-    value={v.trim(value.v)}
-    inputProps={{ onBlur: () => value.touch() }}
-    {...TextFieldProps}
-  />
-);
+export const TextField = ({ value, inputProps = {}, ...TextFieldProps }) => {
+  inputProps["onBlur"] = () => value.touch();
+  const boxProps = {};
+  ["m", "mx", "my", "mt", "mb", "ml", "mr", "p", "px", "py", "pt", "pb", "pl", "pr"].forEach((prop) => {
+    if (prop in TextFieldProps) {
+      boxProps[prop] = TextFieldProps[prop];
+      delete TextFieldProps[prop];
+    }
+  });
+  const field = (
+    <MUITextField
+      onChange={(e) => value.setter(e.target.value)}
+      value={v.trim(value.v)}
+      inputProps={inputProps}
+      {...TextFieldProps}
+    />
+  );
+  if (boxProps) {
+    return <Box {...boxProps}>{field}</Box>;
+  } else {
+    return field;
+  }
+};
 
 export const Checkbox = ({ value, ...CheckboxProps }) => (
   <MUICheckbox

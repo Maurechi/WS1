@@ -40,7 +40,6 @@ export const ModulesTable = () => {
 
 export const ModulesContent = () => {
   let { path } = useRouteMatch();
-  console.log("path is", path);
   return (
     <Switch>
       <Route path={path}>

@@ -9,10 +9,12 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Menu,
   Toolbar,
   Typography,
 } from "@material-ui/core";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
+import AccountCircleIcon from "@material-ui/icons/AccountCircle";
 import BuildIcon from "@material-ui/icons/Build";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import ChevronRightIcon from "@material-ui/icons/ChevronRight";
@@ -26,17 +28,11 @@ import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import clsx from "clsx";
 import { observer } from "mobx-react-lite";
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import v from "voca";
 
 import { useAppState } from "diaas/state";
-
-export const HCenter = ({ children, ...BoxProps }) => (
-  <Box display="flex" width="100%" justifyContent="center" {...BoxProps}>
-    {children}
-  </Box>
-);
 
 const drawerWidth = 240;
 
@@ -128,6 +124,41 @@ export const AppSplash = ({ children }) => {
   );
 };
 
+const AccountMenu = observer(() => {
+  const state = useAppState();
+  const [anchor, setAnchor] = useState(null);
+
+  const handleClick = (event) => {
+    setAnchor(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchor(null);
+  };
+
+  const handleLogout = () => {
+    state.logout();
+  };
+
+  return (
+    <>
+      <Button variant="contained" color="primary" onClick={handleClick}>
+        <AccountCircleIcon />
+      </Button>
+      <Menu anchorEl={anchor} keepMounted open={!!anchor} onClose={handleClose}>
+        <List>
+          <ListItem button component={Link} to="/account/profile" key="AccountProfile">
+            Profile
+          </ListItem>
+          <ListItem button onClick={handleLogout} key="AccountLogout">
+            Logout
+          </ListItem>
+        </List>
+      </Menu>
+    </>
+  );
+});
+
 const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
   const state = useAppState();
   const classes = useStyles();
@@ -150,17 +181,12 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
         </Link>
       </Typography>
       <Button variant="contained" color="primary">
-        Branch: {state.user.workbenches[0].branch}
+        Branch: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].branch : "---"}
       </Button>
       <Button variant="contained" color="primary">
-        Warehouse: {state.user.workbenches[0].warehouse.name}
+        Data Stack: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].name : "---"}
       </Button>
-      <Button variant="contained" color="primary">
-        Settings
-      </Button>
-      <Button variant="contained" color="primary">
-        Profile
-      </Button>
+      <AccountMenu />
     </Toolbar>
   );
 });

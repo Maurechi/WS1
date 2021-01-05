@@ -1,0 +1,9 @@
+name: diaas-lcl
+root: '<%= @settings["__root__"] %>'
+windows:
+  - serve:
+      layout: main-vertical
+      panes:
+        - ./ops/lcl/run-be
+        - (cd fe && nvm use && npm i && ../ops/lcl/run-fe)
+        - ./ops/lcl/run-db
