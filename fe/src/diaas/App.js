@@ -1,5 +1,4 @@
 import { Button, Grid } from "@material-ui/core";
-import { ThemeProvider, unstable_createMuiStrictModeTheme as createMuiTheme } from "@material-ui/core/styles";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
@@ -15,19 +14,9 @@ import { AppNavigation, AppSplash } from "diaas/layout.js";
 import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
+import { ThemeProvider } from "diaas/Theme.js";
 import { HCenter } from "diaas/utils.js";
 import { WorkbenchContent } from "diaas/Workbench.js";
-
-const theme = createMuiTheme({
-  palette: {
-    primary: {
-      main: "#2e3631",
-    },
-    secondary: {
-      main: "#4db96d",
-    },
-  },
-});
 
 const Loading = () => {
   const [tick, setTick] = useState(0);
@@ -151,7 +140,7 @@ const App = observer(() => {
 
 export const Root = () => (
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
       <AppState>
         <App />
       </AppState>

@@ -32,7 +32,9 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import v from "voca";
 
+import appBarGraphic from "./AppBarGraphic.png";
 import { useAppState } from "diaas/state";
+import { HCenter } from "diaas/utils.js";
 
 const drawerWidth = 240;
 
@@ -46,6 +48,8 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
+    backgroundColor: theme.palette.background.main,
+    color: theme.palette.foreground.main,
   },
   appBarShift: {
     marginLeft: drawerWidth,
@@ -177,7 +181,9 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
       </IconButton>
       <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
         <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>
-          Caravel
+          <HCenter>
+            <img src={appBarGraphic} alt="CARAVEL" height="40em" />
+          </HCenter>
         </Link>
       </Typography>
       <Button variant="contained" color="primary">
@@ -194,105 +200,54 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
 export const AppNavigation = ({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
-
-  const handleDrawerOpen = () => {
-    setOpen(true);
-  };
-
-  const handleDrawerClose = () => {
-    setOpen(false);
-  };
+  const [open, setOpen] = useState(false);
 
   const loc = useLocation();
-  const typeographyOnLocation = (prefix) => ({
-    color: v.startsWith(loc.pathname, prefix) ? "secondary" : "primary",
-  });
+
+  const SectionMenuItem = ({ location, text, Icon }) => {
+    const isCurrentLocation = v.startsWith(loc.pathname, location);
+    const style = isCurrentLocation ? { color: theme.palette["secondary"].main } : {};
+    return (
+      <ListItem button component={Link} to={location + "/"} key={text}>
+        <ListItemIcon>
+          <Icon style={style} />
+        </ListItemIcon>
+        <ListItemText primary={text} primaryTypographyProps={{ style: style }} />
+      </ListItem>
+    );
+  };
 
   return (
     <div className={classes.root}>
-      <MUIAppBar
-        position="fixed"
-        className={clsx(classes.appBar, {
-          [classes.appBarShift]: open,
-        })}
-      >
-        <AppNavigationToolbar handleDrawerOpen={handleDrawerOpen} drawerOpen={open} />
+      <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: open })}>
+        <AppNavigationToolbar handleDrawerOpen={() => setOpen(true)} drawerOpen={open} />
       </MUIAppBar>
       <Drawer
         variant="permanent"
-        className={clsx(classes.drawer, {
-          [classes.drawerOpen]: open,
-          [classes.drawerClose]: !open,
-        })}
-        classes={{
-          paper: clsx({
-            [classes.drawerOpen]: open,
-            [classes.drawerClose]: !open,
-          }),
-        }}
+        className={clsx(classes.drawer, { [classes.drawerOpen]: open, [classes.drawerClose]: !open })}
+        classes={{ paper: clsx({ [classes.drawerOpen]: open, [classes.drawerClose]: !open }) }}
       >
         <div className={classes.toolbar}>
-          <IconButton onClick={handleDrawerClose}>
+          <IconButton onClick={() => setOpen(false)}>
             {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </IconButton>
         </div>
         <Divider />
         <List>
-          <ListItem button component={Link} to="/modules/" key="Modules">
-            <ListItemIcon>
-              <CollectionsBookmarkIcon />
-            </ListItemIcon>
-            <ListItemText primary="Modules" primaryTypographyProps={typeographyOnLocation("/modules")} />
-          </ListItem>
+          <SectionMenuItem location="/modules" text="Modules" Icon={CollectionsBookmarkIcon} />
         </List>
         <Divider />
         <List>
-          <ListItem button component={Link} to="/sources/" key="Sources">
-            <ListItemIcon>
-              <GetAppIcon />
-            </ListItemIcon>
-            <ListItemText primary="Sources" primaryTypographyProps={typeographyOnLocation("/sources")} />
-          </ListItem>
-          <ListItem button component={Link} to="/workbench/" key="Workbench">
-            <ListItemIcon>
-              <BuildIcon />
-            </ListItemIcon>
-            <ListItemText primary="Workbench" primaryTypographyProps={typeographyOnLocation("/workbench")} />
-          </ListItem>
-          <ListItem button component={Link} to="/jobs/" key="Jobs">
-            <ListItemIcon>
-              <PlayArrowIcon />
-            </ListItemIcon>
-            <ListItemText primary="Jobs" primaryTypographyProps={typeographyOnLocation("/jobs")} />
-          </ListItem>
-          <ListItem button component={Link} to="/analytics/" key="Analytics">
-            <ListItemIcon>
-              <SearchIcon />
-            </ListItemIcon>
-            <ListItemText primary="Analytics" primaryTypographyProps={typeographyOnLocation("/analytics")} />
-          </ListItem>
+          <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
+          <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
+          <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
+          <SectionMenuItem location="/analytics" text="Analytics" Icon={SearchIcon} />
         </List>
         <Divider />
         <List>
-          <ListItem button component={Link} key="Catalog" to="/catalog/">
-            <ListItemIcon>
-              <MenuBookIcon />
-            </ListItemIcon>
-            <ListItemText primary="Catalog" />
-          </ListItem>
-          <ListItem button component={Link} to="/monitoring/" key="Monitoring">
-            <ListItemIcon>
-              <InfoIcon />
-            </ListItemIcon>
-            <ListItemText primary="Monitoring" />
-          </ListItem>
-          <ListItem button component={Link} to="/settings/" key="Settings">
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Settings" />
-          </ListItem>
+          <SectionMenuItem location="/catalog" text="Catalog" Icon={MenuBookIcon} />
+          <SectionMenuItem location="/monitoring" text="Monitoring" Icon={InfoIcon} />
+          <SectionMenuItem location="/settings" text="Settings" Icon={SettingsIcon} />
         </List>
       </Drawer>
       <main className={classes.content}>
