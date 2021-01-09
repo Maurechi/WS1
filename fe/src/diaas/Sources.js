@@ -45,7 +45,7 @@ export const SourcesTable = observer(() => {
   const { path } = useRouteMatch();
   const { user } = useAppState();
   const makeRow = (source) => ({ id: source.id, type: source.type });
-  const rows = user.dataStacks[0].info.sources.map(makeRow);
+  const rows = user.dataStacks[0].sources.map(makeRow);
 
   const onRenderRow = (rowProps) => {
     const { onClick } = rowProps;
@@ -225,7 +225,7 @@ export const NewSourceChooser = () => {
 const SourceEditor = observer(() => {
   const { id } = useParams();
   const { user } = useAppState();
-  const source = _.find(user.dataStacks[0].info.sources, (s) => s.id === id);
+  const source = _.find(user.dataStacks[0].sources, (s) => s.id === id);
   if (!source) {
     console.log("error");
     return <ErrorDialog title="This was not suppoed to happen." message={`No source found with id '${id}'`} />;

@@ -166,6 +166,9 @@ const AccountMenu = observer(() => {
 const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
   const state = useAppState();
   const classes = useStyles();
+  const ds = state.user.dataStacks.length > 0 ? state.user.dataStacks[0] : null;
+  const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
+  const dataStackName = ds === null ? "//" : ds.config.name || "<default>";
   return (
     <Toolbar>
       <IconButton
@@ -186,13 +189,19 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
           </HCenter>
         </Link>
       </Typography>
-      <Button variant="contained" color="primary">
-        Branch: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].branch : "---"}
-      </Button>
-      <Button variant="contained" color="primary">
-        Data Stack: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].name : "---"}
-      </Button>
-      <AccountMenu />
+      <Box pl={2}>
+        <Button variant="contained" color="primary">
+          Branch: {branchName}
+        </Button>
+      </Box>
+      <Box pl={2}>
+        <Button variant="contained" color="primary">
+          Data Stack: {dataStackName}
+        </Button>
+      </Box>
+      <Box pl={2}>
+        <AccountMenu />
+      </Box>
     </Toolbar>
   );
 });

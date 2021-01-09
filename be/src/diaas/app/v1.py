@@ -1,7 +1,6 @@
 from flask import Blueprint, g, request, session
 
 from diaas.app.utils import Request, as_json, login_required
-from diaas.config import CONFIG
 from diaas.model import User
 
 api_v1 = Blueprint("api_v1", __name__)
@@ -11,14 +10,7 @@ def _user_as_json(user):
     return {
         "uid": user.code,
         "displayName": user.display_name,
-        "dataStacks": [_data_stack_as_json(ds) for ds in user.data_stacks],
-    }
-
-
-def _data_stack_as_json(ds):
-    return {
-        "path": ds.path.relative_to(CONFIG.WORKBENCH_STORE),
-        "info": ds.libds.info(),
+        "dataStacks": [ds.libds.info() for ds in user.data_stacks],
     }
 
 

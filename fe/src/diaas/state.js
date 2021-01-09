@@ -73,7 +73,7 @@ class AppStateObject {
   setSource(source) {
     const sources = [];
     let found = false;
-    for (const s of this.user.data_stacks[0].info.sources) {
+    for (const s of this.user.data_stacks[0].sources) {
       if (s.id === source.id) {
         sources.push(source);
         found = true;
@@ -84,7 +84,7 @@ class AppStateObject {
     if (!found) {
       sources.push(source);
     }
-    this.user.data_stacks[0].info.sources = sources;
+    this.user.data_stacks[0].sources = sources;
   }
 
   initialize() {
