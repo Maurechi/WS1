@@ -7,3 +7,4 @@ windows:
         - ./ops/lcl/run-be
         - (cd fe && nvm use && npm i && ../ops/lcl/run-fe)
         - ./ops/lcl/run-db
+        - ./ops/lcl/run-testing-store

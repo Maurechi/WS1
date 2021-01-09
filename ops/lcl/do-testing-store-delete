@@ -1,0 +1,8 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}"; cd "$__root__";
+
+name="testing-store-db"
+docker stop testing-store-db
+docker rm testing-store-db
+docker volume rm "${name}"
+
