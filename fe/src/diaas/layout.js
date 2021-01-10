@@ -26,6 +26,7 @@ import MenuBookIcon from "@material-ui/icons/MenuBook";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
+import StorageIcon from "@material-ui/icons/Storage";
 import clsx from "clsx";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
@@ -248,7 +249,8 @@ export const AppNavigation = ({ children }) => {
         <Divider />
         <List>
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
-          <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
+          <SectionMenuItem location="/stores" text="Storage" Icon={StorageIcon} />
+          <SectionMenuItem location="/transformations" text="Transformations" Icon={BuildIcon} />
           <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
           <SectionMenuItem location="/analytics" text="Analytics" Icon={SearchIcon} />
         </List>

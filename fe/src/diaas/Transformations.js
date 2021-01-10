@@ -65,9 +65,10 @@ export const Editor = observer(() => {
 
 export const FileTable = observer(() => {
   const { user } = useAppState();
-  const wb = user.workbenches[0];
-  const branch = wb.branches[wb.branch];
-  const files = branch.tree.map((fid) => branch.files[fid]);
+  //const wb = user.workbenches[0];
+  //const branch = wb.branches[wb.branch];
+  //const files = branch.tree.map((fid) => branch.files[fid]);
+  const files = [];
 
   const columns = [
     { defaultFlex: 1, name: "name", header: "Name" },
@@ -89,27 +90,12 @@ export const FileTable = observer(() => {
   return (
     <Box>
       <Box display="flex" mb={3}>
-        <Box style={{ flexGrow: 1 }}>Workbench:</Box>
+        <Box style={{ flexGrow: 1 }}>Transformations:</Box>
         <Box>
           <Box display="flex">
             <Box mx={1}>
               <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
-                New
-              </ButtonLink>
-            </Box>
-            <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
-                Commit
-              </ButtonLink>
-            </Box>
-            <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
-                Test
-              </ButtonLink>
-            </Box>
-            <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
-                Deploy
+                New Transformation
               </ButtonLink>
             </Box>
           </Box>
@@ -130,7 +116,7 @@ export const Browser = () => {
   return <FileTable />;
 };
 
-export const WorkbenchContent = () => {
+export const TransformationsContent = () => {
   let { path } = useRouteMatch();
   return (
     <Switch>
