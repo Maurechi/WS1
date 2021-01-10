@@ -1,4 +1,4 @@
-import { Grid } from "@material-ui/core";
+import { Box, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
 import React from "react";
 
@@ -16,9 +16,15 @@ export const StaticTable = observer(({ source }) => {
   const submit = () => {
     return saveAndLoad();
   };
+  const saveAndLoadLabel = useFormValue("Save and load");
   const saveAndLoad = () => {
-    return state.backend.post(`/sources/${source.id}`, { data: data.v, target_table: targetTable.v }).then((res) => {
-      return res;
+    saveAndLoadLabel.v = "Saving...";
+    return state.backend.post(`/sources/${source.id}`, { data: data.v, target_table: targetTable.v }).then((update) => {
+      saveAndLoadLabel.v = "Loading...";
+      return state.backend.post(`/sources/${source.id}/load`).then((load) => {
+        saveAndLoadLabel.v = "Save and load";
+        return [update, load];
+      });
     });
   };
   return (
@@ -40,7 +46,17 @@ export const StaticTable = observer(({ source }) => {
       >
         {data.v}
       </TextField>
-      <ActionButton onClick={saveAndLoad}>Save and Load</ActionButton>
+      <Box display="flex">
+        <Box pr={2}>
+          <ActionButton onClick={saveAndLoad}>{saveAndLoadLabel.v}</ActionButton>
+        </Box>
+        <Box pr={2}>
+          <ActionButton disabled={true}>Save and truncate and load</ActionButton>
+        </Box>
+        <Box>
+          <ActionButton disabled={true}>Save only</ActionButton>
+        </Box>
+      </Box>
     </form>
   );
 });

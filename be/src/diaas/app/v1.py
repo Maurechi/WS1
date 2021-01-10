@@ -116,3 +116,11 @@ def session_delete():
 def source_update(id):
     ds = g.user.data_stacks[0]
     return ds.libds.update_source_config(id, request.get_json())
+
+
+@api_v1.route("/sources/<path:id>/load", methods=["POST"])
+@login_required
+@as_json
+def source_load(id):
+    ds = g.user.data_stacks[0]
+    return ds.libds.load_source(id)
