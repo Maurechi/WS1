@@ -116,8 +116,10 @@ export const AppSplash = ({ children }) => {
         })}
       >
         <Toolbar>
-          <Typography variant="h6" noWrap>
-            Caravel
+          <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
+            <HCenter>
+              <img src={appBarGraphic} alt="CARAVEL" height="40em" />
+            </HCenter>
           </Typography>
         </Toolbar>
       </MUIAppBar>
