@@ -9,8 +9,8 @@ api_v1 = Blueprint("api_v1", __name__)
 def _user_as_json(user):
     return {
         "uid": user.code,
-        "displayName": user.display_name,
-        "dataStacks": [ds.libds.info() for ds in user.data_stacks],
+        "display_name": user.display_name,
+        "data_stacks": [ds.libds.info() for ds in user.data_stacks],
     }
 
 
