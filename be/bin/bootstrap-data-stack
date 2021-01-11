@@ -53,7 +53,7 @@ EOF
 fi
 
 chmod +x ./build
-# ./build
+./build
 
 if [[ ! -e ./.git ]]; then
     git init .

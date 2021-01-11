@@ -30,3 +30,10 @@ export const wrapInBox = (Component) => {
     }
   };
 };
+
+export const NotFound = ({ children }) => (
+  <Box style={{ width: "100%" }}>
+    <HCenter>Not Found</HCenter>
+    <Box>{children}</Box>
+  </Box>
+);

@@ -1,6 +1,7 @@
 import "@inovua/reactdatagrid-community/index.css";
 import ReactDataGrid from "@inovua/reactdatagrid-community";
 import { Box } from "@material-ui/core";
+import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
@@ -19,10 +20,11 @@ import "diaas/AceEditor_B_Dependencies";
 import AceEditor from "diaas/AceEditor";
 import { useAppState } from "diaas/state.js";
 import { ButtonLink } from "diaas/ui.js";
+import { NotFound } from "diaas/utils.js";
 
 export const NewFile = () => <p>New</p>;
 
-export const CodeEditor = ({ code, mode }) => {
+const CodeEditor = ({ code, mode }) => {
   return (
     <AceEditor width="100%" mode={mode} theme="solarized_light" name="UNIQUE_ID_OF_DIV" value={code} fontSize={18} />
   );
@@ -30,14 +32,20 @@ export const CodeEditor = ({ code, mode }) => {
 
 export const Editor = observer(() => {
   const { user } = useAppState();
-  const { fid } = useParams();
-  const wb = user.workbenches[0];
-  const file = wb.branches[wb.branch].files[fid];
+  const { trfid } = useParams();
+
+  if (user.data_stacks.length === 0) {
+    return <NotFound>Data stacks for user</NotFound>;
+  }
+  const trf = _.find(user.data_stacks[0].transformations, (t) => t.id === trfid);
+  if (!trf) {
+    return <NotFound>Transformation with id {trfid}</NotFound>;
+  }
 
   return (
     <Box>
       <Box display="flex" mb={3}>
-        <Box style={{ flexGrow: 1 }}>Editing {file.name}:</Box>
+        <Box style={{ flexGrow: 1 }}>Editing {trf.id}:</Box>
         <Box>
           <Box display="flex">
             <Box mx={1}>
@@ -58,21 +66,25 @@ export const Editor = observer(() => {
           </Box>
         </Box>
       </Box>
-      <CodeEditor mode={file.name.match(/[.]py$/) ? "python" : "sql"} code={file.code} />
+      <CodeEditor mode={trf.type} code={trf.code} />
     </Box>
   );
 });
 
 export const FileTable = observer(() => {
-  // const { user } = useAppState();
-  //const wb = user.workbenches[0];
-  //const branch = wb.branches[wb.branch];
-  //const files = branch.tree.map((fid) => branch.files[fid]);
-  const files = [];
+  const { user } = useAppState();
+  let files;
+
+  if (user.data_stacks.length > 0) {
+    const dataStack = user.data_stacks[0];
+    files = dataStack.transformations.map(({ id, type, last_modified }) => ({ id, type, lastModified: last_modified }));
+  } else {
+    files = [];
+  }
 
   const columns = [
-    { defaultFlex: 1, name: "name", header: "Name" },
-    { defaultFlex: 2, name: "details", header: "Details" },
+    { defaultFlex: 1, name: "id", header: "id" },
+    { defaultFlex: 2, name: "type", header: "type" },
     { defaultFlex: 1, name: "lastModified", header: "Last Modified" },
   ];
 
@@ -123,7 +135,7 @@ export const TransformationsContent = () => {
       <Route path={`${path}new/`}>
         <NewFile />
       </Route>
-      <Route path={`${path}:fid`}>
+      <Route path={`${path}:trfid`}>
         <Editor />
       </Route>
       <Route path={path}>
