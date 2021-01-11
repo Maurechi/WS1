@@ -8,7 +8,16 @@ export const StoresContent = () => {
   if (stores.length === 0) {
     return <Box>No Stores.</Box>;
   } else {
-    const store = stores[0];
-    return <>Store is a {store.type}</>;
+    const { id, type, ...config } = stores[0];
+
+    return (
+      <>
+        <p>
+          Store `{id}` is a {type}.
+        </p>
+        <p>Configuration:</p>
+        <pre>{JSON.stringify(config, null, 4)}</pre>
+      </>
+    );
   }
 };

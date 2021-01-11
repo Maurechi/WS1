@@ -64,7 +64,7 @@ export const Editor = observer(() => {
 });
 
 export const FileTable = observer(() => {
-  const { user } = useAppState();
+  // const { user } = useAppState();
   //const wb = user.workbenches[0];
   //const branch = wb.branches[wb.branch];
   //const files = branch.tree.map((fid) => branch.files[fid]);

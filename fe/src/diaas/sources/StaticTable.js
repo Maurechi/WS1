@@ -50,9 +50,6 @@ export const StaticTable = observer(({ source }) => {
         <Box pr={2}>
           <ActionButton onClick={saveAndLoad}>{saveAndLoadLabel.v}</ActionButton>
         </Box>
-        <Box pr={2}>
-          <ActionButton disabled={true}>Save and truncate and load</ActionButton>
-        </Box>
         <Box>
           <ActionButton disabled={true}>Save only</ActionButton>
         </Box>

@@ -169,7 +169,7 @@ const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
   const classes = useStyles();
   const ds = state.user.dataStacks.length > 0 ? state.user.dataStacks[0] : null;
   const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
-  const dataStackName = ds === null ? "//" : ds.config.name || "<default>";
+  const dataStackName = ds === null ? "//" : ds.config.name || "central warehouse";
   return (
     <Toolbar>
       <IconButton
