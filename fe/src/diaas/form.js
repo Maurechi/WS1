@@ -59,7 +59,7 @@ export const Checkbox = ({ value, ...CheckboxProps }) => (
     value={value.v}
     onChange={(e) => {
       value.setter(e.target.checked);
-      value.touched();
+      value.touch();
     }}
     {...CheckboxProps}
   />
