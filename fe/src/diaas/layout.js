@@ -4,7 +4,6 @@ import {
   Button,
   Divider,
   Drawer,
-  IconButton,
   List,
   ListItem,
   ListItemIcon,
@@ -16,12 +15,10 @@ import {
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import AccountCircleIcon from "@material-ui/icons/AccountCircle";
 import BuildIcon from "@material-ui/icons/Build";
-import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
-import ChevronRightIcon from "@material-ui/icons/ChevronRight";
 import CollectionsBookmarkIcon from "@material-ui/icons/CollectionsBookmark";
+import DoubleArrowIcon from "@material-ui/icons/DoubleArrow";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import InfoIcon from "@material-ui/icons/Info";
-import MenuIcon from "@material-ui/icons/Menu";
 import MenuBookIcon from "@material-ui/icons/MenuBook";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
@@ -53,8 +50,6 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.foreground.main,
   },
   appBarShift: {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -166,32 +161,18 @@ const AccountMenu = observer(() => {
   );
 });
 
-const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
+const AppNavigationToolbar = observer(() => {
   const state = useAppState();
-  const classes = useStyles();
   const ds = state.user.data_stacks.length > 0 ? state.user.data_stacks[0] : null;
   const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
   const dataStackName = ds === null ? "//" : ds.config.name || "central warehouse";
   return (
     <Toolbar>
-      <IconButton
-        color="inherit"
-        aria-label="open drawer"
-        onClick={handleDrawerOpen}
-        edge="start"
-        className={clsx(classes.menuButton, {
-          [classes.hide]: drawerOpen,
-        })}
-      >
-        <MenuIcon />
-      </IconButton>
-      <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
-        <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>
-          <HCenter>
-            <img src={appBarGraphic} alt="CARAVEL" height="40em" />
-          </HCenter>
+      <Box style={{ flexGrow: 1 }}>
+        <Link to="/">
+          <img src={appBarGraphic} alt="CARAVEL" width="140em" />
         </Link>
-      </Typography>
+      </Box>
       <Box pl={2}>
         <Button variant="contained" color="primary">
           Branch: {branchName}
@@ -232,18 +213,23 @@ export const AppNavigation = ({ children }) => {
   return (
     <div className={classes.root}>
       <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: open })}>
-        <AppNavigationToolbar handleDrawerOpen={() => setOpen(true)} drawerOpen={open} />
+        <AppNavigationToolbar drawerOpen={open} />
       </MUIAppBar>
       <Drawer
         variant="permanent"
         className={clsx(classes.drawer, { [classes.drawerOpen]: open, [classes.drawerClose]: !open })}
         classes={{ paper: clsx({ [classes.drawerOpen]: open, [classes.drawerClose]: !open }) }}
       >
-        <div className={classes.toolbar}>
-          <IconButton onClick={() => setOpen(false)}>
-            {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
-        </div>
+        <div className={classes.toolbar}>&nbsp;</div>
+        <List>
+          <ListItem button key="openCloseToggle" onClick={() => setOpen(!open)}>
+            <ListItemIcon>
+              <div style={{ transform: open ? "scaleX(-1)" : undefined }}>
+                <DoubleArrowIcon />
+              </div>
+            </ListItemIcon>
+          </ListItem>
+        </List>
         <Divider />
         <List>
           <SectionMenuItem location="/modules" text="Modules" Icon={CollectionsBookmarkIcon} />
