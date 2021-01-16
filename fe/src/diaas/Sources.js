@@ -67,7 +67,12 @@ export const SourcesTable = observer(() => {
     { defaultFlex: 9, name: "name", header: "Name" },
   ];
 
-  const makeRow = (source) => ({ id: source.id, type: source.type, name: source.name, source: source });
+  const makeRow = (source) => ({
+    id: source.id,
+    type: source.type,
+    name: "name" in source ? source.name : source.id,
+    source: source,
+  });
   const rows = sources.map(makeRow);
 
   const onRenderRow = (rowProps) => {

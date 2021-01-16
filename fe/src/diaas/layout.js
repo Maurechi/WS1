@@ -162,8 +162,8 @@ const AccountMenu = observer(() => {
 });
 
 const AppNavigationToolbar = observer(() => {
-  const state = useAppState();
-  const ds = state.user.data_stacks.length > 0 ? state.user.data_stacks[0] : null;
+  const { user } = useAppState();
+  const ds = user.data_stacks.length > 0 ? user.data_stacks[0] : null;
   const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
   const dataStackName = ds === null ? "//" : ds.config.name || "central warehouse";
   return (

@@ -124,7 +124,7 @@ const MOCK_USER = {
   uid: "dx03",
 };
 
-const USE_MOCK_USER = true;
+const USE_MOCK_USER = false;
 
 class Backend {
   constructor() {
@@ -147,7 +147,7 @@ class Backend {
   }
 
   getCurrentUser() {
-    return this.get("session").then(() => (USE_MOCK_USER ? MOCK_USER : dataIfStatusEquals(200)));
+    return this.get("session").then(USE_MOCK_USER ? () => MOCK_USER : dataIfStatusEquals(200));
   }
 
   login(email) {
@@ -156,6 +156,14 @@ class Backend {
 
   logout() {
     return this.delete("session").then(dataIfStatusEquals([200, 201]));
+  }
+
+  postSource(source_id, config) {
+    return this.post(`/sources/${source_id}`, config).then(dataIfStatusEquals(200));
+  }
+
+  loadSource(source_id) {
+    return this.post(`/sources/${source_id}/load`).then(dataIfStatusEquals(200));
   }
 }
 
