@@ -1,9 +1,9 @@
 import "@inovua/reactdatagrid-community/index.css";
 import ReactDataGrid from "@inovua/reactdatagrid-community";
-import { Box } from "@material-ui/core";
+import { Box, Divider } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
-import React from "react";
+import React, { useState } from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 // NOTE this is a disaster. i know. eslint wants to reoder import
@@ -18,20 +18,32 @@ import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-route
 import "diaas/AceEditor_A_Editor";
 import "diaas/AceEditor_B_Dependencies";
 import AceEditor from "diaas/AceEditor";
+import { useFormValue } from "diaas/form.js";
+import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { ButtonLink } from "diaas/ui.js";
 import { NotFound } from "diaas/utils.js";
-
 export const NewFile = () => <p>New</p>;
 
-const CodeEditor = ({ code, mode }) => {
+const CodeEditor = ({ code, mode, disabled = false }) => {
   return (
-    <AceEditor width="100%" mode={mode} theme="solarized_light" name="UNIQUE_ID_OF_DIV" value={code} fontSize={18} />
+    <AceEditor
+      width="100%"
+      mode={mode}
+      theme="solarized_light"
+      name="UNIQUE_ID_OF_DIV"
+      value={code.v}
+      onChange={code.setter}
+      fontSize={18}
+      readOnly={disabled}
+    />
   );
 };
 
 export const Editor = observer(() => {
-  const { user } = useAppState();
+  const [saveButtonLabel, setSaveButtonLabel] = useState("Save & Run");
+  const [saveButtonDisabled, setSaveButtonDisabled] = useState(false);
+  const { user, backend } = useAppState();
   const { trfid } = useParams();
 
   if (user.data_stacks.length === 0) {
@@ -42,32 +54,52 @@ export const Editor = observer(() => {
     return <NotFound>Transformation with id {trfid}</NotFound>;
   }
 
+  const codeValue = useFormValue(trf.source);
+  const [rows, setRows] = useState([]);
+  const saveAndRun = () => {
+    setSaveButtonLabel("Saving.");
+    setSaveButtonDisabled(true);
+    backend.postTransformation(trf.id, codeValue.v).then(() => {
+      setSaveButtonLabel("Loading");
+      backend.loadTransformation(trf.id).then((rows) => {
+        setSaveButtonDisabled(false);
+        setSaveButtonLabel("Save & Run");
+        setRows(rows);
+      });
+    });
+  };
+
   return (
-    <Box>
-      <Box display="flex" mb={3}>
-        <Box style={{ flexGrow: 1 }}>Editing {trf.id}:</Box>
-        <Box>
-          <Box display="flex">
-            <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/workbench/new/">
-                Save & Test
-              </ButtonLink>
-            </Box>
-            <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/workbench/new/">
-                Save
-              </ButtonLink>
-            </Box>
-            <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/workbench/new/">
-                Commit
-              </ButtonLink>
+    <form onSubmit={saveAndRun}>
+      <Box>
+        <Box display="flex" mb={3}>
+          <Box style={{ flexGrow: 1 }}>Editing {trf.id}:</Box>
+          <Box>
+            <Box display="flex">
+              <Box mx={1}>
+                <ButtonLink
+                  variant="contained"
+                  color="primary"
+                  target="/workbench/new/"
+                  onClick={saveAndRun}
+                  disabled={saveButtonDisabled}
+                >
+                  {saveButtonLabel}
+                </ButtonLink>
+              </Box>
+              <Box mx={1}>
+                <ButtonLink variant="contained" color="primary" target="/workbench/new/" disabled={true}>
+                  Commit
+                </ButtonLink>
+              </Box>
             </Box>
           </Box>
         </Box>
+        <CodeEditor mode={trf.type} code={codeValue} />
+        <Divider />
+        <SampleDataTable rows={rows} />
       </Box>
-      <CodeEditor mode={trf.type} code={trf.code} />
-    </Box>
+    </form>
   );
 });
 

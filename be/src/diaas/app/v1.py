@@ -48,7 +48,7 @@ def session_delete():
 @as_json
 def source_update(id):
     ds = g.user.data_stacks[0]
-    return ds.libds.update_source_config(id, request.get_json())
+    return ds.libds.source_update(id, request.get_json())
 
 
 @api_v1.route("/sources/<path:id>/load", methods=["POST"])
@@ -56,4 +56,20 @@ def source_update(id):
 @as_json
 def source_load(id):
     ds = g.user.data_stacks[0]
-    return ds.libds.load_source(id)
+    return ds.libds.source_load(id)
+
+
+@api_v1.route("/transformation/<path:id>", methods=["POST"])
+@login_required
+@as_json
+def transformation_update(id):
+    ds = g.user.data_stacks[0]
+    return ds.libds.transformation_update(id, request.get_json()["source"])
+
+
+@api_v1.route("/transformation/<path:id>/load", methods=["POST"])
+@login_required
+@as_json
+def transformation_load(id):
+    ds = g.user.data_stacks[0]
+    return ds.libds.transformation_load(id)

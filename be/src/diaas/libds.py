@@ -42,10 +42,14 @@ class LibDS:
     def info(self):
         return self.call_ds(cmd=["info"])
 
-    def update_source_config(self, id, config):
-        return self.call_ds(
-            cmd=["update-source-config", id, "-"], input=json.dumps(config)
-        )
+    def source_update(self, id, config):
+        return self.call_ds(cmd=["source-update", id, "-"], input=json.dumps(config))
 
-    def load_source(self, id):
-        return self.call_ds(cmd=["load-source", id])
+    def source_load(self, id):
+        return self.call_ds(cmd=["source-load", id])
+
+    def transformation_update(self, id, source):
+        return self.call_ds(cmd=["transformation-update", id, "-"], input=source)
+
+    def transformation_load(self, id):
+        return self.call_ds(cmd=["transformation-load", id])
