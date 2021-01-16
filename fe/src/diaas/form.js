@@ -1,5 +1,5 @@
 import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
-import React, { useState } from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
 import v from "voca";
 
 import { wrapInBox } from "diaas/utils";
@@ -43,7 +43,19 @@ export const useFormValue = (initialValue, config) => {
 };
 
 export const TextField = wrapInBox(({ value, inputProps = {}, ...TextFieldProps }) => {
-  inputProps["onBlur"] = () => value.touch();
+  inputProps["onBlur"] = useCallback(() => value.touch(), [value]);
+  const form = useFormData();
+  const onKeyDown = useCallback(
+    (e) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        form.submit();
+      }
+    },
+    [form]
+  );
+  if (form && form.submit) {
+    inputProps["onKeyDown"] = onKeyDown;
+  }
   return (
     <MUITextField
       onChange={(e) => value.setter(e.target.value)}
@@ -75,3 +87,16 @@ export const Select = ({ value, children, ...SelectProps }) => (
     {children}
   </MUISelect>
 );
+
+const FormContext = createContext();
+
+const useFormData = () => useContext(FormContext);
+
+export const Form = ({ children, onSubmit }) => {
+  const formData = { submit: onSubmit };
+  return (
+    <FormContext.Provider value={formData}>
+      <form onSubmit={onSubmit}>{children}</form>
+    </FormContext.Provider>
+  );
+};
