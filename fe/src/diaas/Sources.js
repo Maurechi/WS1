@@ -28,24 +28,52 @@ import { ButtonLink } from "diaas/ui.js";
 // every time we define a new componnet. however we'd still need to
 // import the code and then we'd have unusedimports dangling around.
 // this feels like a decent comporommise to me. 20210102:mb
-const SOURCE_EDITOR_REGISTRY = {
-  "libds.source.google.GoogleSheet": GoogleSheet,
-  "libds.source.static.StaticTable": StaticTable,
-  __code__: Code,
+const SOURCE_TYPE_REGISTRY = {
+  "libds.source.google.GoogleSheet": { editor: GoogleSheet, iconURL: "google-sheets.svg", label: "Google Sheet" },
+  "libds.source.facebook.Ads": { editor: GoogleSheet, iconURL: "facebook.svg", label: "Facebook Ads" },
+  "libds.source.google.Adwords": { editor: Code, iconURL: "google-adwords.png", label: "Google Ads" },
+  "libds.source.static.StaticTable": { editor: StaticTable, iconURL: "csv.png", label: "Manual Data Entry" },
+};
+
+const lookupSourceType = (source) => SOURCE_TYPE_REGISTRY[source.type];
+
+const SourceEditor = ({ user, source }) => {
+  const Component = source.definition["in"] === "code" ? Code : lookupSourceType(source).editor;
+  return <Component user={user} source={source} />;
+};
+
+const SourceType = ({ source }) => {
+  const { iconURL, label } = lookupSourceType(source);
+  return (
+    <>
+      <img width="20px" src={`/i/logos/${iconURL}`} alt={label} /> {label}
+    </>
+  );
 };
 
 export const SourcesTable = observer(() => {
-  const columns = [
-    { defaultFlex: 2, name: "id", header: "ID" },
-    { defaultFlex: 1, name: "type", header: "Type" },
-    { defaultFlex: 2, name: "details", header: "Details" },
-  ];
-
   const history = useHistory();
   const { path } = useRouteMatch();
   const { user } = useAppState();
-  const makeRow = (source) => ({ id: source.id, type: source.type });
-  const rows = user.dataStacks[0].info.sources.map(makeRow);
+  const sources = user.data_stacks[0].sources;
+
+  const columns = [
+    {
+      defaultFlex: 1,
+      name: "type",
+      header: "Type",
+      render: (column) => <SourceType source={column.data.source} />,
+    },
+    { defaultFlex: 9, name: "name", header: "Name" },
+  ];
+
+  const makeRow = (source) => ({
+    id: source.id,
+    type: source.type,
+    name: "name" in source ? source.name : source.id,
+    source: source,
+  });
+  const rows = sources.map(makeRow);
 
   const onRenderRow = (rowProps) => {
     const { onClick } = rowProps;
@@ -222,16 +250,15 @@ export const NewSourceChooser = () => {
   );
 };
 
-const SourceEditor = observer(() => {
+const SourceEditorContent = observer(() => {
   const { id } = useParams();
   const { user } = useAppState();
-  const source = _.find(user.dataStacks[0].info.sources, (s) => s.id === id);
+  const source = _.find(user.data_stacks[0].sources, (s) => s.id === id); //
   if (!source) {
     console.log("error");
-    return <ErrorDialog title="This was not suppoed to happen." message={`No source found with id '${id}'`} />;
+    return <ErrorDialog title="This was not supposed to happen." message={`No source found with id '${id}'`} />;
   } else {
-    const Component = SOURCE_EDITOR_REGISTRY[source.definition["in"] === "code" ? "__code__" : source.type];
-    return <Component user={user} source={source} />;
+    return <SourceEditor user={user} source={source} />;
   }
 });
 
@@ -239,11 +266,17 @@ export const SourcesContent = () => {
   let { path } = useRouteMatch();
   return (
     <Switch>
-      <Route path={`${path}new`}>
+      <Route path={`${path}new/google-adwords`}>
+        <SourceNewGoogleAdwords />
+      </Route>
+      <Route path={`${path}new/facebook-ads`}>
+        <SourceNewFacebookAds />
+      </Route>
+      <Route path={`${path}new/`}>
         <NewSourceChooser />
       </Route>
       <Route path={`${path}:id`}>
-        <SourceEditor />
+        <SourceEditorContent />
       </Route>
       <Route path={path}>
         <SourcesTable />

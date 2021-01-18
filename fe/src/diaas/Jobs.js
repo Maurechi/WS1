@@ -13,14 +13,26 @@ export const JobsTable = () => {
   ];
 
   const rows = [
-    { id: 1, name: "rocket_clean.py", status: "Failed", lastRun: "1 hour ago", lastSuccess: "11 hours ago" },
-    { id: 1, name: "rockets_d.sql", status: "Upstream Failed", lastRun: "1 hour ago", lastSuccess: "11 hours ago" },
-    { id: 1, name: "launches_d.sql", status: "Complete", lastRun: "6 hours ago", lastSuccess: "6 hours ago" },
+    { id: 1, name: "Load Source: static_kpis", status: "Failed", lastRun: "1 hour ago", lastSuccess: "6 hours ago" },
     {
-      id: 1,
-      name: "conversion_f.sql",
-      status: "In Progress",
-      lastRun: "Running for 17 minutes.",
+      id: 2,
+      name: "Transform: static_kpis_d",
+      status: "Upstream Failed",
+      lastRun: "1 hour ago",
+      lastSuccess: "6 hours ago",
+    },
+    {
+      id: 3,
+      name: "Load Source: a_google_sheet",
+      status: "Complete",
+      lastRun: "3 hours ago",
+      lastSuccess: "11 hours ago",
+    },
+    {
+      id: 4,
+      name: "Transform: enrich_data.py",
+      status: "Complete",
+      lastRun: "6 hours ago",
       lastSuccess: "6 hours ago",
     },
   ];

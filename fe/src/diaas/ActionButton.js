@@ -1,7 +1,9 @@
 import { Button } from "@material-ui/core";
 import React, { useState } from "react";
 
-export const ActionButton = ({ onClick, children }) => {
+import { wrapInBox } from "diaas/utils";
+
+export const ActionButton = wrapInBox(({ onClick, disabled = false, children }) => {
   const [state, setState] = useState("idle");
   const buttonOnClick = () => {
     setState("busy");
@@ -15,9 +17,9 @@ export const ActionButton = ({ onClick, children }) => {
       onClick={buttonOnClick}
       variant="contained"
       color={state === "idle" ? "primary" : "secondary"}
-      disabled={state !== "idle"}
+      disabled={disabled || state !== "idle"}
     >
       {children}
     </Button>
   );
-};
+});

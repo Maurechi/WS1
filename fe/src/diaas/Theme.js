@@ -5,6 +5,7 @@ import {
 
 const COLORS = {
   DARK_BLUE: "#001142",
+  NOT_SO_DARK_BLUE: "#404a6b",
   PURPLE: "#9611F5",
   AQUAS: "#13C6F7",
   WHITE: "#EEEEEE",
@@ -12,10 +13,10 @@ const COLORS = {
 
 const theme = createMuiTheme({
   palette: {
-    background: { main: COLORS.DARK_BLUE },
+    background: { main: COLORS.DARK_BLUE, light: COLORS.NOT_SO_DARK_BLUE },
     foreground: { main: COLORS.WHITE },
-    primary: { main: COLORS.AQUAS },
-    secondary: { main: COLORS.PURPLE },
+    primary: { main: COLORS.PURPLE, contrastText: "#ffffff" },
+    secondary: { main: COLORS.AQUAS },
   },
 });
 

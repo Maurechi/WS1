@@ -4,7 +4,6 @@ import {
   Button,
   Divider,
   Drawer,
-  IconButton,
   List,
   ListItem,
   ListItemIcon,
@@ -15,17 +14,17 @@ import {
 } from "@material-ui/core";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import AccountCircleIcon from "@material-ui/icons/AccountCircle";
+import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import BuildIcon from "@material-ui/icons/Build";
-import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
-import ChevronRightIcon from "@material-ui/icons/ChevronRight";
 import CollectionsBookmarkIcon from "@material-ui/icons/CollectionsBookmark";
+import DoubleArrowIcon from "@material-ui/icons/DoubleArrow";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import InfoIcon from "@material-ui/icons/Info";
-import MenuIcon from "@material-ui/icons/Menu";
 import MenuBookIcon from "@material-ui/icons/MenuBook";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
+import StorageIcon from "@material-ui/icons/Storage";
 import clsx from "clsx";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
@@ -52,8 +51,6 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.foreground.main,
   },
   appBarShift: {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -102,6 +99,14 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: "#ffffff",
     color: "#000000",
   },
+  toolbarButton: {
+    textTransform: "none",
+    color: "#ffffff",
+    backgroundColor: "inherit",
+    "&:hover": {
+      backgroundColor: theme.palette.background.light,
+    },
+  },
 }));
 
 export const AppSplash = ({ children }) => {
@@ -115,8 +120,10 @@ export const AppSplash = ({ children }) => {
         })}
       >
         <Toolbar>
-          <Typography variant="h6" noWrap>
-            Caravel
+          <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
+            <HCenter>
+              <img src={appBarGraphic} alt="CARAVEL" height="40em" />
+            </HCenter>
           </Typography>
         </Toolbar>
       </MUIAppBar>
@@ -129,6 +136,7 @@ export const AppSplash = ({ children }) => {
 };
 
 const AccountMenu = observer(() => {
+  const classes = useStyles();
   const state = useAppState();
   const [anchor, setAnchor] = useState(null);
 
@@ -146,7 +154,7 @@ const AccountMenu = observer(() => {
 
   return (
     <>
-      <Button variant="contained" color="primary" onClick={handleClick}>
+      <Button onClick={handleClick} className={classes.toolbarButton}>
         <AccountCircleIcon />
       </Button>
       <Menu anchorEl={anchor} keepMounted open={!!anchor} onClose={handleClose}>
@@ -163,36 +171,27 @@ const AccountMenu = observer(() => {
   );
 });
 
-const AppNavigationToolbar = observer(({ drawerOpen, handleDrawerOpen }) => {
-  const state = useAppState();
+const AppNavigationToolbar = observer(() => {
   const classes = useStyles();
+  const { user } = useAppState();
+  const ds = user.data_stacks.length > 0 ? user.data_stacks[0] : null;
+  const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
+  const dataStackName = ds === null ? "//" : ds.config.name || "central warehouse";
   return (
     <Toolbar>
-      <IconButton
-        color="inherit"
-        aria-label="open drawer"
-        onClick={handleDrawerOpen}
-        edge="start"
-        className={clsx(classes.menuButton, {
-          [classes.hide]: drawerOpen,
-        })}
-      >
-        <MenuIcon />
-      </IconButton>
-      <Typography variant="h6" noWrap style={{ flexGrow: 1 }}>
-        <Link to="/" style={{ color: "inherit", textDecoration: "none" }}>
-          <HCenter>
-            <img src={appBarGraphic} alt="CARAVEL" height="40em" />
-          </HCenter>
+      <Box style={{ flexGrow: 1 }}>
+        <Link to="/">
+          <img src={appBarGraphic} alt="CARAVEL" width="140em" />
         </Link>
-      </Typography>
-      <Button variant="contained" color="primary">
-        Branch: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].branch : "---"}
-      </Button>
-      <Button variant="contained" color="primary">
-        Data Stack: {state.user.dataStacks.length > 0 ? state.user.dataStacks[0].name : "---"}
-      </Button>
-      <AccountMenu />
+      </Box>
+      <Box pl={2}>
+        <Button variant="text" color="inherit" endIcon={<ArrowDropDownIcon />} className={classes.toolbarButton}>
+          {branchName} / {dataStackName}
+        </Button>
+      </Box>
+      <Box pl={2}>
+        <AccountMenu />
+      </Box>
     </Toolbar>
   );
 });
@@ -220,18 +219,23 @@ export const AppNavigation = ({ children }) => {
   return (
     <div className={classes.root}>
       <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: open })}>
-        <AppNavigationToolbar handleDrawerOpen={() => setOpen(true)} drawerOpen={open} />
+        <AppNavigationToolbar drawerOpen={open} />
       </MUIAppBar>
       <Drawer
         variant="permanent"
         className={clsx(classes.drawer, { [classes.drawerOpen]: open, [classes.drawerClose]: !open })}
         classes={{ paper: clsx({ [classes.drawerOpen]: open, [classes.drawerClose]: !open }) }}
       >
-        <div className={classes.toolbar}>
-          <IconButton onClick={() => setOpen(false)}>
-            {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
-        </div>
+        <div className={classes.toolbar}>&nbsp;</div>
+        <List>
+          <ListItem button key="openCloseToggle" onClick={() => setOpen(!open)}>
+            <ListItemIcon>
+              <div style={{ transform: open ? "scaleX(-1)" : undefined }}>
+                <DoubleArrowIcon />
+              </div>
+            </ListItemIcon>
+          </ListItem>
+        </List>
         <Divider />
         <List>
           <SectionMenuItem location="/modules" text="Modules" Icon={CollectionsBookmarkIcon} />
@@ -239,7 +243,8 @@ export const AppNavigation = ({ children }) => {
         <Divider />
         <List>
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
-          <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
+          <SectionMenuItem location="/stores" text="Storage" Icon={StorageIcon} />
+          <SectionMenuItem location="/transformations" text="Transformations" Icon={BuildIcon} />
           <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
           <SectionMenuItem location="/analytics" text="Analytics" Icon={SearchIcon} />
         </List>

@@ -1,6 +1,8 @@
-import { Box, Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
-import React, { useState } from "react";
+import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
+import React, { createContext, useCallback, useContext, useState } from "react";
 import v from "voca";
+
+import { wrapInBox } from "diaas/utils";
 
 export const useFormValue = (initialValue, config) => {
   let [value, setValue] = useState(initialValue);
@@ -40,16 +42,21 @@ export const useFormValue = (initialValue, config) => {
   };
 };
 
-export const TextField = ({ value, inputProps = {}, ...TextFieldProps }) => {
-  inputProps["onBlur"] = () => value.touch();
-  const boxProps = {};
-  ["m", "mx", "my", "mt", "mb", "ml", "mr", "p", "px", "py", "pt", "pb", "pl", "pr"].forEach((prop) => {
-    if (prop in TextFieldProps) {
-      boxProps[prop] = TextFieldProps[prop];
-      delete TextFieldProps[prop];
-    }
-  });
-  const field = (
+export const TextField = wrapInBox(({ value, inputProps = {}, ...TextFieldProps }) => {
+  inputProps["onBlur"] = useCallback(() => value.touch(), [value]);
+  const form = useFormData();
+  const onKeyDown = useCallback(
+    (e) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        form.submit();
+      }
+    },
+    [form]
+  );
+  if (form && form.submit) {
+    inputProps["onKeyDown"] = onKeyDown;
+  }
+  return (
     <MUITextField
       onChange={(e) => value.setter(e.target.value)}
       value={v.trim(value.v)}
@@ -57,19 +64,14 @@ export const TextField = ({ value, inputProps = {}, ...TextFieldProps }) => {
       {...TextFieldProps}
     />
   );
-  if (boxProps) {
-    return <Box {...boxProps}>{field}</Box>;
-  } else {
-    return field;
-  }
-};
+});
 
 export const Checkbox = ({ value, ...CheckboxProps }) => (
   <MUICheckbox
     value={value.v}
     onChange={(e) => {
       value.setter(e.target.checked);
-      value.touched();
+      value.touch();
     }}
     {...CheckboxProps}
   />
@@ -85,3 +87,16 @@ export const Select = ({ value, children, ...SelectProps }) => (
     {children}
   </MUISelect>
 );
+
+const FormContext = createContext();
+
+const useFormData = () => useContext(FormContext);
+
+export const Form = ({ children, onSubmit }) => {
+  const formData = { submit: onSubmit };
+  return (
+    <FormContext.Provider value={formData}>
+      <form onSubmit={onSubmit}>{children}</form>
+    </FormContext.Provider>
+  );
+};

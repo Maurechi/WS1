@@ -4,15 +4,9 @@ Data Infrastructure As A Service.
 
 == local develoment
 
-<<<<<<< Updated upstream
 There are scripts in `./ops/lcl/` to run each service, to run them all from the terminal install link:https://duckduckgo.com/?q=tmuxinator&t=newext&atb=v243-1&ia=web[tmuxinator] and run `./ops/lcl/run-in-tmux` (have a look at that file, it's very short, to see how exactly things are started).
 
-you can set `LIBDS_DIR` when call the generated `run` script to easier test the libds code.
-=======
-Use link:https://duckduckgo.com/?q=tmuxinator&t=newext&atb=v243-1&ia=web[tmuxinator] and `./ops/lcl/run-in-tmux` to get started quickly (hopefully).
-
-Note that the `run` script generated in a data stack check out directory will inject a local `libds` checkout if the `LIBDS_DIR` enviornment variable is set. This makes it easy(er) to test libds changes locally.
->>>>>>> Stashed changes
+For developing/testing libds you can set the `LIBDS_DIR` env var to the path, on the local filesystem, where libds lives and it will be injected (via a docker bind mount) into the container which runs the data stack's code.
 
 == What's the name again?
 

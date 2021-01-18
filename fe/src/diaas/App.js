@@ -14,9 +14,10 @@ import { AppNavigation, AppSplash } from "diaas/layout.js";
 import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
+import { StoresContent } from "diaas/Stores.js";
 import { ThemeProvider } from "diaas/Theme.js";
+import { TransformationsContent } from "diaas/Transformations.js";
 import { HCenter } from "diaas/utils.js";
-import { WorkbenchContent } from "diaas/Workbench.js";
 
 const Loading = () => {
   const [tick, setTick] = useState(0);
@@ -100,8 +101,11 @@ const AppContent = () => (
           <Route path="/sources/">
             <SourcesContent />
           </Route>
-          <Route path="/workbench/">
-            <WorkbenchContent />
+          <Route path="/transformations/">
+            <TransformationsContent />
+          </Route>
+          <Route path="/stores/">
+            <StoresContent />
           </Route>
           <Route path="/jobs/">
             <JobsContent />
