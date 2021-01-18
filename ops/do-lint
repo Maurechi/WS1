@@ -104,38 +104,53 @@ else
     prettier_mode="--write"
 fi
 
+function _list-js-files-for-linting () {
+    find ./fe/src -name "*.js" -print0;
+    find ./fe -maxdepth 1 -name "*.js" -print0
+}
+
 function _prettier_js {
-    (find ./fe/src -name "*.js" -print0;
-     find ./fe -maxdepth 1 -name "*.js" -print0
-    ) | xargs -0 ./fe/node_modules/.bin/prettier --config "./fe/package.json" ${prettier_mode} 2>&1
+    _list-js-files-for-linting | xargs -0 ./fe/node_modules/.bin/prettier --config "./fe/package.json" ${prettier_mode} 2>&1
 }
 
 do_lint "prettier js" _prettier_js
 
+function _list-json-files-for-linting () {
+    find ./fe/src -name "*.json" -print0;
+    find ./fe/public -name "*.json" -print0;
+    find ./fe -maxdepth 1 -name "*.json" -print0
+}
+
 function _prettier_json {
-    (find ./fe/src -name "*.json" -print0;
-     find ./fe/public -name "*.json" -print0;
-     find ./fe -maxdepth 1 -name "*.json" -print0
-    )  | xargs -0 ./fe/node_modules/.bin/prettier --parser json --no-config ${prettier_mode} 2>&1
+    _list-json-files-for-linting | xargs -0 ./fe/node_modules/.bin/prettier --parser json --no-config ${prettier_mode} 2>&1
+}
+
+do_lint "prettier json" _prettier_json
+
+function _list-html-files-for-linting () {
+    find ./fe/public -name "*.html" -print0;
 }
 
 function _prettier_html() {
-    (find ./fe/public -name "*.html" -print0;
-    )  | xargs -0 ./fe/node_modules/.bin/prettier --parser html --no-config ${prettier_mode} 2>&1
+    _list-html-files-for-linting | xargs -0 ./fe/node_modules/.bin/prettier --parser html --no-config ${prettier_mode} 2>&1
 }
 
 do_lint "prettier html" _prettier_html
 
-do_lint "prettier json" _prettier_json
+function _list-yaml-files-for-linting () {
+    find ./ops/ -name "*.yaml" -print0;
+}
 
 function _prettier_yaml() {
-    (find ./ -name "*.yaml" -print0
-    ) | xargs -0 ./fe/node_modules/.bin/prettier --parser yaml --no-config ${prettier_mode} 2>&1
+    _list-yaml-files-for-linting | xargs -0 ./fe/node_modules/.bin/prettier --parser yaml --no-config ${prettier_mode} 2>&1
 }
 
 do_lint "prettier yaml" _prettier_yaml
 
 if [[ ${failure} = true ]]; then
+    if [[ -v CI ]] ; then
+        git diff
+    fi
     exit 1
 else
     exit 0

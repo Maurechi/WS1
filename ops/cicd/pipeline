@@ -1,5 +1,36 @@
 #!/bin/bash
 set -euo pipefail
+git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/leukosio/infra.git
+source ./infra/shell/bashrc ;
 
-./ops/reformat -c
-./ops/test-be
+set -u; source "${LEUKOS_SH_V1}"; export PATH="${LEUKOS_BIN}":"${PATH}"
+cd "${__root__}"
+
+# Setup python
+
+output-on-failure -- python3 -m venv "${VENV_DIR}"
+source "${VENV_DIR}"/bin/activate
+output-on-failure -- pip install -U pip wheel
+output-on-failure -- pip install -r requirements.txt
+
+# Setup node
+source "${NVM_DIR}/nvm.sh"
+cd "${__root__}/fe/"
+nvm use
+# NOTE other than caching, we also don't use npm install because npm i
+# will rewrite package.json and the linter will fail 20210119:mb
+output-on-failure -- npm ci --cache .npm --prefer-offline
+
+cd "${__root__}"
+
+# Actually test the code base
+output-on-failure -- ./ops/do-lint
+
+(
+    output-on-failure -- python3 -m venv ./be/venv
+    source ./be/venv/bin/activate
+    cd be
+    pip3 install -U pip wheel
+    pip3 install -r requirements.txt
+    ../ops/test-be
+)
