@@ -14,6 +14,7 @@ import {
 } from "@material-ui/core";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import AccountCircleIcon from "@material-ui/icons/AccountCircle";
+import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import BuildIcon from "@material-ui/icons/Build";
 import CollectionsBookmarkIcon from "@material-ui/icons/CollectionsBookmark";
 import DoubleArrowIcon from "@material-ui/icons/DoubleArrow";
@@ -98,6 +99,14 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: "#ffffff",
     color: "#000000",
   },
+  toolbarButton: {
+    textTransform: "none",
+    color: "#ffffff",
+    backgroundColor: "inherit",
+    "&:hover": {
+      backgroundColor: theme.palette.background.light,
+    },
+  },
 }));
 
 export const AppSplash = ({ children }) => {
@@ -127,6 +136,7 @@ export const AppSplash = ({ children }) => {
 };
 
 const AccountMenu = observer(() => {
+  const classes = useStyles();
   const state = useAppState();
   const [anchor, setAnchor] = useState(null);
 
@@ -144,7 +154,7 @@ const AccountMenu = observer(() => {
 
   return (
     <>
-      <Button variant="contained" color="primary" onClick={handleClick}>
+      <Button onClick={handleClick} className={classes.toolbarButton}>
         <AccountCircleIcon />
       </Button>
       <Menu anchorEl={anchor} keepMounted open={!!anchor} onClose={handleClose}>
@@ -162,6 +172,7 @@ const AccountMenu = observer(() => {
 });
 
 const AppNavigationToolbar = observer(() => {
+  const classes = useStyles();
   const { user } = useAppState();
   const ds = user.data_stacks.length > 0 ? user.data_stacks[0] : null;
   const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
@@ -174,13 +185,8 @@ const AppNavigationToolbar = observer(() => {
         </Link>
       </Box>
       <Box pl={2}>
-        <Button variant="contained" color="primary">
-          Branch: {branchName}
-        </Button>
-      </Box>
-      <Box pl={2}>
-        <Button variant="contained" color="primary">
-          Data Stack: {dataStackName}
+        <Button variant="text" color="inherit" endIcon={<ArrowDropDownIcon />} className={classes.toolbarButton}>
+          {branchName} / {dataStackName}
         </Button>
       </Box>
       <Box pl={2}>
