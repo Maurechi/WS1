@@ -2,14 +2,14 @@ import { Box, Button } from "@material-ui/core";
 import React from "react";
 import { useHistory } from "react-router-dom";
 
-export const ButtonLink = ({ target, children, ...buttonProps }) => {
+export const ButtonLink = ({ target, variant = "contained", color = "secondary", children, ...buttonProps }) => {
   const history = useHistory();
   const onClick = (e) => {
     e.preventDefault();
     history.push(target);
   };
   return (
-    <Button onClick={onClick} {...buttonProps}>
+    <Button onClick={onClick} variant={variant} color={color} {...buttonProps}>
       {children}
     </Button>
   );

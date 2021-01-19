@@ -77,18 +77,12 @@ export const Editor = observer(() => {
           <Box>
             <Box display="flex">
               <Box mx={1}>
-                <ButtonLink
-                  variant="contained"
-                  color="primary"
-                  target="/workbench/new/"
-                  onClick={saveAndRun}
-                  disabled={saveButtonDisabled}
-                >
+                <ButtonLink target="/workbench/new/" onClick={saveAndRun} disabled={saveButtonDisabled}>
                   {saveButtonLabel}
                 </ButtonLink>
               </Box>
               <Box mx={1}>
-                <ButtonLink variant="contained" color="primary" target="/workbench/new/" disabled={true}>
+                <ButtonLink target="/workbench/new/" disabled={true}>
                   Commit
                 </ButtonLink>
               </Box>
@@ -138,9 +132,7 @@ export const FileTable = observer(() => {
         <Box>
           <Box display="flex">
             <Box mx={1}>
-              <ButtonLink variant="contained" color="primary" target="/tranformations/new/">
-                New Transformation
-              </ButtonLink>
+              <ButtonLink target="/tranformations/new/">New Transformation</ButtonLink>
             </Box>
           </Box>
         </Box>
