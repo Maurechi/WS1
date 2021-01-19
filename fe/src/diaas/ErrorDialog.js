@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogContentText, DialogTitle } from "@material
 import React from "react";
 
 import image from "./Error.gif";
-import { HCenter } from "diaas/utils.js";
+import { HCenter } from "diaas/ui.js";
 
 export const ErrorDialog = ({ title, message }) => {
   return (

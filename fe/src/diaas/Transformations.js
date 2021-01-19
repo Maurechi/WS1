@@ -21,8 +21,7 @@ import AceEditor from "diaas/AceEditor";
 import { useFormValue } from "diaas/form.js";
 import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
-import { ButtonLink } from "diaas/ui.js";
-import { NotFound } from "diaas/utils.js";
+import { ButtonLink, NotFound } from "diaas/ui.js";
 export const NewFile = () => <p>New</p>;
 
 const CodeEditor = ({ code, mode, disabled = false }) => {

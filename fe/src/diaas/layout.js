@@ -33,7 +33,7 @@ import v from "voca";
 
 import appBarGraphic from "./AppBarGraphic.png";
 import { useAppState } from "diaas/state";
-import { HCenter } from "diaas/utils.js";
+import { HCenter } from "diaas/ui.js";
 
 const drawerWidth = 240;
 

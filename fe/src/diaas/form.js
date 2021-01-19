@@ -2,7 +2,7 @@ import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField
 import React, { createContext, useCallback, useContext, useState } from "react";
 import v from "voca";
 
-import { wrapInBox } from "diaas/utils";
+import { wrapInBox } from "diaas/ui.js";
 
 export const useFormValue = (initialValue, config) => {
   let [value, setValue] = useState(initialValue);

@@ -17,7 +17,7 @@ import { AppState, useAppState } from "diaas/state.js";
 import { StoresContent } from "diaas/Stores.js";
 import { ThemeProvider } from "diaas/Theme.js";
 import { TransformationsContent } from "diaas/Transformations.js";
-import { HCenter } from "diaas/utils.js";
+import { HCenter } from "diaas/ui.js";
 
 const Loading = () => {
   const [tick, setTick] = useState(0);
