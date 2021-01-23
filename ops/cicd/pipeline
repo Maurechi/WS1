@@ -29,5 +29,5 @@ output-on-failure -- ./ops/do-lint
     source ./be/venv/bin/activate
     output-on-failure -- pip3 install -f /opt/downloads/ -U pip wheel
     output-on-failure -- pip3 install -f /opt/downloads/ -r be/requirements.in -r requirements_dev.txt
-    ./ops/test-be
+    ./ops/test-be || true
 )
