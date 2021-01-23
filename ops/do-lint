@@ -118,7 +118,7 @@ do_lint "prettier js" _prettier_js
 function _list-json-files-for-linting () {
     find ./fe/src -name "*.json" -print0;
     find ./fe/public -name "*.json" -print0;
-    find ./fe -maxdepth 1 -name "*.json" -print0
+    find ./fe -maxdepth 1 \( -name "*.json" \) -and \( -not -name "package*.json" \) -print0
 }
 
 function _prettier_json {

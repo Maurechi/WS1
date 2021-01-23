@@ -17,8 +17,6 @@ output-on-failure -- pip install -r requirements.txt
 source "${NVM_DIR}/nvm.sh"
 cd "${__root__}/fe/"
 nvm use
-# NOTE other than caching, we also don't use npm install because npm i
-# will rewrite package.json and the linter will fail 20210119:mb
 output-on-failure -- npm ci --cache .npm --prefer-offline
 
 cd "${__root__}"
