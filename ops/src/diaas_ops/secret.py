@@ -8,9 +8,28 @@ import google.auth
 from google.cloud import resource_manager, secretmanager
 
 
+def quote_name(name):
+    def quote(m):
+        code = ord(m[0])
+        if code > 255:
+            raise ValueError("Can't encode {char} in with 2 hex digits.")
+        return "_{:02x}".format(code)
+
+    return re.sub("[^a-zA-Z0-9]", quote, name)
+
+
+def unquote_name(name):
+    def unquote(m):
+        return chr(int(m[1], base=16))
+
+    return re.sub("_([0-9a-fA-F]{2})", unquote, name)
+
+
 class Client:
-    def __init__(self):
+    def __init__(self, project_id=None):
         self.credentials, self.project_id = google.auth.default()
+        if project_id is not None:
+            self.project_id = project_id
         self.secret_manager = secretmanager.SecretManagerServiceClient(
             credentials=self.credentials
         )
@@ -31,6 +50,12 @@ class Client:
                 yield from _list(res.next_page_token)
 
         return sorted(_list(None), key=lambda s: s.resource)
+
+    def secret_from_name(self, name):
+        return Secret(
+            client=self,
+            resource=f"projects/{self.project_id}/secrets/{quote_name(name)}",
+        )
 
 
 class SecretVersion:
@@ -55,37 +80,10 @@ class SecretVersion:
         return self.value is not None
 
 
-def quote_name(name):
-    def quote(m):
-        code = ord(m[0])
-        if code > 255:
-            raise ValueError("Can't encode {char} in with 2 hex digits.")
-        return "_{:02x}".format(code)
-
-    return re.sub("[^a-zA-Z0-9]", quote, name)
-
-
-def unquote_name(name):
-    def unquote(m):
-        return chr(int(m[1], base=16))
-
-    return re.sub("_([0-9a-fA-F]{2})", unquote, name)
-
-
 class Secret:
     def __init__(self, client=None, resource=None):
-        if client is None:
-            client = Client()
         self.client = client
         self.resource = resource
-
-    @classmethod
-    def from_name(cls, name):
-        client = Client()
-        return cls(
-            client=client,
-            resource=f"projects/{client.project_id}/secrets/{quote_name(name)}",
-        )
 
     def _ids(self):
         m = re.match(
@@ -161,15 +159,19 @@ class Secret:
         return self.value
 
 
+CLIENT = None
+
+
 @click.group()
-def cli():
-    pass
+@click.option("-p", "--project-id", default=None)
+def cli(project_id):
+    global CLIENT
+    CLIENT = Client(project_id)
 
 
 @cli.command()
 def list():
-    client = Client()
-    for s in client.secrets:
+    for s in CLIENT.secrets:
         print(s.display_name)
 
 
@@ -179,7 +181,7 @@ def list():
 @click.option("-r", "--raw", is_flag=True)
 @click.pass_context
 def get(ctx, name, version, raw):
-    s = Secret.from_name(name)
+    s = CLIENT.secret_from_name(name)
     if not s.exists:
         click.echo(f"No secret named {name}")
         ctx.exit(2)
@@ -199,7 +201,7 @@ def get(ctx, name, version, raw):
 @click.argument("value")
 @click.pass_context
 def set(ctx, name, value):
-    s = Secret.from_name(name)
+    s = CLIENT.secret_from_name(name)
     if not s.exists:
         s.create()
     if value == "-":
