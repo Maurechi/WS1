@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from diaas_ops.configure.helpers import BaseConfiguration, from_env
 from slugify import slugify
 

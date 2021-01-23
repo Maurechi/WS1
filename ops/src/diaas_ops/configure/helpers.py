@@ -1,10 +1,11 @@
-from pathlib import Path
-import json
-import sys
-import tabulate
 import datetime
-import shlex
+import json
 import os
+import shlex
+import sys
+from pathlib import Path
+
+import tabulate
 
 
 def from_env(name, type=str, default=None, required=False):
