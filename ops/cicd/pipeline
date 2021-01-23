@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
-git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/leukosio/infra.git
-source ./infra/shell/bashrc ;
+git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/leukosio/infra.git /opt/infra
+source /opt/infra/shell/bashrc
 
 set -u; source "${LEUKOS_SH_V1}"; export PATH="${LEUKOS_BIN}":"${PATH}"
 cd "${__root__}"
@@ -10,8 +10,8 @@ cd "${__root__}"
 
 output-on-failure -- python3 -m venv "${VENV_DIR}"
 source "${VENV_DIR}"/bin/activate
-output-on-failure -- pip install -U pip wheel
-output-on-failure -- pip install -r requirements.txt
+output-on-failure -- pip install -f /opt/downloads/ -U pip wheel
+output-on-failure -- pip install -f /opt/downloads/ -r requirements_dev.txt
 
 # Setup node
 source "${NVM_DIR}/nvm.sh"
@@ -27,8 +27,7 @@ output-on-failure -- ./ops/do-lint
 (
     output-on-failure -- python3 -m venv ./be/venv
     source ./be/venv/bin/activate
-    cd be
-    pip3 install -U pip wheel
-    pip3 install -r requirements.txt
-    ../ops/test-be
+    output-on-failure -- pip3 install -f /opt/downloads/ -U pip wheel
+    output-on-failure -- pip3 install -f /opt/downloads/ -r be/requirements.in -r requirements_dev.txt
+    ./ops/test-be
 )

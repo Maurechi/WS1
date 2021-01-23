@@ -1,4 +1,4 @@
-image: "registry.gitlab.com/leukosio/diaas/cicd-container:2021-01-19T220315_148d15e74f9b1ad0"
+image: registry.gitlab.com/leukosio/diaas/cicd-container:2021-01-23T164930_c68d0a150f7653d6
 
 stages: [pipeline]
 
@@ -16,13 +16,13 @@ cache:
 prd:
   stage: pipeline
   script:
-    - ./ops/cicd/pipeline
+    - (./ops/cicd/pipeline 2>&1) | ts -i | ts '%H:%M:%S'
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"'
 
 stg:
   stage: pipeline
   script:
-    - ./ops/cicd/pipeline
+    - (./ops/cicd/pipeline 2>&1) | ts -i | ts '%H:%M:%S'
   rules:
     - if: "$CI_COMMIT_TAG || $CI_COMMIT_BRANCH"

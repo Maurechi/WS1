@@ -5,13 +5,23 @@ COPY --from=koalaman/shellcheck-alpine:stable /bin/shellcheck /bin/
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update -y
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates git curl wget jq
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates git curl wget jq moreutils
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libpq-dev gcc
 
 RUN echo "dash dash/sh boolean false" | debconf-set-selections
 RUN DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y python3-dev=3.7.3-1 python3-venv=3.7.3-1
+
+ADD ./requirements_dev.txt /opt/diaas/
+ADD ./be/requirements_dev.txt /opt/diaas/be/
+ADD ./be/requirements.txt /opt/diaas/be/
+
+RUN python3 -m venv /opt/venv
+RUN source /opt/venv/bin/activate; \
+    pip install -U pip wheel; \
+    mkdir /opt/downloads/; \
+    pip download -d /opt/downloads/ --no-clean -r /opt/diaas/be/requirements_dev.txt;
 
 RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
 RUN /bin/bash --login -c 'nvm install v14'
