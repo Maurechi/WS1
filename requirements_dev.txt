@@ -7,6 +7,7 @@ isort
 pgcli
 pip-tools
 psycopg2
+pygit2
 pytest
 python-slugify
 tabulate

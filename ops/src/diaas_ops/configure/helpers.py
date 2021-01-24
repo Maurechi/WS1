@@ -5,6 +5,7 @@ import shlex
 import sys
 from pathlib import Path
 
+import pygit2
 import tabulate
 
 
@@ -63,7 +64,10 @@ class BaseConfiguration:
 
     @property
     def branch(self):
-        branch = self.if_env(prd="master", stg="master", lcl="HEAD")
+        if self.is_stg:
+            branch = pygit2.Repository(".").head.shorthand
+        else:
+            branch = self.if_env(prd="master", lcl="HEAD")
         return from_env("DIAAS_DEPLOYMENT_BRANCH", default=branch)
 
     @property

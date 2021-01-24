@@ -53,13 +53,13 @@ class Configuration(BaseConfiguration):
         if ci_environment_url is not None:
             deployment_url = ci_environment_url
         else:
-            if self.is_prd and self.is_master:
-                deployment_url = "https://app.diaas.io"
+            if self.is_prd:
+                deployment_url = "https://app.crvl.io"
             elif self.is_lcl:
                 deployment_url = "http://127.0.0.1:8080/"
             else:
                 branch = slugify(text=self.branch, max_length=48)
-                deployment_url = f"https://{branch}-{self.environment}.diaas.dev"
+                deployment_url = f"https://{branch}.app.crvl.dev"
         self._set_all(
             DIAAS_DEPLOYMENT_NAME=slugify(
                 self.environment + "-" + self.branch, max_length=60
