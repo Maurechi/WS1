@@ -9,7 +9,9 @@ class Configuration(BaseConfiguration):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.secrets = SecretStore(project_id=self.if_env(prd="diaas-prd", otherwise="diaas-stg"))
+        self.secrets = SecretStore(
+            project_id=self.if_env(prd="diaas-prd", otherwise="diaas-stg")
+        )
         self.commit_config()
         self.deployment_config()
         self.app_config()
@@ -78,8 +80,12 @@ class Configuration(BaseConfiguration):
 
     def _flask_config(self):
         self._set_all(
-            DIAAS_INTERNAL_API_TOKEN=self.secrets.secret_from_name("app/internal-api-token").value,
-            DIAAS_SESSION_SECRET_KEY=self.secrets.secret_from_name("app/session-secret-key").value,
+            DIAAS_INTERNAL_API_TOKEN=self.secrets.secret_from_name(
+                "app/internal-api-token"
+            ).value,
+            DIAAS_SESSION_SECRET_KEY=self.secrets.secret_from_name(
+                "app/session-secret-key"
+            ).value,
         )
 
         self._set_all(
@@ -90,12 +96,8 @@ class Configuration(BaseConfiguration):
 
     def app_config(self):
         if self.with_fe:
-            if self.is_lcl:
-                self._set(REACT_APP_API_BASEURL="http://127.0.0.1:8080/")
-            else:
-                raise ValueError(
-                    f"Sorry, don't know what REACT_APP_API_BASEURL to sue for {self.environment}"
-                )
+            baseurl = self.if_env(lcl="http://127.0.0.1:8080/", otherwise="//api/")
+            self._set(REACT_APP_API_BASEURL=baseurl)
 
         if self.with_be:
             self._flask_config()
@@ -112,8 +114,9 @@ class Configuration(BaseConfiguration):
                     dir = self.values[key]
                     Path(dir).mkdir(parents=True, exist_ok=True)
             else:
-                raise ValueError(
-                    f"Don't know what DIAAS_{{DS,WORKBENCH}}_STORE values to use for env {self.environment}"
+                self._set_all(
+                    DIAAS_DS_STORE=Path("/opt/store/ds"),
+                    DIAAS_WORKBENCH_STORE=Path("/opt/store/wb"),
                 )
             pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
             self._set(DIAAS_PG_HASHIDS_SALT=pg_hashids_salt)
