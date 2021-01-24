@@ -5,7 +5,12 @@ from diaas_ops.configure.configuration import Configuration
 
 
 @click.command()
-@click.option("--format", "-f", default="bash", type=str)
+@click.option(
+    "--format",
+    "-f",
+    default="bash",
+    type=click.Choice("json table bash fish env docker".split()),
+)
 @click.option("--with-be/--without-be", default=True)
 @click.option("--with-fe/--without-fe", default=True)
 @click.option(
