@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from diaas_ops.configure.helpers import BaseConfiguration, from_env
+from diaas_ops.secret import SecretStore
 from slugify import slugify
 
 
@@ -8,6 +9,7 @@ class Configuration(BaseConfiguration):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.secrets = SecretStore(project_id=self.if_env(prd="diaas-prd", otherwise="diaas-stg"))
         self.commit_config()
         self.deployment_config()
         self.app_config()
@@ -75,15 +77,10 @@ class Configuration(BaseConfiguration):
         )
 
     def _flask_config(self):
-        if self.is_lcl:
-            self._set_all(
-                DIAAS_INTERNAL_API_TOKEN="yozlOIQyxBFC",
-                DIAAS_SESSION_SECRET_KEY="i0jQcU0ksBJgIeqPCT9I",
-            )
-        else:
-            raise ValueError(
-                f"Don't know how to configure flask for {self.environment}"
-            )
+        self._set_all(
+            DIAAS_INTERNAL_API_TOKEN=self.secrets.secret_from_name("app/internal-api-token").value,
+            DIAAS_SESSION_SECRET_KEY=self.secrets.secret_from_name("app/session-secret-key").value,
+        )
 
         self._set_all(
             DIAAS_SESSION_COOKIE_IS_SECURE=not self.is_lcl,
@@ -118,7 +115,8 @@ class Configuration(BaseConfiguration):
                 raise ValueError(
                     f"Don't know what DIAAS_{{DS,WORKBENCH}}_STORE values to use for env {self.environment}"
                 )
-            self._set(DIAAS_PG_HASHIDS_SALT="U69XD2b3YaIJe2plIN31")
+            pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
+            self._set(DIAAS_PG_HASHIDS_SALT=pg_hashids_salt)
 
     def monitoring_config(self):
         dsn = self.if_env(

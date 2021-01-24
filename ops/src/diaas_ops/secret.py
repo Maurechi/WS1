@@ -25,7 +25,7 @@ def unquote_name(name):
     return re.sub("_([0-9a-fA-F]{2})", unquote, name)
 
 
-class Client:
+class SecretStore:
     def __init__(self, project_id=None):
         self.credentials, self.project_id = google.auth.default()
         if project_id is not None:
@@ -45,7 +45,7 @@ class Client:
                 }
             )
             for s in res.secrets:
-                yield Secret(client=self, resource=s.name)
+                yield Secret(store=self, resource=s.name)
             if res.next_page_token:
                 yield from _list(res.next_page_token)
 
@@ -53,20 +53,20 @@ class Client:
 
     def secret_from_name(self, name):
         return Secret(
-            client=self,
+            store=self,
             resource=f"projects/{self.project_id}/secrets/{quote_name(name)}",
         )
 
 
 class SecretVersion:
-    def __init__(self, client, resource):
-        self.client = client
+    def __init__(self, store, resource):
+        self.store = store
         self.resource = resource
 
     @property
-    def value(self):
+    def raw_value(self):
         try:
-            res = self.client.secret_manager.access_secret_version(
+            res = self.store.secret_manager.access_secret_version(
                 request={"name": self.resource}
             )
             return res.payload.data
@@ -76,13 +76,17 @@ class SecretVersion:
             return None
 
     @property
+    def value(self):
+        return self.raw_value.decode("utf-8")
+
+    @property
     def exists(self):
         return self.value is not None
 
 
 class Secret:
-    def __init__(self, client=None, resource=None):
-        self.client = client
+    def __init__(self, store=None, resource=None):
+        self.store = store
         self.resource = resource
 
     def _ids(self):
@@ -101,7 +105,7 @@ class Secret:
 
     @property
     def project_id(self):
-        return self.client.resource_manager.fetch_project(self.project_number).name
+        return self.store.resource_manager.fetch_project(self.project_number).name
 
     @property
     def secret_id(self):
@@ -112,13 +116,9 @@ class Secret:
         return unquote_name(self.secret_id)
 
     @property
-    def display_name(self):
-        return self.project_id + "/" + self.name
-
-    @property
     def exists(self):
         try:
-            self.client.secret_manager.get_secret(request={"name": self.resource})
+            self.store.secret_manager.get_secret(request={"name": self.resource})
             return True
         except google.api_core.exceptions.NotFound:
             return False
@@ -130,7 +130,7 @@ class Secret:
                 return self
             else:
                 raise Exception(f"Secret {self.resource} already exists")
-        self.client.secret_manager.create_secret(
+        self.store.secret_manager.create_secret(
             {
                 "parent": f"projects/{self.project_id}",
                 "secret_id": self.secret_id,
@@ -141,7 +141,7 @@ class Secret:
 
     def get_version(self, version):
         return SecretVersion(
-            client=self.client, resource=f"{self.resource}/versions/{version}"
+            store=self.store, resource=f"{self.resource}/versions/{version}"
         )
 
     @property
@@ -150,7 +150,7 @@ class Secret:
 
     @value.setter
     def value(self, new_value):
-        self.client.secret_manager.add_secret_version(
+        self.store.secret_manager.add_secret_version(
             request={
                 "parent": self.resource,
                 "payload": {"data": new_value.encode("utf-8")},
@@ -159,20 +159,21 @@ class Secret:
         return self.value
 
 
-CLIENT = None
+STORE = None
 
 
 @click.group()
 @click.option("-p", "--project-id", default=None)
 def cli(project_id):
-    global CLIENT
-    CLIENT = Client(project_id)
+    global STORE
+    STORE = SecretStore(project_id)
 
 
 @cli.command()
 def list():
-    for s in CLIENT.secrets:
-        print(s.display_name)
+    print(f"# In project {STORE.project_id}")
+    for s in STORE.secrets:
+        print(s.name)
 
 
 @cli.command()
@@ -181,7 +182,7 @@ def list():
 @click.option("-r", "--raw", is_flag=True)
 @click.pass_context
 def get(ctx, name, version, raw):
-    s = CLIENT.secret_from_name(name)
+    s = STORE.secret_from_name(name)
     if not s.exists:
         click.echo(f"No secret named {name}")
         ctx.exit(2)
@@ -191,9 +192,9 @@ def get(ctx, name, version, raw):
         ctx.exit(2)
     if raw:
         with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as out:
-            out.write(v.value)
+            out.write(v.raw_value)
     else:
-        print(v.value.decode("utf-8"))
+        print(v.value)
 
 
 @cli.command()
@@ -201,7 +202,7 @@ def get(ctx, name, version, raw):
 @click.argument("value")
 @click.pass_context
 def set(ctx, name, value):
-    s = CLIENT.secret_from_name(name)
+    s = STORE.secret_from_name(name)
     if not s.exists:
         s.create()
     if value == "-":
