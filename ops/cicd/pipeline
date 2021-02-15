@@ -24,10 +24,14 @@ cd "${__root__}"
 # Actually test the code base
 output-on-failure -- ./ops/do-lint
 
-(
-    output-on-failure -- python3 -m venv ./be/venv
-    source ./be/venv/bin/activate
-    output-on-failure -- pip3 install -f /opt/downloads/ -U pip wheel
-    output-on-failure -- pip3 install -f /opt/downloads/ -r be/requirements.in -r requirements_dev.txt
-    ./ops/test-be || true
-)
+echo "SKIPPING TESTS FOR NOW. What could possibly go wrong?"
+
+if [[ false = true ]]; then
+    (
+        output-on-failure -- python3 -m venv ./.testing-venv
+        source ./.testing-venv/bin/activate
+        output-on-failure -- pip3 install -f /opt/downloads/ -U pip wheel
+        output-on-failure -- pip3 install -f /opt/downloads/ -r be/requirements.in -r requirements_dev.txt
+        ./ops/test-be || true
+    )
+fi
