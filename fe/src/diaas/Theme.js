@@ -16,7 +16,7 @@ const theme = createMuiTheme({
     background: { main: COLORS.DARK_BLUE, light: COLORS.NOT_SO_DARK_BLUE },
     foreground: { main: COLORS.WHITE },
     primary: { main: COLORS.PURPLE, contrastText: "#ffffff" },
-    secondary: { main: COLORS.AQUAS },
+    secondary: { main: COLORS.DARK_BLUE, contrastText: "#ffffff" },
   },
 });
 

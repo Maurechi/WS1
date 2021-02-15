@@ -2,10 +2,10 @@ import { Box, Divider, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 
-import { ActionButton } from "diaas/ActionButton.js";
 import { Form, TextField, useFormValue } from "diaas/form.js";
 import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
+import { ActionButton } from "diaas/ui.js";
 
 export const StaticTable = observer(({ source }) => {
   const state = useAppState();
@@ -19,13 +19,13 @@ export const StaticTable = observer(({ source }) => {
   const submit = () => {
     return saveAndLoad();
   };
-  const saveAndLoadLabel = useFormValue("Save and load");
+  const saveAndLoadLabel = useFormValue("Save and Load");
   const saveAndLoad = () => {
     saveAndLoadLabel.v = "Saving...";
     return state.backend.postSource(source.id, { data: data.v, target_table: targetTable.v }).then(() => {
       saveAndLoadLabel.v = "Loading...";
       return state.backend.loadSource(source.id).then((data) => {
-        saveAndLoadLabel.v = "Save and load";
+        saveAndLoadLabel.v = "Save and Load";
         console.log("Load returned", data);
         setRows(data.rows);
         // return [update, load];

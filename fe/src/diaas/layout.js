@@ -33,7 +33,7 @@ import v from "voca";
 
 import appBarGraphic from "./AppBarGraphic.png";
 import { useAppState } from "diaas/state";
-import { HCenter } from "diaas/utils.js";
+import { HCenter } from "diaas/ui.js";
 
 const drawerWidth = 240;
 
@@ -176,7 +176,7 @@ const AppNavigationToolbar = observer(() => {
   const { user } = useAppState();
   const ds = user.data_stacks.length > 0 ? user.data_stacks[0] : null;
   const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
-  const dataStackName = ds === null ? "//" : ds.config.name || "central warehouse";
+  const dataStackName = ds === null ? "//" : ds.config.name || "central";
   return (
     <Toolbar>
       <Box style={{ flexGrow: 1 }}>
@@ -186,7 +186,7 @@ const AppNavigationToolbar = observer(() => {
       </Box>
       <Box pl={2}>
         <Button variant="text" color="inherit" endIcon={<ArrowDropDownIcon />} className={classes.toolbarButton}>
-          {branchName} / {dataStackName}
+          {branchName} on {dataStackName}
         </Button>
       </Box>
       <Box pl={2}>
@@ -205,7 +205,7 @@ export const AppNavigation = ({ children }) => {
 
   const SectionMenuItem = ({ location, text, Icon }) => {
     const isCurrentLocation = v.startsWith(loc.pathname, location);
-    const style = isCurrentLocation ? { color: theme.palette["secondary"].main } : {};
+    const style = isCurrentLocation ? { color: theme.palette["primary"].main } : {};
     return (
       <ListItem button component={Link} to={location + "/"} key={text}>
         <ListItemIcon>

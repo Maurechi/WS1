@@ -88,9 +88,7 @@ export const SourcesTable = observer(() => {
       <Box display="flex" mb={3}>
         <Box style={{ flexGrow: 1 }}>Sources:</Box>
         <Box>
-          <ButtonLink variant="contained" color="primary" target="/sources/new/">
-            New Source
-          </ButtonLink>
+          <ButtonLink target="/sources/new/">New Source</ButtonLink>
         </Box>
       </Box>
       <ReactDataGrid
@@ -107,7 +105,7 @@ export const SourcesTable = observer(() => {
 export const ConnectorCard = ({ logo, name, target }) => {
   return (
     <Paper>
-      <ButtonLink target={`${target}`} style={{ width: "100%" }}>
+      <ButtonLink target={`${target}`} style={{ width: "100%" }} variant="outlined" color="#000000">
         <Box display="flex" alignItems="center" justifyContent="flex-start" style={{ width: "100%" }}>
           <Box p={2}>
             {logo && <img alt={`logo for ${name}`} src={`/i/logos/${logo}`} width="30px" />}
