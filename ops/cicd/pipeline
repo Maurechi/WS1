@@ -1,5 +1,37 @@
 #!/bin/bash
 set -euo pipefail
+git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/leukosio/infra.git /opt/infra
+source /opt/infra/shell/bashrc
 
-./ops/reformat -c
-./ops/test-be
+set -u; source "${LEUKOS_SH_V1}"; export PATH="${LEUKOS_BIN}":"${PATH}"
+cd "${__root__}"
+
+# Setup python
+
+output-on-failure -- python3 -m venv "${VENV_DIR}"
+source "${VENV_DIR}"/bin/activate
+output-on-failure -- pip install -f /opt/downloads/ -U pip wheel
+output-on-failure -- pip install -f /opt/downloads/ -r requirements_dev.txt
+
+# Setup node
+source "${NVM_DIR}/nvm.sh"
+cd "${__root__}/fe/"
+nvm use
+output-on-failure -- npm ci --cache .npm --prefer-offline
+
+cd "${__root__}"
+
+# Actually test the code base
+output-on-failure -- ./ops/do-lint
+
+echo "SKIPPING TESTS FOR NOW. What could possibly go wrong?"
+
+if [[ false = true ]]; then
+    (
+        output-on-failure -- python3 -m venv ./.testing-venv
+        source ./.testing-venv/bin/activate
+        output-on-failure -- pip3 install -f /opt/downloads/ -U pip wheel
+        output-on-failure -- pip3 install -f /opt/downloads/ -r be/requirements.in -r requirements_dev.txt
+        ./ops/test-be || true
+    )
+fi

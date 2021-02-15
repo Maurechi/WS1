@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from diaas_ops.configure.helpers import BaseConfiguration, from_env
+from diaas_ops.secret import SecretStore
 from slugify import slugify
 
 
@@ -7,6 +9,9 @@ class Configuration(BaseConfiguration):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.secrets = SecretStore(
+            project_id=self.if_env(prd="diaas-prd", otherwise="diaas-stg")
+        )
         self.commit_config()
         self.deployment_config()
         self.app_config()
@@ -50,13 +55,13 @@ class Configuration(BaseConfiguration):
         if ci_environment_url is not None:
             deployment_url = ci_environment_url
         else:
-            if self.is_prd and self.is_master:
-                deployment_url = "https://app.diaas.io"
+            if self.is_prd:
+                deployment_url = "https://app.crvl.io"
             elif self.is_lcl:
                 deployment_url = "http://127.0.0.1:8080/"
             else:
                 branch = slugify(text=self.branch, max_length=48)
-                deployment_url = f"https://{branch}-{self.environment}.diaas.dev"
+                deployment_url = f"https://{branch}.app.crvl.dev"
         self._set_all(
             DIAAS_DEPLOYMENT_NAME=slugify(
                 self.environment + "-" + self.branch, max_length=60
@@ -74,15 +79,14 @@ class Configuration(BaseConfiguration):
         )
 
     def _flask_config(self):
-        if self.is_lcl:
-            self._set_all(
-                DIAAS_INTERNAL_API_TOKEN="yozlOIQyxBFC",
-                DIAAS_SESSION_SECRET_KEY="i0jQcU0ksBJgIeqPCT9I",
-            )
-        else:
-            raise ValueError(
-                f"Don't know how to configure flask for {self.environment}"
-            )
+        self._set_all(
+            DIAAS_INTERNAL_API_TOKEN=self.secrets.secret_from_name(
+                "app/internal-api-token"
+            ).value,
+            DIAAS_SESSION_SECRET_KEY=self.secrets.secret_from_name(
+                "app/session-secret-key"
+            ).value,
+        )
 
         self._set_all(
             DIAAS_SESSION_COOKIE_IS_SECURE=not self.is_lcl,
@@ -92,12 +96,8 @@ class Configuration(BaseConfiguration):
 
     def app_config(self):
         if self.with_fe:
-            if self.is_lcl:
-                self._set(REACT_APP_API_BASEURL="http://127.0.0.1:8080/")
-            else:
-                raise ValueError(
-                    f"Sorry, don't know what REACT_APP_API_BASEURL to sue for {self.environment}"
-                )
+            baseurl = self.if_env(lcl="http://127.0.0.1:8080/", otherwise="//api/")
+            self._set(REACT_APP_API_BASEURL=baseurl)
 
         if self.with_be:
             self._flask_config()
@@ -114,10 +114,12 @@ class Configuration(BaseConfiguration):
                     dir = self.values[key]
                     Path(dir).mkdir(parents=True, exist_ok=True)
             else:
-                raise ValueError(
-                    f"Don't know what DIAAS_{{DS,WORKBENCH}}_STORE values to use for env {self.environment}"
+                self._set_all(
+                    DIAAS_DS_STORE=Path("/opt/store/ds"),
+                    DIAAS_WORKBENCH_STORE=Path("/opt/store/wb"),
                 )
-            self._set(DIAAS_PG_HASHIDS_SALT="U69XD2b3YaIJe2plIN31")
+            pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
+            self._set(DIAAS_PG_HASHIDS_SALT=pg_hashids_salt)
 
     def monitoring_config(self):
         dsn = self.if_env(

@@ -1,11 +1,14 @@
 black
 docker-compose
 flake8
-google-cloud-secret-manager
 google-cloud-resource-manager
+google-cloud-secret-manager
 isort
 pgcli
 pip-tools
 psycopg2
+pygit2
+pytest
 python-slugify
 tabulate
+yq

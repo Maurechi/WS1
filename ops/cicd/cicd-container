@@ -1,0 +1,49 @@
+FROM debian:buster
+LABEL registry=leukosio/diaas
+
+COPY --from=koalaman/shellcheck-alpine:stable /bin/shellcheck /bin/
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -y
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates git curl wget jq moreutils
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libpq-dev gcc
+
+RUN echo "dash dash/sh boolean false" | debconf-set-selections
+RUN DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y python3-dev=3.7.3-1 python3-venv=3.7.3-1
+
+ADD ./requirements_dev.txt /opt/diaas/
+ADD ./be/requirements_dev.txt /opt/diaas/be/
+ADD ./be/requirements.txt /opt/diaas/be/
+
+RUN python3 -m venv /opt/venv
+RUN source /opt/venv/bin/activate; \
+    pip install -U pip wheel; \
+    mkdir /opt/downloads/; \
+    pip download -d /opt/downloads/ --no-clean -r /opt/diaas/be/requirements_dev.txt;
+
+RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
+RUN /bin/bash --login -c 'nvm install v14'
+ENV NVM_DIR=/root/.nvm
+
+# ENV PATH /google-cloud-sdk/bin:$PATH
+# ENV CLOUDSDK_PYTHON /usr/bin/python3
+# RUN wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-323.0.0-linux-x86_64.tar.gz -q -O - | tar -zxf - -C /
+# RUN gcloud config set core/disable_usage_reporting true
+# RUN gcloud config set component_manager/disable_update_check true
+# RUN gcloud --version
+
+# RUN DEBIAN_FRONTEND=noninteractive apt-get install -y jq
+
+# # NOTE gnupg2 is needed by apt-key, pass and x11-common are needed
+# # because of docker wanting to store credentials after a successful
+# # login. without pass it'll try to use something X11 based, which will
+# # fail without x11-common. (so i guess we don't really need
+# # x11-common? this setup works and seems to have no real drawbacks, so
+# # leaving it) 20190919:mb
+# RUN DEBIAN_FRONTEND=noninteractive apt-get install -y pass x11-common gnupg2
+# RUN curl -fsSL https://download.docker.com/linux/debian/gpg | DEBIAN_FRONTEND=noninteractive APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add -
+# RUN echo "deb [arch=amd64] https://download.docker.com/linux/debian buster stable" >> /etc/apt/sources.list
+# RUN DEBIAN_FRONTEND=noninteractive apt-get update
+# RUN DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-compose

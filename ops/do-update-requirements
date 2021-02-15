@@ -1,0 +1,5 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}";
+
+cd "${__root__}/be/"
+pip-compile
