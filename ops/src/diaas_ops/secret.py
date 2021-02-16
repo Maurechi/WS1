@@ -77,7 +77,11 @@ class SecretVersion:
 
     @property
     def value(self):
-        return self.raw_value.decode("utf-8")
+        raw = self.raw_value
+        if raw is None:
+            return None
+        else:
+            return raw.decode("utf-8")
 
     @property
     def exists(self):
