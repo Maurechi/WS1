@@ -4,6 +4,7 @@ Flask-JSON
 Flask-SQLAlchemy
 arrow
 git+https://github.com/segv/flask-session.git@8134a2e9c8ff5f2741376ceff6ff7bdee71cf295
+gunicorn
 psycopg2-binary
 pygit2
 semver

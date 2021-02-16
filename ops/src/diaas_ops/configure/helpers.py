@@ -31,6 +31,14 @@ def from_env(name, type=str, default=None, required=False):
         raise ValueError(f"Unknown type {type}")
 
 
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Path):
+            return str(o)
+        else:
+            super().default(o)
+
+
 class BaseConfiguration:
     def __init__(self, install_dir=None, with_fe=True, with_be=True, environment=None):
         self.values = {}
@@ -45,7 +53,10 @@ class BaseConfiguration:
             environment = from_env("DIAAS_DEPLOYMENT_ENVIRONMENT", required=True)
         if environment in ["prd", "stg", "lcl"]:
             self.environment = environment
-            self._set(DIAAS_DEPLOYMENT_ENVIRONMENT=self.environment)
+            if with_be:
+                self._set(DIAAS_DEPLOYMENT_ENVIRONMENT=self.environment)
+            if with_fe:
+                self._set(REACT_APP_DEPLOYMENT_ENVIRONMENT=self.environment)
         else:
             raise ValueError(
                 f"Unknown environment {environment}, must be one of prd, stg, or lcl."
@@ -120,9 +131,9 @@ class BaseConfiguration:
             values[quoted_key] = quoted_value
         return values
 
-    def print_as(self, format, fp=sys.stdout):
+    def print_as(self, format, fp=sys.stdout, trailing_newline=True):
         if format == "json":
-            text = json.dumps(self.values, sort_keys=True)
+            text = json.dumps(self.values, sort_keys=True, cls=JSONEncoder)
         elif format == "table":
             values = self._values_for_shell()
             table = [[key, values[key]] for key in sorted(values.keys())]
@@ -147,7 +158,7 @@ class BaseConfiguration:
             else:
                 text = "\n".join(lines)
         if text:
-            print(text, file=fp)
+            print(text, file=fp, end='\n' if trailing_newline else '')
 
     def inject_into_environ(self):
         os.environ.update(self._values_as_strings())

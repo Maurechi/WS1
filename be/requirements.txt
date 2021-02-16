@@ -4,30 +4,76 @@
 #
 #    pip-compile
 #
-alembic==1.5.2            # via flask-alembic
-arrow==0.17.0             # via -r requirements.in
-cached-property==1.5.2    # via pygit2
-cachelib==0.1.1           # via flask-session
-certifi==2020.12.5        # via sentry-sdk
-cffi==1.14.4              # via pygit2
-click==7.1.2              # via flask
-flask-alembic==2.0.1      # via -r requirements.in
-flask-json==0.3.4         # via -r requirements.in
-git+https://github.com/segv/flask-session.git@8134a2e9c8ff5f2741376ceff6ff7bdee71cf295  # via -r requirements.in
-flask-sqlalchemy==2.4.4   # via -r requirements.in, flask-alembic
-flask==1.1.2              # via -r requirements.in, flask-alembic, flask-json, flask-session, flask-sqlalchemy
-itsdangerous==1.1.0       # via flask
-jinja2==2.11.2            # via flask
-mako==1.1.4               # via alembic
-markupsafe==1.1.1         # via jinja2, mako
-psycopg2-binary==2.8.6    # via -r requirements.in
-pycparser==2.20           # via cffi
-pygit2==1.4.0             # via -r requirements.in
-python-dateutil==2.8.1    # via alembic, arrow
-python-editor==1.0.4      # via alembic
-semver==2.13.0            # via -r requirements.in
-sentry-sdk==0.19.5        # via -r requirements.in
-six==1.15.0               # via python-dateutil
-sqlalchemy==1.3.22        # via alembic, flask-alembic, flask-sqlalchemy
-urllib3==1.26.2           # via sentry-sdk
-werkzeug==1.0.1           # via flask
+alembic==1.5.2
+    # via flask-alembic
+arrow==0.17.0
+    # via -r requirements.in
+cached-property==1.5.2
+    # via pygit2
+cachelib==0.1.1
+    # via flask-session
+certifi==2020.12.5
+    # via sentry-sdk
+cffi==1.14.4
+    # via pygit2
+click==7.1.2
+    # via flask
+flask-alembic==2.0.1
+    # via -r requirements.in
+flask-json==0.3.4
+    # via -r requirements.in
+git+https://github.com/segv/flask-session.git@8134a2e9c8ff5f2741376ceff6ff7bdee71cf295
+    # via -r requirements.in
+flask-sqlalchemy==2.4.4
+    # via
+    #   -r requirements.in
+    #   flask-alembic
+flask==1.1.2
+    # via
+    #   -r requirements.in
+    #   flask-alembic
+    #   flask-json
+    #   flask-session
+    #   flask-sqlalchemy
+gunicorn==20.0.4
+    # via -r requirements.in
+itsdangerous==1.1.0
+    # via flask
+jinja2==2.11.2
+    # via flask
+mako==1.1.4
+    # via alembic
+markupsafe==1.1.1
+    # via
+    #   jinja2
+    #   mako
+psycopg2-binary==2.8.6
+    # via -r requirements.in
+pycparser==2.20
+    # via cffi
+pygit2==1.4.0
+    # via -r requirements.in
+python-dateutil==2.8.1
+    # via
+    #   alembic
+    #   arrow
+python-editor==1.0.4
+    # via alembic
+semver==2.13.0
+    # via -r requirements.in
+sentry-sdk==0.19.5
+    # via -r requirements.in
+six==1.15.0
+    # via python-dateutil
+sqlalchemy==1.3.22
+    # via
+    #   alembic
+    #   flask-alembic
+    #   flask-sqlalchemy
+urllib3==1.26.2
+    # via sentry-sdk
+werkzeug==1.0.1
+    # via flask
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

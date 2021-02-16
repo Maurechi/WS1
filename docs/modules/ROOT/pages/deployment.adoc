@@ -1,0 +1,5 @@
+= Deployment
+
+For the BE we can build a container and confgiure it at run time (at least, at container start up time).
+
+for the fe it's a bit more complicated.
