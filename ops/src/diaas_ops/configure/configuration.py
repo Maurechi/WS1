@@ -38,9 +38,9 @@ class Configuration(BaseConfiguration):
 
         if self.with_fe:
             self._set_all(
-                REACT_APP_DEPLOYMEMT_COMMIT_REF_NAME=ref_name,
-                REACT_APP_DEPLOYMEMT_COMMIT_SHA=sha,
-                REACT_APP_DEPLOYMEMT_COMMIT_TITLE=title,
+                REACT_APP_DEPLOYMENT_COMMIT_REF_NAME=ref_name,
+                REACT_APP_DEPLOYMENT_COMMIT_SHA=sha,
+                REACT_APP_DEPLOYMENT_COMMIT_TITLE=title,
             )
 
     def deployment_config(self):
@@ -141,7 +141,7 @@ class Configuration(BaseConfiguration):
                 self._set_all(
                     DIAAS_SENTRY_DSN=dsn,
                     DIAAS_SENTRY_ENVIRONMENT=self.environment,
-                    DIAAS_SENTRY_RELEASE="diaas@" + self.values["DIAAS_COMMIT_SHA"],
+                    DIAAS_SENTRY_RELEASE="diaas@" + self.values["DIAAS_DEPLOYMENT_COMMIT_SHA"],
                 )
 
         if self.with_fe:
@@ -151,7 +151,7 @@ class Configuration(BaseConfiguration):
                     REACT_APP_SENTRY_DSN=dsn,
                     REACT_APP_SENTRY_ENVIRONMENT=self.environment,
                     REACT_APP_SENTRY_RELEASE="diaas@"
-                    + self.values["REACT_APP_COMMIT_SHA"],
+                    + self.values["REACT_APP_DEPLOYMENT_COMMIT_SHA"],
                 )
             self._set(REACT_APP_ENABLE_WEB_VITALS=self.is_prd)
 
