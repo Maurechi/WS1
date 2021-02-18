@@ -27,8 +27,7 @@ def cli(environment, format, install_dir, with_be, with_fe, trailing_newline):
     if "DIAAS_DEPLOYMENT_ENVIRONMENT" not in os.environ:
         raise click.ClickException("ENVIRONMENT not specified.")
     Configuration(install_dir=install_dir, with_be=with_be, with_fe=with_fe).print_as(
-        format,
-        trailing_newline=trailing_newline
+        format, trailing_newline=trailing_newline
     )
 
 

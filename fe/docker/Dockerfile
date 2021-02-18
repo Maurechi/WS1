@@ -26,9 +26,8 @@ COPY src src
 RUN npm run build
 
 FROM nginx:stable
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y nodejs
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y python3=3.7.3-1
 
 COPY --from=builder /diaas/build/ /usr/share/nginx/html/
-RUN mkdir -p /diaas/
-COPY ./docker/build-config-js.sh /docker-entrypoint.d/
-
+COPY ./docker/build-diaas-js.py /docker-entrypoint.d/
+COPY ./docker/99-build-diaas-js.sh /docker-entrypoint.d/

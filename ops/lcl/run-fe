@@ -5,6 +5,6 @@ cd fe
 
 eval "$(../ops/configure-for lcl --without-be || echo 'exit 2')"
 
-(cd public && "$NVM_DIR"/nvm-exec node ./docker/build-config-js)
+./docker/build-diaas-js.py > ./public/diaas.js
 
 "$NVM_DIR"/nvm-exec npm run start

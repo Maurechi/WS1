@@ -1,5 +1,8 @@
 = Deployment
 
-For the BE we can build a container and confgiure it at run time (at least, at container start up time).
+For both BE and FE we build a base container with the right code and files and then configure them via env vars at start up time (config changes are not possible without a restart).
 
-for the fe it's a bit more complicated.
+For the BE it's pretty easy, we have a flask which insepcts env at
+start time.
+
+For the FE it's a bit more complicated as there's no server, we deliver static code which is compiled when the image is created. When the container is strted the first thing we do is run a small pyhton script which pulls the config from the env and generates a javascript sources code file which is then loaded by the app when the browser loads the window (it's the third tag in the index.html)

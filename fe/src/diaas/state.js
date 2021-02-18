@@ -128,8 +128,13 @@ const USE_MOCK_USER = false;
 
 class Backend {
   constructor() {
+    let baseURL = window.DIAAS.API_BASEURL;
+    if (! baseURL.endsWith("/")) {
+      baseURL = baseURL + "/";
+    }
+    baseURL += "api/1/";
     this.axios = axios.create({
-      baseURL: "//" + window.location.host + "/api/1/",
+      baseURL: baseURL,
       validateStatus: (status) => _.includes([200, 201, 204, 404], status),
     });
   }

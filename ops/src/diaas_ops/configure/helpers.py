@@ -9,7 +9,11 @@ import pygit2
 import tabulate
 
 
-def from_env(name, type=str, default=None, required=False):
+def from_env(name, type=None, default=None, required=None):
+    if type is None:
+        type = str
+    if required is None:
+        required = False
     raw_value = os.environ.get(name, None)
     if raw_value is None:
         if required:
@@ -53,21 +57,17 @@ class BaseConfiguration:
             environment = from_env("DIAAS_DEPLOYMENT_ENVIRONMENT", required=True)
         if environment in ["prd", "stg", "lcl"]:
             self.environment = environment
-            if with_be:
-                self._set(DIAAS_DEPLOYMENT_ENVIRONMENT=self.environment)
-            if with_fe:
-                self._set(REACT_APP_DEPLOYMENT_ENVIRONMENT=self.environment)
+            self._set("DIAAS_DEPLOYMENT_ENVIRONMENT", value=self.environment)
         else:
             raise ValueError(
                 f"Unknown environment {environment}, must be one of prd, stg, or lcl."
             )
 
-    def _set(self, **kwargs):
-        keys = list(kwargs.keys())
-        if len(keys) != 1:
-            raise Exception("Wrong number of arguments to _set")
-        self._set_all(**kwargs)
-        return self.values[keys[0]]
+    def _set(self, key, value=None, type=None, default=None, required=False):
+        if value is None:
+            value = from_env(key, type=type, default=default, required=required)
+        self.values[key] = value
+        return value
 
     def _set_all(self, **kwargs):
         for key, value in kwargs.items():
@@ -158,7 +158,7 @@ class BaseConfiguration:
             else:
                 text = "\n".join(lines)
         if text:
-            print(text, file=fp, end='\n' if trailing_newline else '')
+            print(text, file=fp, end="\n" if trailing_newline else "")
 
     def inject_into_environ(self):
         os.environ.update(self._values_as_strings())

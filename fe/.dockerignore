@@ -2,6 +2,6 @@
 !jsconfig.json
 !package.json
 !package-lock.json
-!docker/build-config-js.sh
+!docker
 !public
 !src

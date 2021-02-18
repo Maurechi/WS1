@@ -29,19 +29,11 @@ class Configuration(BaseConfiguration):
             else:
                 ref_name = sha = title = f"HEAD-{self.timestamp}"
 
-        if self.with_be:
-            self._set_all(
-                DIAAS_DEPLOYMENT_COMMIT_REF_NAME=ref_name,
-                DIAAS_DEPLOYMENT_COMMIT_SHA=sha,
-                DIAAS_DEPLOYMENT_COMMIT_TITLE=title,
-            )
-
-        if self.with_fe:
-            self._set_all(
-                REACT_APP_DEPLOYMENT_COMMIT_REF_NAME=ref_name,
-                REACT_APP_DEPLOYMENT_COMMIT_SHA=sha,
-                REACT_APP_DEPLOYMENT_COMMIT_TITLE=title,
-            )
+        self._set_all(
+            DIAAS_DEPLOYMENT_COMMIT_REF_NAME=ref_name,
+            DIAAS_DEPLOYMENT_COMMIT_SHA=sha,
+            DIAAS_DEPLOYMENT_COMMIT_TITLE=title,
+        )
 
     def deployment_config(self):
         if not self.with_be:
@@ -96,15 +88,14 @@ class Configuration(BaseConfiguration):
 
     def app_config(self):
         if self.with_fe:
-            baseurl = self.if_env(lcl="http://127.0.0.1:8080/", otherwise="//api/")
-            self._set(REACT_APP_API_BASEURL=baseurl)
+            self._set("DIAAS_API_BASEURL", default="/")
 
         if self.with_be:
             self._flask_config()
             self._db_config()
             if self.install_dir is None:
                 raise ValueError("Missing required input install_dir")
-            self._set(DIAAS_INSTALL_DIR=self.install_dir)
+            self._set("DIAAS_INSTALL_DIR", value=self.install_dir)
             if self.is_lcl:
                 self._set_all(
                     DIAAS_DS_STORE=self.install_dir / "tmp/lcl-ds-store",
@@ -119,7 +110,7 @@ class Configuration(BaseConfiguration):
                     DIAAS_WORKBENCH_STORE=Path("/opt/store/wb"),
                 )
             pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
-            self._set(DIAAS_PG_HASHIDS_SALT=pg_hashids_salt)
+            self._set("DIAAS_PG_HASHIDS_SALT", value=pg_hashids_salt)
 
     def monitoring_config(self):
         dsn = self.if_env(
@@ -127,45 +118,29 @@ class Configuration(BaseConfiguration):
             otherwise="https://7e144b9b33bb467ba432cacd5ef608ab@o469059.ingest.sentry.io/5497814",
         )
 
-        enable_sentry = self.is_prd
-        diaas_enable_sentry = from_env(
-            "DIAAS_ENABLE_SENTRY", default=enable_sentry, type=bool
-        )
-        react_app_enable_sentry = from_env(
-            "REACT_APP_ENABLE_SENTRY", default=enable_sentry, type=bool
-        )
-
         if self.with_be:
-            self._set(DIAAS_ENABLE_SENTRY=diaas_enable_sentry)
+            diaas_enable_sentry = self._set(
+                "DIAAS_ENABLE_SENTRY", default=self.is_prd, type=bool
+            )
             if diaas_enable_sentry:
                 self._set_all(
                     DIAAS_SENTRY_DSN=dsn,
                     DIAAS_SENTRY_ENVIRONMENT=self.environment,
-                    DIAAS_SENTRY_RELEASE="diaas@" + self.values["DIAAS_DEPLOYMENT_COMMIT_SHA"],
+                    DIAAS_SENTRY_RELEASE="diaas@"
+                    + self.values["DIAAS_DEPLOYMENT_COMMIT_SHA"],
                 )
 
         if self.with_fe:
-            self._set(REACT_APP_ENABLE_SENTRY=react_app_enable_sentry)
-            if react_app_enable_sentry:
-                self._set_all(
-                    REACT_APP_SENTRY_DSN=dsn,
-                    REACT_APP_SENTRY_ENVIRONMENT=self.environment,
-                    REACT_APP_SENTRY_RELEASE="diaas@"
-                    + self.values["REACT_APP_DEPLOYMENT_COMMIT_SHA"],
-                )
-            self._set(REACT_APP_ENABLE_WEB_VITALS=self.is_prd)
+            self._set("DIAAS_ENABLE_WEB_VITALS", default=self.is_prd, type=bool)
 
     def tracker_config(self):
         if not self.with_fe:
             return
 
-        enable_trackers = self.is_prd
-        enable_trackers = from_env(
-            "REACT_APP_ENABLE_TRACKERS", default=enable_trackers, type=bool
+        enable_trackers = self._set(
+            "DIAAS_ENABLE_TRACKERS", default=self.is_prd, type=bool
         )
-
-        self._set(REACT_APP_ENABLE_TRACKERS=enable_trackers)
         if enable_trackers:
             self._set_all(
-                REACT_APP_GTM_CONTAINER_ID="GTM-1234567890",
+                DIAAS_GTM_CONTAINER_ID="GTM-1234567890",
             )
