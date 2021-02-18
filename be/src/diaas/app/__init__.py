@@ -1,5 +1,6 @@
 import sentry_sdk
 from flask import Flask
+from flask_cors import CORS
 from flask_session import Session
 
 from diaas.app.internal import internal_api
@@ -41,5 +42,7 @@ def create_app(testing=False):
     app.config["SESSION_USE_SIGNER"] = True
     app.config["SESSION_SQLALCHEMY"] = db
     Session(app)
+
+    CORS(app)
 
     return app

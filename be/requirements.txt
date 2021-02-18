@@ -20,6 +20,8 @@ click==7.1.2
     # via flask
 flask-alembic==2.0.1
     # via -r requirements.in
+flask-cors==3.0.10
+    # via -r requirements.in
 flask-json==0.3.4
     # via -r requirements.in
 git+https://github.com/segv/flask-session.git@8134a2e9c8ff5f2741376ceff6ff7bdee71cf295
@@ -32,6 +34,7 @@ flask==1.1.2
     # via
     #   -r requirements.in
     #   flask-alembic
+    #   flask-cors
     #   flask-json
     #   flask-session
     #   flask-sqlalchemy
@@ -64,7 +67,9 @@ semver==2.13.0
 sentry-sdk==0.19.5
     # via -r requirements.in
 six==1.15.0
-    # via python-dateutil
+    # via
+    #   flask-cors
+    #   python-dateutil
 sqlalchemy==1.3.22
     # via
     #   alembic

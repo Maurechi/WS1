@@ -129,7 +129,7 @@ const USE_MOCK_USER = false;
 class Backend {
   constructor() {
     let baseURL = window.DIAAS.API_BASEURL;
-    if (! baseURL.endsWith("/")) {
+    if (!baseURL.endsWith("/")) {
       baseURL = baseURL + "/";
     }
     baseURL += "api/1/";

@@ -88,7 +88,10 @@ class Configuration(BaseConfiguration):
 
     def app_config(self):
         if self.with_fe:
-            self._set("DIAAS_API_BASEURL", default="/")
+            self._set(
+                "DIAAS_API_BASEURL",
+                default=self.if_env(prd="/", lcl="http://127.0.0.1:8080"),
+            )
 
         if self.with_be:
             self._flask_config()
