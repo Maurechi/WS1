@@ -9,11 +9,9 @@ import pygit2
 import tabulate
 
 
-def from_env(name, type=None, default=None, required=None):
+def from_env(name, type=None, default=None, required=False):
     if type is None:
         type = str
-    if required is None:
-        required = False
     raw_value = os.environ.get(name, None)
     if raw_value is None:
         if required:
@@ -62,9 +60,9 @@ class BaseConfiguration:
                 f"Unknown environment {environment}, must be one of prd, stg, or lcl."
             )
 
-    def _set(self, key, value=None, type=None, default=None, required=False):
+    def _set(self, key, value=None, **from_env_args):
         if value is None:
-            value = from_env(key, type=type, default=default, required=required)
+            value = from_env(key, **from_env_args)
         self.values[key] = value
         return value
 
