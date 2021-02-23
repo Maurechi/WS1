@@ -88,7 +88,7 @@ class DataStack:
         path = Path(path)
         if not path.exists():
             path.mkdir(parents=True)
-        script = CONFIG.INSTALL_DIR / "be/bin/bootstrap-data-stack"
+        script = CONFIG.BE_BIN_DIR / "bootstrap-data-stack"
         subprocess.check_call([str(script)], cwd=path)
 
     @property

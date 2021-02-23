@@ -22,7 +22,7 @@ def create_app(testing=False):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_ADD_STATUS"] = False
     app.config["ALEMBIC"] = dict(
-        script_location=str(CONFIG.INSTALL_DIR / "be/migrations"),
+        script_location=str(CONFIG.BEDB_MIGRATIONS_DIR),
         file_template="%%(year)d-%%(month).2d-%%(day).2d_%%(rev)s_%%(slug)s",
     )
     app.config["SECRET_KEY"] = CONFIG.SESSION_SECRET_KEY.encode("utf-8")
