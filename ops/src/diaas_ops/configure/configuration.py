@@ -9,14 +9,21 @@ class Configuration(BaseConfiguration):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.secrets = SecretStore(
-            project_id=self.if_env(prd="diaas-prd", otherwise="diaas-stg")
-        )
+        default_project_id = self.if_env(prd="diaas-prd", otherwise="diaas-stg")
+        project_id = from_env("CLOUDSDK_CORE_PROJECT", default=default_project_id)
+        self.secrets = SecretStore(project_id=project_id)
         self.commit_config()
         self.deployment_config()
         self.app_config()
         self.monitoring_config()
         self.tracker_config()
+
+    def _secret(self, name):
+        secret = self.secrets.secret_from_name("app/internal-api-token").value
+        if secret is None:
+            raise ValueError(f"Missing required secret {name} in {self.secrets}")
+        else:
+            return secret
 
     def commit_config(self):
         if from_env("CI"):
@@ -72,12 +79,8 @@ class Configuration(BaseConfiguration):
 
     def _flask_config(self):
         self._set_all(
-            DIAAS_INTERNAL_API_TOKEN=self.secrets.secret_from_name(
-                "app/internal-api-token"
-            ).value,
-            DIAAS_SESSION_SECRET_KEY=self.secrets.secret_from_name(
-                "app/session-secret-key"
-            ).value,
+            DIAAS_INTERNAL_API_TOKEN=self._secret("app/internal-api-token"),
+            DIAAS_SESSION_SECRET_KEY=self._secret("app/session-secret-key"),
         )
 
         self._set_all(
