@@ -3,5 +3,4 @@ set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}/"
 
 source "./ops/_common-build"
 
-cd fe
-docker build -t "${repo}/fe:${exact_tag}" -t "${repo}/fe:${latest_tag}" -f docker/Dockerfile .
+docker build -t "${repo}/fe:${exact_tag}" -t "${repo}/fe:${latest_tag}" -t "fe:latest" -f fe/docker/Dockerfile .

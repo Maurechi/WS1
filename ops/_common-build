@@ -1,3 +1,4 @@
+#!/bin/bash
 # -*- sh -*-
 pushd "${__root__}/"
 

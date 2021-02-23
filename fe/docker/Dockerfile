@@ -1,5 +1,5 @@
 FROM debian:buster AS builder
-
+ENV LANG C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y
 RUN apt-get install -y curl gnupg2
@@ -14,20 +14,25 @@ RUN echo "deb-src https://deb.nodesource.com/node_14.x buster main" >> /etc/apt/
 RUN apt-get update
 RUN apt-get install -y nodejs
 
-RUN mkdir /diaas/
-WORKDIR /diaas/
-COPY ./package.json ./package-lock.json ./
+RUN mkdir -p /diaas/fe/
+WORKDIR /diaas/fe/
+COPY ./fe/package.json package.json
+COPY ./fe/package-lock.json package-lock.json
 RUN npm ci
 
-COPY jsconfig.json jsconfig.json
-COPY public public
-COPY src src
+COPY ./fe/jsconfig.json jsconfig.json
+COPY ./fe/public public
+COPY ./fe/src src
 
 RUN npm run build
 
 FROM nginx:stable
+ENV LANG C.UTF-8
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y python3=3.7.3-1
 
-COPY --from=builder /diaas/build/ /usr/share/nginx/html/
-COPY ./docker/build-diaas-js.py /docker-entrypoint.d/
-COPY ./docker/99-build-diaas-js.sh /docker-entrypoint.d/
+COPY --from=builder /diaas/fe/build/ /usr/share/nginx/html/
+RUN rm -f /usr/share/nginx/html/diaas.js
+COPY ./fe/docker /diaas/fe/docker
+RUN mkdir /diaas/ops/
+COPY ./ops/fe-build-diaas-js /diaas/ops/fe-build-diaas-js
+CMD ["/diaas/fe/docker/up", "/usr/share/nginx/html/diaas.js"]

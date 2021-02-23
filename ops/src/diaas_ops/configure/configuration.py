@@ -55,7 +55,7 @@ class Configuration(BaseConfiguration):
             deployment_url = ci_environment_url
         else:
             if self.is_prd:
-                deployment_url = "https://app.crvl.io"
+                deployment_url = "https://crvl.app"
             elif self.is_lcl:
                 deployment_url = "http://127.0.0.1:8080/"
             else:
@@ -93,13 +93,15 @@ class Configuration(BaseConfiguration):
         if self.with_fe:
             self._set(
                 "DIAAS_API_BASEURL",
-                default=self.if_env(prd="/", lcl="http://127.0.0.1:8080"),
+                default=self.if_env(lcl="http://127.0.0.1:8080", otherwise="//"),
             )
 
         if self.with_be:
             self._flask_config()
             self._db_config()
-            install_dir = from_env("DIAAS_INSTALL_DIR", default=Path(".").resolve(), type=Path)
+            install_dir = from_env(
+                "DIAAS_INSTALL_DIR", default=Path(".").resolve(), type=Path
+            )
             self._set("DIAAS_INSTALL_DIR", install_dir)
             if self.is_lcl:
                 self._set_all(

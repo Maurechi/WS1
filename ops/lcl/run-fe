@@ -1,10 +1,8 @@
 #!/bin/bash
 set -u; source "${LEUKOS_SH_V1}"; cd "$__root__";
 
-cd fe
+eval "$(./ops/configure-for lcl --without-be || echo 'exit 2')"
 
-eval "$(../ops/configure-for lcl --without-be || echo 'exit 2')"
+./ops/fe-build-diaas-js.py > ./fe/public/diaas.js
 
-./docker/build-diaas-js.py > ./public/diaas.js
-
-"$NVM_DIR"/nvm-exec npm run start
+cd fe && "$NVM_DIR"/nvm-exec npm run start
