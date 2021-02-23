@@ -31,6 +31,8 @@ def from_env(name, type=None, default=None, required=None):
             return raw_value.lower() in ["true", "yes", "on", "enabled", "1"]
         else:
             return raw_value.lower() in ["false", "no", "off", "disabled", "0"]
+    elif type == Path:
+        return Path(raw_value)
     else:
         raise ValueError(f"Unknown type {type}")
 
@@ -44,13 +46,10 @@ class JSONEncoder(json.JSONEncoder):
 
 
 class BaseConfiguration:
-    def __init__(self, install_dir=None, with_fe=True, with_be=True, environment=None):
+    def __init__(self, with_fe=True, with_be=True, environment=None):
         self.values = {}
         self.with_fe = with_fe
         self.with_be = with_be
-        if install_dir is not None:
-            install_dir = Path(install_dir)
-        self.install_dir = install_dir
 
         self.timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
         if environment is None:

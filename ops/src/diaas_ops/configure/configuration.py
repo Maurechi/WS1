@@ -96,17 +96,13 @@ class Configuration(BaseConfiguration):
         if self.with_be:
             self._flask_config()
             self._db_config()
-            if self.install_dir is None:
-                raise ValueError("Missing required input install_dir")
-            self._set("DIAAS_INSTALL_DIR", value=self.install_dir)
+            install_dir = from_env("DIAAS_INSTALL_DIR", default=Path(".").resolve(), type=Path)
+            self._set("DIAAS_INSTALL_DIR", install_dir)
             if self.is_lcl:
                 self._set_all(
-                    DIAAS_DS_STORE=self.install_dir / "tmp/lcl-ds-store",
-                    DIAAS_WORKBENCH_STORE=self.install_dir / "tmp/lcl-workbench-store",
+                    DIAAS_DS_STORE=install_dir / "tmp/lcl-ds-store",
+                    DIAAS_WORKBENCH_STORE=install_dir / "tmp/lcl-workbench-store",
                 )
-                for key in ["DIAAS_DS_STORE", "DIAAS_WORKBENCH_STORE"]:
-                    dir = self.values[key]
-                    Path(dir).mkdir(parents=True, exist_ok=True)
             else:
                 self._set_all(
                     DIAAS_DS_STORE=Path("/opt/store/ds"),

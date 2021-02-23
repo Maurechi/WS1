@@ -5,26 +5,6 @@ from pathlib import Path
 class Config:
     def __init__(self):
         self.data = dict()
-        self.configurable("BEDB_PGDATABASE")
-        self.configurable("BEDB_PGHOST")
-        self.configurable("BEDB_PGPASSWORD")
-        self.configurable("BEDB_PGPORT", type=int)
-        self.configurable("BEDB_PGUSER")
-        self.configurable("BEDB_PGDATABASE")
-        self.configurable("DEPLOYMENT_COMMIT_REF_NAME")
-        self.configurable("DEPLOYMENT_COMMIT_SHA")
-        self.configurable("DEPLOYMENT_COMMIT_TITLE")
-        self.configurable("DEPLOYMENT_ENVIRONMENT")
-        self.configurable("INTERNAL_API_TOKEN")
-        self.configurable("DS_STORE", type=Path)
-        self.configurable("WORKBENCH_STORE", type=Path)
-        self.configurable("INSTALL_DIR", type=Path)
-        self.configurable("SESSION_COOKIE_IS_SECURE", type=bool)
-        self.configurable("SESSION_SECRET_KEY")
-        self.configurable("PG_HASHIDS_SALT")
-        self.configurable("ENABLE_SENTRY", type=bool)
-        if self.ENABLE_SENTRY:
-            self.configurable("SENTRY_DSN")
 
     def configurable(self, key, type=str):
         if type is Path:
@@ -50,6 +30,34 @@ class Config:
         else:
             raise ValueError(f"Unknown config setting {key}")
 
+    def load_from_env(self):
+        self.configurable("BEDB_PGDATABASE")
+        self.configurable("BEDB_PGDATABASE")
+        self.configurable("BEDB_PGHOST")
+        self.configurable("BEDB_PGPASSWORD")
+        self.configurable("BEDB_PGPORT", type=int)
+        self.configurable("BEDB_PGUSER")
+        self.configurable("DEPLOYMENT_COMMIT_REF_NAME")
+        self.configurable("DEPLOYMENT_COMMIT_SHA")
+        self.configurable("DEPLOYMENT_COMMIT_TITLE")
+        self.configurable("DEPLOYMENT_ENVIRONMENT")
+        self.configurable("DS_STORE", type=Path)
+        self.configurable("ENABLE_SENTRY", type=bool)
+        self.configurable("INSTALL_DIR", type=Path)
+        self.configurable("INTERNAL_API_TOKEN")
+        self.configurable("PG_HASHIDS_SALT")
+        self.configurable("SESSION_COOKIE_IS_SECURE", type=bool)
+        self.configurable("SESSION_SECRET_KEY")
+        self.configurable("WORKBENCH_STORE", type=Path)
+
+        if self.ENABLE_SENTRY:
+            self.configurable("SENTRY_DSN")
+
+        for path in [self.WORKBENCH_STORE, self.DS_STORE]:
+            path.mkdir(parents=True, exist_ok=True)
+
+        return self
+
     @property
     def SQLALCHEMY_DATABASE_URI(self):
         schema = "postgresql+psycopg2"
@@ -59,4 +67,4 @@ class Config:
         return f"{schema}://{credentials}@/{dbname}?{args}"
 
 
-CONFIG = Config()
+CONFIG = Config().load_from_env()
