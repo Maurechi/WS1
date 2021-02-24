@@ -9,7 +9,9 @@ import pygit2
 import tabulate
 
 
-def from_env(name, type=str, default=None, required=False):
+def from_env(name, type=None, default=None, required=False):
+    if type is None:
+        type = str
     raw_value = os.environ.get(name, None)
     if raw_value is None:
         if required:
@@ -27,36 +29,42 @@ def from_env(name, type=str, default=None, required=False):
             return raw_value.lower() in ["true", "yes", "on", "enabled", "1"]
         else:
             return raw_value.lower() in ["false", "no", "off", "disabled", "0"]
+    elif type == Path:
+        return Path(raw_value)
     else:
         raise ValueError(f"Unknown type {type}")
 
 
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Path):
+            return str(o)
+        else:
+            super().default(o)
+
+
 class BaseConfiguration:
-    def __init__(self, install_dir=None, with_fe=True, with_be=True, environment=None):
+    def __init__(self, with_fe=True, with_be=True, environment=None):
         self.values = {}
         self.with_fe = with_fe
         self.with_be = with_be
-        if install_dir is not None:
-            install_dir = Path(install_dir)
-        self.install_dir = install_dir
 
         self.timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
         if environment is None:
             environment = from_env("DIAAS_DEPLOYMENT_ENVIRONMENT", required=True)
         if environment in ["prd", "stg", "lcl"]:
             self.environment = environment
-            self._set(DIAAS_DEPLOYMENT_ENVIRONMENT=self.environment)
+            self._set("DIAAS_DEPLOYMENT_ENVIRONMENT", value=self.environment)
         else:
             raise ValueError(
                 f"Unknown environment {environment}, must be one of prd, stg, or lcl."
             )
 
-    def _set(self, **kwargs):
-        keys = list(kwargs.keys())
-        if len(keys) != 1:
-            raise Exception("Wrong number of arguments to _set")
-        self._set_all(**kwargs)
-        return self.values[keys[0]]
+    def _set(self, key, value=None, **from_env_args):
+        if value is None:
+            value = from_env(key, **from_env_args)
+        self.values[key] = value
+        return value
 
     def _set_all(self, **kwargs):
         for key, value in kwargs.items():
@@ -120,9 +128,9 @@ class BaseConfiguration:
             values[quoted_key] = quoted_value
         return values
 
-    def print_as(self, format, fp=sys.stdout):
+    def print_as(self, format, fp=sys.stdout, trailing_newline=True):
         if format == "json":
-            text = json.dumps(self.values, sort_keys=True)
+            text = json.dumps(self.values, sort_keys=True, cls=JSONEncoder)
         elif format == "table":
             values = self._values_for_shell()
             table = [[key, values[key]] for key in sorted(values.keys())]
@@ -147,7 +155,7 @@ class BaseConfiguration:
             else:
                 text = "\n".join(lines)
         if text:
-            print(text, file=fp)
+            print(text, file=fp, end="\n" if trailing_newline else "")
 
     def inject_into_environ(self):
         os.environ.update(self._values_as_strings())

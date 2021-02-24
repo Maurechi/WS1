@@ -1,0 +1,6 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}/"
+
+source "./ops/_common-build"
+
+docker build -t "${repo}/be:${exact_tag}" -t "${repo}/be:${latest_tag}" -t "be:latest" -f be/docker/Dockerfile .

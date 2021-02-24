@@ -1,5 +1,6 @@
 import sentry_sdk
 from flask import Flask
+from flask_cors import CORS
 from flask_session import Session
 
 from diaas.app.internal import internal_api
@@ -21,7 +22,7 @@ def create_app(testing=False):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_ADD_STATUS"] = False
     app.config["ALEMBIC"] = dict(
-        script_location=str(CONFIG.INSTALL_DIR / "be/migrations"),
+        script_location=str(CONFIG.BEDB_MIGRATIONS_DIR),
         file_template="%%(year)d-%%(month).2d-%%(day).2d_%%(rev)s_%%(slug)s",
     )
     app.config["SECRET_KEY"] = CONFIG.SESSION_SECRET_KEY.encode("utf-8")
@@ -41,5 +42,7 @@ def create_app(testing=False):
     app.config["SESSION_USE_SIGNER"] = True
     app.config["SESSION_SQLALCHEMY"] = db
     Session(app)
+
+    CORS(app)
 
     return app

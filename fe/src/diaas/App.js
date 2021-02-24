@@ -53,6 +53,9 @@ const Loading = () => {
             <span>{v.repeat(".", tick + 1)}</span>
           </p>
         </div>
+        <div style={{ position: "absolute", bottom: "0px", right: "0px" }}>
+          (debug: {window.DIAAS.DEPLOYMENT_ENVIRONMENT})
+        </div>
       </header>
     </div>
   );

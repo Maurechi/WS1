@@ -35,6 +35,9 @@ class SecretStore:
         )
         self.resource_manager = resource_manager.Client(credentials=self.credentials)
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__} project_id={self.project_id}>"
+
     @property
     def secrets(self):
         def _list(page_token):
@@ -166,14 +169,43 @@ class Secret:
 STORE = None
 
 
-@click.group()
+class Command(click.Command):
+    def __init__(self, *args, other_names=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if other_names is None:
+            other_names = []
+        self.other_names = other_names
+
+
+class Group(click.Group):
+    """This subclass of a group supports looking up aliases in a config
+    file and with a bit of magic.
+    """
+
+    def get_command(self, ctx, cmd_name):
+        # Step one: bulitin commands as normal
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+        else:
+            for name, cmd in self.commands.items():
+                if cmd_name in cmd.other_names:
+                    return self.get_command(ctx, name)
+            else:
+                return None
+
+    def command(self, *args, **kwargs):
+        return super().command(*args, cls=Command, **kwargs)
+
+
+@click.group(cls=Group)
 @click.option("-p", "--project-id", default=None)
 def cli(project_id):
     global STORE
     STORE = SecretStore(project_id)
 
 
-@cli.command()
+@cli.command(other_names=["ls"])
 def list():
     print(f"# In project {STORE.project_id}")
     for s in STORE.secrets:

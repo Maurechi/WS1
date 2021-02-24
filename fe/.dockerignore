@@ -1,0 +1,7 @@
+*
+!jsconfig.json
+!package.json
+!package-lock.json
+!docker
+!public
+!src

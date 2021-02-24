@@ -32,6 +32,6 @@ if [[ false = true ]]; then
         source ./.testing-venv/bin/activate
         output-on-failure -- pip3 install -f /opt/downloads/ -U pip wheel
         output-on-failure -- pip3 install -f /opt/downloads/ -r be/requirements.in -r requirements_dev.txt
-        ./ops/test-be || true
+        ./ops/be-test || true
     )
 fi
