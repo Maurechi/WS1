@@ -76,7 +76,11 @@ class Configuration(BaseConfiguration):
             DIAAS_BEDB_PGPORT="5432",
             DIAAS_BEDB_PGUSER="postgres",
         )
-        self._set("DIAAS_BEDB_MIGRATIONS_DIR", default=install_dir / 'be/migrations', type=Path)
+        self._set(
+            "DIAAS_BEDB_MIGRATIONS_DIR",
+            default=install_dir / "be/migrations",
+            type=Path,
+        )
 
     def _flask_config(self):
         self._set_all(
@@ -108,12 +112,12 @@ class Configuration(BaseConfiguration):
                 self._set_all(
                     DIAAS_DS_STORE=install_dir / "tmp/lcl-ds-store",
                     DIAAS_WORKBENCH_STORE=install_dir / "tmp/lcl-workbench-store",
-                    DIAAS_BE_BIN_DIR=install_dir / "be/bin"
+                    DIAAS_BE_BIN_DIR=install_dir / "be/bin",
                 )
             pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
             self._set("DIAAS_PG_HASHIDS_SALT", value=pg_hashids_salt)
 
-            self._set("DIAAS_BE_BIN_DIR", default=install_dir / 'be/bin')
+            self._set("DIAAS_BE_BIN_DIR", default=install_dir / "be/bin")
 
     def monitoring_config(self):
         dsn = self.if_env(
