@@ -1,6 +1,7 @@
-import { Button, Grid } from "@material-ui/core";
+import { Button, Divider, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
+import { GoogleLogin } from "react-google-login";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import v from "voca";
 
@@ -61,33 +62,86 @@ const Loading = () => {
   );
 };
 
-const Login = observer(() => {
-  const state = useAppState();
+const GoogleLoginButton = ({ loginHandler, loginInProgress }) => {
+  const googleLogin = (u) => {
+    loginInProgress.v = true;
+    loginHandler({ google: { id_token: u.getAuthResponse(false).id_token } });
+  };
+
+  const googleFailure = (r) => {
+    console.log("GOOGLE FAIL:", r);
+    alert(JSON.stringify(r));
+  };
+
+  return (
+    <GoogleLogin
+      clientId={window.DIAAS.AUTH_GOOGLE_CLIENT_ID}
+      disabled={loginInProgress.v}
+      buttonText="Login"
+      onSuccess={googleLogin}
+      onFailure={googleFailure}
+      cookiePolicy={"single_host_origin"}
+    />
+  );
+};
+
+const EmailLoginForm = ({ loginHandler, loginInProgress }) => {
   const email = useFormValue("", { transform: (e) => v.trim(e) });
-  const isValid = v.trim(email.v).length > 0 && v.search(email.v, /.@.+[.].+/) > -1;
+  const emailIsValid = v.trim(email.v).length > 0 && v.search(email.v, /.@.+[.].+/) > -1;
+
   const submit = (e) => {
     e.preventDefault();
-    state.login(email.v);
+    loginHandler({ email: email.v });
   };
+
+  return (
+    <form onSubmit={submit}>
+      <Grid container>
+        <Grid item xs={12}>
+          <HCenter>
+            <TextField label="email" autoFocus={true} value={email} disabled={loginInProgress.v} />
+          </HCenter>
+        </Grid>
+        <Grid item xs={12}>
+          <HCenter pt={2}>
+            <Button variant="contained" color="primary" disabled={!emailIsValid || loginInProgress.v} onClick={submit}>
+              Login
+            </Button>
+          </HCenter>
+        </Grid>
+      </Grid>
+    </form>
+  );
+};
+
+const Login = observer(() => {
+  const state = useAppState();
+  const loginInProgress = useFormValue(false);
+
+  const loginHandler = (data) => {
+    state.login(data).then(() => {
+      loginInProgress.v = false;
+    });
+  };
+
   return (
     <div style={{ position: "static" }}>
       <AppSplash>
-        <form onSubmit={submit}>
-          <Grid container>
-            <Grid item xs={12}>
-              <HCenter>
-                <TextField label="email" autoFocus={true} value={email} />
-              </HCenter>
-            </Grid>
-            <Grid item xs={12}>
-              <HCenter pt={2}>
-                <Button variant="contained" color="primary" disabled={!isValid} onClick={submit}>
-                  Login
-                </Button>
-              </HCenter>
-            </Grid>
+        <Grid container>
+          <Grid item xs={12}>
+            <EmailLoginForm loginHandler={loginHandler} loginInProgress={loginInProgress} />
           </Grid>
-        </form>
+          <Grid item xs={12}>
+            <HCenter my={2}>
+              <Divider width="33%" />
+            </HCenter>
+          </Grid>
+          <Grid item xs={12}>
+            <HCenter>
+              <GoogleLoginButton loginHandler={loginHandler} loginInProgress={loginInProgress} />
+            </HCenter>
+          </Grid>
+        </Grid>
       </AppSplash>
     </div>
   );

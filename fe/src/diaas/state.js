@@ -155,8 +155,8 @@ class Backend {
     return this.get("session").then(USE_MOCK_USER ? () => MOCK_USER : dataIfStatusEquals(200));
   }
 
-  login(email) {
-    return this.post("session", { email: email }).then(dataIfStatusEquals(200));
+  login(data) {
+    return this.post("session", data).then(dataIfStatusEquals(200));
   }
 
   logout() {
@@ -215,8 +215,8 @@ class AppStateObject {
     this.backend.getCurrentUser().then((user) => this.setCurrentUser(user));
   }
 
-  login(email) {
-    return this.backend.login(email).then((user) => this.setCurrentUser(user));
+  login(data) {
+    return this.backend.login(data).then((user) => this.setCurrentUser(user));
   }
 
   logout() {

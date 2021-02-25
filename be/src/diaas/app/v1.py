@@ -1,6 +1,7 @@
 from flask import Blueprint, g, request, session
 
-from diaas.app.utils import Request, as_json, login_required
+from diaas.app.login import login
+from diaas.app.utils import as_json, login_required
 from diaas.model import User
 
 api_v1 = Blueprint("api_v1", __name__)
@@ -30,10 +31,12 @@ def session_get():
 @api_v1.route("/session", methods=["POST"])
 @as_json
 def session_post():
-    email = Request(request).get_value("email")
-    u = User.ensure_user(email)
-    session["uid"] = u.uid
-    return _user_as_json(u)
+    u = login()
+    if u:
+        session["uid"] = u.uid
+        return _user_as_json(u)
+    else:
+        return {}, 401
 
 
 @api_v1.route("/session", methods=["DELETE"])
