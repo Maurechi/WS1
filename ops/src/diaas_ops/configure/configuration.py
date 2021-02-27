@@ -96,12 +96,6 @@ class Configuration(BaseConfiguration):
         )
 
     def app_config(self):
-        if self.with_fe:
-            self._set(
-                "DIAAS_API_BASEURL",
-                default=self.if_env(lcl="http://127.0.0.1:8080", otherwise="//"),
-            )
-
         if self.with_be:
             self._flask_config()
             install_dir = from_env(
