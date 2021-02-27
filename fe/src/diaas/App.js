@@ -77,7 +77,7 @@ const GoogleLoginButton = ({ loginHandler, loginInProgress }) => {
     <GoogleLogin
       clientId={window.DIAAS.AUTH_GOOGLE_CLIENT_ID}
       disabled={loginInProgress.v}
-      buttonText="Login"
+      buttonText="Login via Google"
       onSuccess={googleLogin}
       onFailure={googleFailure}
       cookiePolicy={"single_host_origin"}
@@ -105,7 +105,7 @@ const EmailLoginForm = ({ loginHandler, loginInProgress }) => {
         <Grid item xs={12}>
           <HCenter pt={2}>
             <Button variant="contained" color="primary" disabled={!emailIsValid || loginInProgress.v} onClick={submit}>
-              Login
+              Login via Magic Link
             </Button>
           </HCenter>
         </Grid>
