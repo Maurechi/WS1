@@ -18,30 +18,32 @@ export const StoresContent = () => {
           <img width="100em" src={`/i/logos/${icon}`} alt={alt} />
         </p>
         <table>
-          <tr>
-            <td>Id:</td>
-            <td>
-              <tt>{id}</tt>
-            </td>
-          </tr>
-          <tr>
-            <td>Host:</td>
-            <td>{config.parameters.host}</td>
-          </tr>
-          <tr>
-            <td>Port:</td>
-            <td>{config.parameters.port}</td>
-          </tr>
-          <tr>
-            <td>User:</td>
-            <td>{config.parameters.user}</td>
-          </tr>
-          <tr>
-            <td>Parameters:</td>
-            <td>
-              <pre>{JSON.stringify(config, null, 4)}</pre>
-            </td>
-          </tr>
+          <tbody>
+            <tr>
+              <td>Id:</td>
+              <td>
+                <tt>{id}</tt>
+              </td>
+            </tr>
+            <tr>
+              <td>Host:</td>
+              <td>{config.parameters.host}</td>
+            </tr>
+            <tr>
+              <td>Port:</td>
+              <td>{config.parameters.port}</td>
+            </tr>
+            <tr>
+              <td>User:</td>
+              <td>{config.parameters.user}</td>
+            </tr>
+            <tr>
+              <td>Parameters:</td>
+              <td>
+                <pre>{JSON.stringify(config, null, 4)}</pre>
+              </td>
+            </tr>
+          </tbody>
         </table>
       </>
     );
