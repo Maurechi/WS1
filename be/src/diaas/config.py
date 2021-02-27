@@ -31,6 +31,9 @@ class Config:
             raise ValueError(f"Unknown config setting {key}")
 
     def load_from_env(self):
+        self.configurable("AUTH_GOOGLE_CLIENT_ID")
+        self.configurable("AUTH_GOOGLE_CLIENT_SECRET")
+        self.configurable("AUTH_METHOD")
         self.configurable("BEDB_MIGRATIONS_DIR")
         self.configurable("BEDB_PGDATABASE")
         self.configurable("BEDB_PGDATABASE")

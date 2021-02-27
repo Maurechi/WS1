@@ -17,9 +17,10 @@ class Configuration(BaseConfiguration):
         self.app_config()
         self.monitoring_config()
         self.tracker_config()
+        self.login_config()
 
     def _secret(self, name):
-        secret = self.secrets.secret_from_name("app/internal-api-token").value
+        secret = self.secrets.secret_from_name(name).value
         if secret is None:
             raise ValueError(f"Missing required secret {name} in {self.secrets}")
         else:
@@ -150,4 +151,17 @@ class Configuration(BaseConfiguration):
         if enable_trackers:
             self._set_all(
                 DIAAS_GTM_CONTAINER_ID="GTM-1234567890",
+            )
+
+    def login_config(self):
+        self._set(
+            "DIAAS_AUTH_METHOD", default=self.if_env(lcl="TRUST", otherwise="VERIFY")
+        )
+        self._set(
+            "DIAAS_AUTH_GOOGLE_CLIENT_ID", self._secret("app/google-oauth/client-id")
+        )
+        if self.with_be:
+            self._set(
+                "DIAAS_AUTH_GOOGLE_CLIENT_SECRET",
+                self._secret("app/google-oauth/client-secret"),
             )

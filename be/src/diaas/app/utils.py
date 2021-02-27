@@ -186,6 +186,3 @@ class Request:
 
     def json(self):
         return self.request.get_json(force=True)
-
-    def get_value(self, key):
-        return self.json().get(key, None)
