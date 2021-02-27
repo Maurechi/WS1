@@ -18,16 +18,14 @@ cat <<'EOF' >> ./run
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-if [[ ! -d .libds ]]; then
-    git clone https://git:obvUssSTkx3e_bswWQQy@gitlab.com/leukosio/libds .libds && git -C .libds checkout a44eceb5d88f885d9e50cb6aac2c951bf4f5cbf0
-    # https://git:obvUssSTkx3e_bswWQQy@gitlab.com/leukosio/libds.git@a44eceb5d88f885d9e50cb6aac2c951bf4f5cbf0
-fi
-
 if [[ ! -d .venv ]]; then
     python3 -m venv .venv
     source .venv/bin/activate
     pip install -U pip wheel
-    pip install -e .libds
+    pip install git+https://git:obvUssSTkx3e_bswWQQy@gitlab.com/leukosio/libds@a44eceb5d88f885d9e50cb6aac2c951bf4f5cbf0
+    if [[ -e requirements.txt ]]; then
+        pip install -r requirements.txt
+    fi
 else
     source .venv/bin/activate
 fi
@@ -51,3 +49,4 @@ if [[ ! -e ./.git ]]; then
     git checkout prd
     git branch -D master
 fi
+
