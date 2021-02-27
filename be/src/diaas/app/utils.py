@@ -163,9 +163,6 @@ def login_required(f):
         with configure_scope() as scope:
             scope.user = {"email": g.user.email}
 
-        if len(g.user.data_stacks) > 1:
-            raise ApiError(500, "too-many-data-stacks")
-
         return f(*args, **kwargs)
 
     return decorated_function

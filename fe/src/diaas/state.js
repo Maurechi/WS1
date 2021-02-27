@@ -175,6 +175,28 @@ class Backend {
   }
 }
 
+class User {
+  constructor(data) {
+    Object.assign(this, data);
+  }
+
+  get dataStack() {
+    if (this.data_stacks && "0" in this.data_stacks) {
+      return this.data_stacks["0"];
+    } else {
+      return null;
+    }
+  }
+
+  set dataStack(ds) {
+    if (this.data_stacks.length > 0) {
+      this.data_stacks[0] = ds;
+    } else {
+      this.data_stacks = [ds];
+    }
+  }
+}
+
 class AppStateObject {
   user = null;
   initialized = false;
@@ -186,7 +208,7 @@ class AppStateObject {
 
   setCurrentUser(user) {
     this.initialized = true;
-    this.user = user;
+    this.user = user ? new User(user) : null;
   }
 
   setSource(source) {
@@ -203,7 +225,7 @@ class AppStateObject {
     if (!found) {
       sources.push(source);
     }
-    this.user.data_stacks[0].sources = sources;
+    this.user.data_stack.sources = sources;
   }
 
   initialize() {

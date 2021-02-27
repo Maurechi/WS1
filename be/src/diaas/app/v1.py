@@ -11,7 +11,7 @@ def _user_as_json(user):
     return {
         "uid": user.code,
         "display_name": user.display_name,
-        "data_stacks": [ds.libds.info() for ds in user.data_stacks],
+        "data_stacks": {ds.id: ds.libds.info() for ds in user.data_stacks},
     }
 
 
@@ -50,29 +50,30 @@ def session_delete():
 @login_required
 @as_json
 def source_update(id):
-    ds = g.user.data_stacks[0]
-    return ds.libds.source_update(id, request.get_json())
+    libds = g.user.data_stack.libds
+    return libds.source_update(id, request.get_json())
 
 
 @api_v1.route("/sources/<path:id>/load", methods=["POST"])
 @login_required
 @as_json
 def source_load(id):
-    ds = g.user.data_stacks[0]
-    return ds.libds.source_load(id)
+    libds = g.user.data_stack.libds
+    return libds.source_load(id)
 
 
 @api_v1.route("/transformation/<path:id>", methods=["POST"])
 @login_required
 @as_json
 def transformation_update(id):
-    ds = g.user.data_stacks[0]
-    return ds.libds.transformation_update(id, request.get_json()["source"])
+    source = request.get_json()["source"]
+    libds = g.user.data_stack.libds
+    return libds.transformation_update(id, source)
 
 
 @api_v1.route("/transformation/<path:id>/load", methods=["POST"])
 @login_required
 @as_json
 def transformation_load(id):
-    ds = g.user.data_stacks[0]
-    return ds.libds.transformation_load(id)
+    libds = g.user.data_stack.libds
+    return libds.transformation_load(id)

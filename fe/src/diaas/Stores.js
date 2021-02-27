@@ -4,7 +4,7 @@ import { useAppState } from "diaas/state.js";
 
 export const StoresContent = () => {
   const { user } = useAppState();
-  const stores = user.data_stacks[0].stores;
+  const stores = user.dataStack ? user.dataStack.stores : [];
   if (stores.length === 0) {
     return <Box>No Stores.</Box>;
   } else {

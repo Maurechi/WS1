@@ -50,10 +50,17 @@ class User(db.Model, ModifiedAtMixin):
     @property
     def data_stacks(self):
         return [
-            DataStack(path)
+            DataStack(path.stem, path)
             for path in (self.workbench_path / "data-stacks/").glob("*")
             if path.name not in [".", ".."]
         ]
+
+    @property
+    def current_data_stack(self):
+        if len(self.data_stacks) > 0:
+            return self.data_stacks["0"]
+        else:
+            return None
 
     @classmethod
     def ensure_user(cls, email):
@@ -80,7 +87,8 @@ class User(db.Model, ModifiedAtMixin):
 
 
 class DataStack:
-    def __init__(self, path):
+    def __init__(self, id, path):
+        self.id = id
         self.path = Path(path)
 
     @classmethod

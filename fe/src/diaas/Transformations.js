@@ -45,12 +45,13 @@ export const Editor = observer(() => {
   const { user, backend } = useAppState();
   const { trfid } = useParams();
 
-  if (user.data_stacks.length === 0) {
-    return <NotFound>Data stacks for user</NotFound>;
+  if (user.dataStack === null) {
+    return <NotFound>No Data stacks for user</NotFound>;
   }
-  const trf = _.find(user.data_stacks[0].transformations, (t) => t.id === trfid);
+
+  const trf = _.find(user.dataStack.transformations, (t) => t.id === trfid);
   if (!trf) {
-    return <NotFound>Transformation with id {trfid}</NotFound>;
+    return <NotFound>No Transformation with id {trfid}</NotFound>;
   }
 
   const codeValue = useFormValue(trf.source);
@@ -98,14 +99,12 @@ export const Editor = observer(() => {
 
 export const FileTable = observer(() => {
   const { user } = useAppState();
-  let files;
-
-  if (user.data_stacks.length > 0) {
-    const dataStack = user.data_stacks[0];
-    files = dataStack.transformations.map(({ id, type, last_modified }) => ({ id, type, lastModified: last_modified }));
-  } else {
-    files = [];
-  }
+  const transformations = user.dataStack ? user.dataStack.transformations : [];
+  const files = transformations.map(({ id, type, last_modified }) => ({
+    id,
+    type,
+    lastModified: last_modified,
+  }));
 
   const columns = [
     { defaultFlex: 1, name: "id", header: "id" },

@@ -174,7 +174,7 @@ const AccountMenu = observer(() => {
 const AppNavigationToolbar = observer(() => {
   const classes = useStyles();
   const { user } = useAppState();
-  const ds = user.data_stacks.length > 0 ? user.data_stacks[0] : null;
+  const ds = user.dataStack;
   const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
   const dataStackName = ds === null ? "//" : ds.config.name || "central";
   return (
