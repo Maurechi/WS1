@@ -11,7 +11,7 @@ def _user_as_json(user):
     return {
         "uid": user.code,
         "display_name": user.display_name,
-        "data_stacks": {ds.id: ds.libds.info() for ds in user.data_stacks},
+        "data_stacks": {ds.id: ds.libds.info() for ds in user.data_stacks.values()},
     }
 
 
@@ -50,7 +50,7 @@ def session_delete():
 @login_required
 @as_json
 def source_update(id):
-    libds = g.user.data_stack.libds
+    libds = g.user.current_data_stack.libds
     return libds.source_update(id, request.get_json())
 
 
@@ -58,7 +58,7 @@ def source_update(id):
 @login_required
 @as_json
 def source_load(id):
-    libds = g.user.data_stack.libds
+    libds = g.user.current_data_stack.libds
     return libds.source_load(id)
 
 
@@ -67,7 +67,7 @@ def source_load(id):
 @as_json
 def transformation_update(id):
     source = request.get_json()["source"]
-    libds = g.user.data_stack.libds
+    libds = g.user.current_data_stack.libds
     return libds.transformation_update(id, source)
 
 
@@ -75,5 +75,5 @@ def transformation_update(id):
 @login_required
 @as_json
 def transformation_load(id):
-    libds = g.user.data_stack.libds
+    libds = g.user.current_data_stack.libds
     return libds.transformation_load(id)

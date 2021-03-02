@@ -49,11 +49,12 @@ class User(db.Model, ModifiedAtMixin):
 
     @property
     def data_stacks(self):
-        return [
+        stacks = [
             DataStack(path.stem, path)
             for path in (self.workbench_path / "data-stacks/").glob("*")
             if path.name not in [".", ".."]
         ]
+        return {d.id: d for d in stacks}
 
     @property
     def current_data_stack(self):
