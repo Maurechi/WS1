@@ -1,10 +1,9 @@
 #!/bin/bash
 # -*- sh -*-
-pushd "${__root__}/"
 
-commit_sha="$(git rev-parse HEAD)"
+commit_sha="$(git -C "${__root__}" rev-parse HEAD)"
 
-if [[ -z "$(git status --porcelain)" ]]; then
+if [[ -z "$(git -C "${__root__}" status --porcelain)" ]]; then
     commit_sha="HEAD-${commit_sha}"
 fi
 
@@ -12,5 +11,3 @@ timestamp="$(date -u +%Y%m%d-%H%M%S)"
 repo="eu.gcr.io/diaas-stg/diaas"
 exact_tag="${timestamp}-${commit_sha}"
 latest_tag="latest"
-
-popd
