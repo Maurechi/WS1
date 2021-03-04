@@ -1,4 +1,3 @@
-import subprocess
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
@@ -97,8 +96,6 @@ class DataStack:
         path = Path(path)
         if not path.exists():
             path.mkdir(parents=True)
-        script = CONFIG.BE_BIN_DIR / "bootstrap-data-stack"
-        subprocess.check_call([str(script)], cwd=path)
 
     @property
     def libds(self):

@@ -108,6 +108,7 @@ class Configuration(BaseConfiguration):
                     DIAAS_DS_STORE=install_dir / "tmp/lcl-ds-store",
                     DIAAS_WORKBENCH_STORE=install_dir / "tmp/lcl-workbench-store",
                     DIAAS_BE_BIN_DIR=install_dir / "be/bin",
+                    DIAAS_LIBDS_DIR=install_dir / "libds",
                 )
             pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
             self._set("DIAAS_PG_HASHIDS_SALT", value=pg_hashids_salt)

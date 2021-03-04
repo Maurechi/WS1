@@ -1,0 +1,5 @@
+type: libds.src.google.GoogleSheet
+service_account_json: |
+  {"does": "not", "matter": null}
+spreadsheet: "1234"
+range: "A1:Z99"

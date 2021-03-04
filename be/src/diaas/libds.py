@@ -3,6 +3,8 @@ import subprocess
 
 import semver
 
+from diaas.config import CONFIG
+
 
 class LibDS:
     MIN_VERSION = semver.VersionInfo.parse("0.2.0")
@@ -11,19 +13,25 @@ class LibDS:
         self.path = path
 
     def call_ds(self, cmd, input=None):
+        run = self.path / "run"
+        if not run.exists():
+            script = CONFIG.BE_BIN_DIR / "bootstrap-data-stack"
+            subprocess.check_call([str(script)], cwd=self.path)
+
         real_args = []
         for a in cmd:
             if isinstance(a, str):
                 real_args.append(a)
             else:
                 real_args.extend(a)
-        cmd = [str(self.path / "run"), "ds", "-f", "json"] + real_args
+        cmd = [str(run), "ds", "-f", "json"] + real_args
         proc = subprocess.Popen(
             cmd,
             text=True,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            cwd=self.path,
         )
         out, err = proc.communicate(input=input)
         if proc.returncode > 0:

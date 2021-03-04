@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail; cd "$(dirname "${BASH_SOURCE[0]}}")"/../;
+
+declare -a args=("$@")
+
+if [[ "${#args[@]}" -eq 0 ]]; then
+   args=("--lf")
+fi
+
+find . -name __pycache__ -print0 | xargs --no-run-if-empty -0 rm -r
+pytest -vvv "${args[@]}" ./tests/

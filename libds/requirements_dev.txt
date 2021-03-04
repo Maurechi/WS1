@@ -1,0 +1,6 @@
+-e .[all]
+flake8
+black
+isort
+pip-tools
+pytest
