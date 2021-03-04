@@ -1,6 +1,4 @@
 #!/bin/bash
-set -euo pipefail
+source ~/.bashrc ; set -euo pipefail
 
-export FLASK_APP='diaas.app:create_app()'
-
-flask db upgrade && exec gunicorn -b 0.0.0.0:8080 -w 4 "${FLASK_APP}"
+FLASK_APP='diaas.app:create_app()' flask db upgrade && exec gunicorn -b 0.0.0.0:8080 -w 4 "${FLASK_APP}"
