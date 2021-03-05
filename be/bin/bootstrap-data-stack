@@ -28,15 +28,6 @@ EOF
 
 fi
 
-if [[ ! -e ./.git ]]; then
-    git init .
-    git add .
-    git commit --message "Bootstrap."
-    git branch prd master
-    git checkout prd
-    git branch -D master
-fi
-
 if [[ ! -e ./run ]]; then
 
     cat <<EOF > ./run
@@ -51,3 +42,16 @@ EOF
 fi
 
 chmod +x ./run
+
+if [[ ! -e .gitignore ]]; then
+    echo /.venv/ > .gitignore
+fi
+
+if [[ ! -e ./.git ]]; then
+    git init .
+    git add .
+    git commit --message "Bootstrap."
+    git branch prd master
+    git checkout prd
+    git branch -D master
+fi

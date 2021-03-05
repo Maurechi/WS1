@@ -14,7 +14,8 @@ class LibDS:
 
     def call_ds(self, cmd, input=None):
         run = self.path / "run"
-        if not run.exists():
+        venv = self.path / ".venv"
+        if not (run.exists() and venv.exists()):
             script = CONFIG.BE_BIN_DIR / "bootstrap-data-stack"
             subprocess.check_call([str(script)], cwd=self.path)
 
