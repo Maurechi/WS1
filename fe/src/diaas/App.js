@@ -7,6 +7,7 @@ import v from "voca";
 
 import "./App.css";
 import logo from "./App.logo.png";
+import sorry_gif from "./sorry.gif";
 import { AccountProfileContent } from "diaas/Account.js";
 import { AnalyticsContent } from "diaas/Analytics";
 import { TextField, useFormValue } from "diaas/form.js";
@@ -19,6 +20,7 @@ import { StoresContent } from "diaas/Stores.js";
 import { ThemeProvider } from "diaas/Theme.js";
 import { TransformationsContent } from "diaas/Transformations.js";
 import { HCenter } from "diaas/ui.js";
+import { ignore } from "diaas/utils.js";
 
 const Loading = () => {
   const [tick, setTick] = useState(0);
@@ -185,17 +187,78 @@ const AppContent = () => (
   </div>
 );
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, details: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, details: { title: "Error", message: "" + error } };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // NOTE send to sentry 20210305:mb
+    ignore(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <FatalError details={this.state.details} />;
+    } else {
+      return this.props.children;
+    }
+  }
+}
+
+const FatalError = ({ details }) => {
+  let toClipBoard = null;
+  if ("clipboard" in navigator) {
+    toClipBoard = () => navigator.clipboard.writeText(details.title + "\n\n" + details.message);
+  } else {
+    toClipBoard = false;
+  }
+  return (
+    <HCenter>
+      <Grid container>
+        <Grid item xs={12}>
+          <HCenter>
+            <img src={sorry_gif} alt="borken." />
+          </HCenter>
+        </Grid>
+        <Grid item xs={12}>
+          <HCenter>{details.title}</HCenter>
+          <HCenter>
+            <pre>{details.message}</pre>
+          </HCenter>
+          {toClipBoard && (
+            <HCenter>
+              <Button variant="contained" color="primary" onClick={toClipBoard}>
+                Copy error to clipboard
+              </Button>
+            </HCenter>
+          )}
+        </Grid>
+      </Grid>
+    </HCenter>
+  );
+};
+
 const App = observer(() => {
   const state = useAppState();
   useEffect(() => {
     state.initialize();
   }, [state]);
-  if (!state.initialized) {
-    return <Loading />;
-  } else if (state.user) {
-    return <AppContent />;
+  if (state.fatalError) {
+    return <FatalError details={state.fatalError} />;
   } else {
-    return <Login />;
+    if (!state.initialized) {
+      return <Loading />;
+    } else if (state.user) {
+      return <AppContent />;
+    } else {
+      return <Login />;
+    }
   }
 });
 
@@ -203,7 +266,9 @@ export const Root = () => (
   <React.StrictMode>
     <ThemeProvider>
       <AppState>
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </AppState>
     </ThemeProvider>
   </React.StrictMode>
