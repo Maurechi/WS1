@@ -76,8 +76,8 @@ class Backend {
     return this.post(`/sources/${source_id}/load`).then(dataIfStatusEquals(200));
   }
 
-  postTransformation(transformation_id, source) {
-    return this.post(`/transformation/${transformation_id}`, { source }).then(dataIfStatusEquals(200));
+  postTransformation(transformation_id, payload) {
+    return this.post(`/transformation/${transformation_id}`, payload).then(dataIfStatusEquals(200));
   }
 
   loadTransformation(transformation_id) {

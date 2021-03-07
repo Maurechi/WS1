@@ -12,9 +12,8 @@ CURRENT_DATA_STACK = ThreadLocalValue()
 
 
 def load_trfs(data_stack):
-    transformations_dir = data_stack.directory / "transformations"
-    sqls = transformations_dir.glob("**/*.sql")
-    pys = transformations_dir.glob("**/*.py")
+    sqls = data_stack.transformations_dir.glob("**/*.sql")
+    pys = data_stack.transformations_dir.glob("**/*.py")
     trfs = [
         BaseTransformation.from_file(data_stack, filename)
         for filename in chain(sqls, pys)
@@ -32,10 +31,18 @@ class BaseTransformation:
         schema_name=None,
         dependencies=None,
     ):
-        self.filename = Path(filename)
         if data_stack is None:
             data_stack = CURRENT_DATA_STACK.value
         self.data_stack = data_stack
+
+        self._init_properties(filename, id, table_name, schema_name)
+
+        if dependencies is None:
+            dependencies = []
+        self.dependencies = dependencies
+
+    def _init_properties(self, filename, id, table_name, schema_name):
+        self.filename = Path(filename)
         if id is None:
             id = filename.stem
         self.id = id
@@ -47,10 +54,6 @@ class BaseTransformation:
         if schema_name is None:
             schema_name = "public"
         self.schema_name = schema_name
-
-        if dependencies is None:
-            dependencies = []
-        self.dependencies = dependencies
 
     def info(self):
         filename = self.filename
@@ -75,6 +78,13 @@ class BaseTransformation:
         with self.filename.open("wb") as file:
             file.write(source.encode("utf-8"))
         return self.__class__.from_file(self.data_stack, self.filename)
+
+    def update_id(self, id):
+        new_filename = self.filename.with_name(id).with_suffix(self.filename.suffix)
+        self.filename.rename(new_filename)
+        self.filename = new_filename
+        self.id = id
+        return self
 
     @classmethod
     def from_file(cls, data_stack, filename):
@@ -164,6 +174,14 @@ class SQLQueryTransformation(SQLTransformation):
         )
         table = self.data_stack.store.get_table(self.schema_name, self.table_name)
         return table.sample()
+
+    @classmethod
+    def create(cls, data_stack, id):
+        return cls(
+            data_stack=data_stack,
+            filename=data_stack.transformations_dir / f"{id}.sql",
+            sql=None,
+        )
 
 
 class SQLCodeTransformation(SQLTransformation):

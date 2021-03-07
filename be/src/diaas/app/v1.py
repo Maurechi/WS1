@@ -1,7 +1,7 @@
 from flask import Blueprint, g, request, session
 
 from diaas.app.login import login
-from diaas.app.utils import as_json, login_required
+from diaas.app.utils import Request, as_json, login_required
 from diaas.model import User
 
 api_v1 = Blueprint("api_v1", __name__)
@@ -66,9 +66,27 @@ def source_load(id):
 @login_required
 @as_json
 def transformation_update(id):
-    source = request.get_json()["source"]
+    req = Request()
     libds = g.user.current_data_stack.libds
-    return libds.transformation_update(id, source)
+    return libds.transformation_update(
+        id=req.require("id"),
+        type=req.require("type"),
+        source=req.require("source"),
+        current_id=id,
+    )
+
+
+@api_v1.route("/transformation/", methods=["POST"])
+@login_required
+@as_json
+def transformation_create():
+    req = Request()
+    libds = g.user.current_data_stack.libds
+    return libds.transformation_update(
+        id=req.require("id"),
+        type=req.param("type", default="select"),
+        source=req.require("source"),
+    )
 
 
 @api_v1.route("/transformation/<path:id>/load", methods=["POST"])

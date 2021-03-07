@@ -9,6 +9,11 @@ from pathlib import Path
 import click
 
 from libds import DataStack, __version__
+from libds.trf import (
+    PythonTransformation,
+    SQLCodeTransformation,
+    SQLQueryTransformation,
+)
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -48,6 +53,17 @@ class Command:
             print("")
         else:
             raise ValueError(f"Unknown format {self.format}")
+
+
+def _arg_str(arg):
+    if arg.strip() == "-":
+        return sys.stdin.read().strip()
+    else:
+        return arg
+
+
+def _arg_json(arg):
+    return json.loads(_arg_str(arg))
 
 
 COMMAND = None
@@ -96,9 +112,7 @@ def info():
 @click.argument("source_id")
 @click.argument("config")
 def source_update(source_id, config):
-    if config.strip() == "-":
-        config = sys.stdin.read().strip()
-    config = json.loads(config)
+    config = _arg_json(config)
     source = COMMAND.ds.get_source(source_id)
     if source is None:
         return {"error": {"code": "source-not-found", "id": source_id}}
@@ -116,16 +130,52 @@ def source_load(source_id, reload):
 
 @command
 @click.argument("transformation_id")
+@click.option("--current-id")
+@click.option(
+    "--type",
+    "-t",
+    type=click.Choice(["sql", "select", "python"], case_sensitive=False),
+    default="select",
+)
+@click.option(
+    "--if-exists",
+    type=click.Choice(["error", "update"], case_sensitive=False),
+    default="update",
+)
+@click.option(
+    "--if-does-not-exist",
+    type=click.Choice(["error", "create"], case_sensitive=False),
+    default="create",
+)
 @click.argument("source")
-def transformation_update(transformation_id, source):
-    trf = COMMAND.ds.get_trf(transformation_id)
+def transformation_update(
+    transformation_id, type, if_exists, if_does_not_exist, current_id, source
+):
+    if current_id is None:
+        current_id = transformation_id
+    trf = COMMAND.ds.get_trf(current_id)
     if trf is None:
-        return {"error": {"code": "transformation-not-found", "id": id}}
-    else:
-        if source.strip() == "-":
-            source = sys.stdin.read().strip()
-        trf.update_source(source)
-        return COMMAND.ds.get_trf(transformation_id).info()
+        if if_does_not_exist == "error":
+            return {
+                "error": {"code": "transformation-does-not-exist", "id": current_id}
+            }
+
+        if type == "select":
+            cls = SQLQueryTransformation
+        elif type == "sql":
+            cls = SQLCodeTransformation
+        elif type == "python":
+            cls = PythonTransformation
+        trf = cls.create(data_stack=COMMAND.ds, id=current_id)
+
+    if trf is not None:
+        if if_exists == "error":
+            return {"error": {"code": "transformation-exists", "id": current_id}}
+
+    trf.update_source(_arg_str(source))
+    if transformation_id != current_id:
+        trf = trf.update_id(transformation_id)
+    return COMMAND.ds.get_trf(transformation_id).info()
 
 
 @command

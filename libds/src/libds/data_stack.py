@@ -16,8 +16,6 @@ class DataStack:
     def __init__(self, directory=None, config={}):
         self.directory = directory
         self.config = config
-
-        self.transforms = None
         LOCAL_DATA_STACKS.append(self)
 
     @classmethod
@@ -113,3 +111,7 @@ class DataStack:
                 return trf
         else:
             return None
+
+    @property
+    def transformations_dir(self):
+        return self.directory / "transformations"

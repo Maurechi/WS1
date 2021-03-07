@@ -93,7 +93,7 @@ class ClickHouse(Store):
         client.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
         client.execute(f"DROP TABLE IF EXISTS {schema_name}.{table_name};")
         client.execute(
-            f"CREATE TABLE {schema_name}.{table_name} ENGINE = MergeTree() ORDER BY id AS {select};"
+            f"CREATE TABLE {schema_name}.{table_name} ENGINE = MergeTree() ORDER BY order_by AS {select};"
         )
 
     def get_table(self, schema_name, table_name):
