@@ -19,14 +19,14 @@ CACHING_REQUEST = make_caching_request()
 
 
 def login():
-    req = Request(request).json()
+    req = Request()
 
     if CONFIG.AUTH_METHOD == "TRUST":
-        email = req.get("email")
+        email = req.require("email")
         if email is not None:
             return User.ensure_user(email)
 
-    id_token = req.get("google", {}).get("id_token")
+    id_token = req.json.get("google", {}).get("id_token")
     if id_token is not None:
         id_info = verify_oauth2_token(
             id_token, CACHING_REQUEST, CONFIG.AUTH_GOOGLE_CLIENT_ID
