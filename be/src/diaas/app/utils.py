@@ -163,9 +163,6 @@ def login_required(f):
         with configure_scope() as scope:
             scope.user = {"email": g.user.email}
 
-        if len(g.user.data_stacks) > 1:
-            raise ApiError(500, "too-many-data-stacks")
-
         return f(*args, **kwargs)
 
     return decorated_function
@@ -181,8 +178,25 @@ def no_autoflush(view):
 
 
 class Request:
-    def __init__(self, request):
-        self.request = request
+    def __init__(self, req=None):
+        if req is None:
+            self.r = request
+        else:
+            self.r = req
 
+    @property
     def json(self):
-        return self.request.get_json(force=True)
+        return self.r.get_json(force=True)
+
+    def param(self, name, required=False, default=None):
+        v = self.json.get(name, None)
+        if v is None:
+            if required:
+                raise ApiError(f"Missing required {name}")
+            else:
+                return default
+        else:
+            return v
+
+    def require(self, name):
+        return self.param(name, required=True)

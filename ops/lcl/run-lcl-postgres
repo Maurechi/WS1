@@ -1,0 +1,8 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}"; cd "$__root__";
+
+name="lcl-store-postgres"
+docker volume create "${name}"
+docker stop "${name}" || true
+docker rm "${name}" || true
+docker run -it -e POSTGRES_PASSWORD="glides stretcher poll" -v "${name}:/var/lib/postgresql/data:rw" -p 15432:5432 --name "${name}" postgres:13

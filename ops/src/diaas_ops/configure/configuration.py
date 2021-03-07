@@ -96,12 +96,6 @@ class Configuration(BaseConfiguration):
         )
 
     def app_config(self):
-        if self.with_fe:
-            self._set(
-                "DIAAS_API_BASEURL",
-                default=self.if_env(lcl="http://127.0.0.1:8080", otherwise="//"),
-            )
-
         if self.with_be:
             self._flask_config()
             install_dir = from_env(
@@ -109,12 +103,13 @@ class Configuration(BaseConfiguration):
             )
             self._set("DIAAS_INSTALL_DIR", install_dir)
             self._db_config(install_dir)
-            if self.is_lcl:
-                self._set_all(
-                    DIAAS_DS_STORE=install_dir / "tmp/lcl-ds-store",
-                    DIAAS_WORKBENCH_STORE=install_dir / "tmp/lcl-workbench-store",
-                    DIAAS_BE_BIN_DIR=install_dir / "be/bin",
-                )
+            self._set_all(
+                DIAAS_DS_STORE=install_dir / "tmp/lcl-ds-store",
+                DIAAS_WORKBENCH_STORE=install_dir / "tmp/lcl-workbench-store",
+                DIAAS_BE_BIN_DIR=install_dir / "be/bin",
+                DIAAS_LIBDS_DIR=install_dir / "libds",
+                DIAAS_BEDB_MIGRATIONS_DIR=install_dir / "be/migrations",
+            )
             pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
             self._set("DIAAS_PG_HASHIDS_SALT", value=pg_hashids_salt)
 

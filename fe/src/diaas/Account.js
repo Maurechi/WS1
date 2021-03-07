@@ -16,5 +16,5 @@ export const AccountLogoutContent = () => {
       window.location.reload(true);
     });
   }, [state]);
-  return <Box>Loggin out.</Box>;
+  return <Box>Logging out.</Box>;
 };

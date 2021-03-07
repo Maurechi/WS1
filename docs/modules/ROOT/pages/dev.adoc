@@ -6,7 +6,9 @@ Data Infrastructure As A Service.
 
 There are scripts in `./ops/lcl/` to run each service, to run them all from the terminal install link:https://duckduckgo.com/?q=tmuxinator&t=newext&atb=v243-1&ia=web[tmuxinator] and run `./ops/lcl/run-in-tmux` (have a look at that file, it's very short, to see how exactly things are started).
 
-For developing/testing libds you can set the `LIBDS_DIR` env var to the path, on the local filesystem, where libds lives and it will be injected (via a docker bind mount) into the container which runs the data stack's code.
+developing the data stack code is a workin progress. latest setup
+involves jumping into the venv and pip install -e from some directory.
+
 
 == What's the name again?
 

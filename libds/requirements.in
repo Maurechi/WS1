@@ -1,0 +1,7 @@
+click
+google-api-python-client   
+google-auth-oauthlib       
+jinja2
+pygit2
+ruamel.yaml
+sqlalchemy==1.4.0b1

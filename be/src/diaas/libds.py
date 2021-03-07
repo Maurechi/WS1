@@ -3,6 +3,8 @@ import subprocess
 
 import semver
 
+from diaas.config import CONFIG
+
 
 class LibDS:
     MIN_VERSION = semver.VersionInfo.parse("0.2.0")
@@ -11,19 +13,26 @@ class LibDS:
         self.path = path
 
     def call_ds(self, cmd, input=None):
+        run = self.path / "run"
+        venv = self.path / ".venv"
+        if not (run.exists() and venv.exists()):
+            script = CONFIG.BE_BIN_DIR / "bootstrap-data-stack"
+            subprocess.check_call([str(script)], cwd=self.path)
+
         real_args = []
         for a in cmd:
             if isinstance(a, str):
                 real_args.append(a)
             else:
                 real_args.extend(a)
-        cmd = [str(self.path / "run"), "ds", "-f", "json"] + real_args
+        cmd = [str(run), "ds", "-f", "json"] + real_args
         proc = subprocess.Popen(
             cmd,
             text=True,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            cwd=self.path,
         )
         out, err = proc.communicate(input=input)
         if proc.returncode > 0:
@@ -48,8 +57,14 @@ class LibDS:
     def source_load(self, id):
         return self.call_ds(cmd=["source-load", id])
 
-    def transformation_update(self, id, source):
-        return self.call_ds(cmd=["transformation-update", id, "-"], input=source)
+    def transformation_update(self, id, type=None, source=None, current_id=None):
+        cmd = "transformation-update --if-exists update --if-does-not-exist create".split()
+        if type is not None:
+            cmd += ["--type", type]
+        if current_id is not None:
+            cmd += ["--current-id", current_id]
+        cmd += [id, source]
+        return self.call_ds(cmd=cmd)
 
     def transformation_load(self, id):
         return self.call_ds(cmd=["transformation-load", id])

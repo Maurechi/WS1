@@ -1,10 +1,14 @@
 name: diaas-lcl
 root: '<%= @settings["__root__"] %>'
 windows:
-  - serve:
-      layout: main-vertical
+  - app:
+      layout: even-horizontal
       panes:
         - ./ops/lcl/run-be
         - (cd fe && nvm use && npm i && ../ops/lcl/run-fe)
-        - ./ops/lcl/run-db
-        - ./ops/lcl/run-testing-store
+        - ./ops/lcl/run-bedb
+  - data:
+      layout: even-horizontal
+      panes:
+        - ./ops/lcl/run-lcl-postgres
+        - ./ops/lcl/run-lcl-clickhouse

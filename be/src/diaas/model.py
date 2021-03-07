@@ -1,7 +1,6 @@
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from uuid import uuid4
 
 import pygit2
 
@@ -49,11 +48,19 @@ class User(db.Model, ModifiedAtMixin):
 
     @property
     def data_stacks(self):
-        return [
-            DataStack(path)
+        stacks = [
+            DataStack(path.stem, path)
             for path in (self.workbench_path / "data-stacks/").glob("*")
             if path.name not in [".", ".."]
         ]
+        return {d.id: d for d in stacks}
+
+    @property
+    def current_data_stack(self):
+        if len(self.data_stacks) > 0:
+            return self.data_stacks["0"]
+        else:
+            return None
 
     @classmethod
     def ensure_user(cls, email):
@@ -66,30 +73,29 @@ class User(db.Model, ModifiedAtMixin):
         u.workbench_path.mkdir(parents=True, exist_ok=True)
 
         if len(u.data_stacks) == 0:
-            origin_dir = CONFIG.DS_STORE / str(uuid4())
+            origin_dir = CONFIG.DS_STORE / str(u.code)
             DataStack.create_origin(origin_dir)
-            u.clone_data_stack(origin_dir)
+            pygit2.clone_repository(
+                url=str(origin_dir), path=str(u.workbench_path / "data-stacks/0")
+            )
 
         return u
 
-    def clone_data_stack(self, origin):
-        index = len(self.data_stacks)
-        pygit2.clone_repository(
-            url=origin, path=str(self.workbench_path / "data-stacks" / str(index))
-        )
-
 
 class DataStack:
-    def __init__(self, path):
+    def __init__(self, id, path):
+        self.id = id
         self.path = Path(path)
 
     @classmethod
     def create_origin(cls, path):
         path = Path(path)
-        if not path.exists():
-            path.mkdir(parents=True)
-        script = CONFIG.BE_BIN_DIR / "bootstrap-data-stack"
-        subprocess.check_call([str(script)], cwd=path)
+        run = path / "run"
+        if not run.exists():
+            if not path.exists():
+                path.mkdir(parents=True)
+            script = CONFIG.BE_BIN_DIR / "bootstrap-data-stack"
+            subprocess.check_call([str(script)], cwd=path)
 
     @property
     def libds(self):

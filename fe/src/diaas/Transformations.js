@@ -18,11 +18,10 @@ import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-route
 import "diaas/AceEditor_A_Editor";
 import "diaas/AceEditor_B_Dependencies";
 import AceEditor from "diaas/AceEditor";
-import { useFormValue } from "diaas/form.js";
+import { TextField, useFormValue } from "diaas/form.js";
 import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { ButtonLink, NotFound } from "diaas/ui.js";
-export const NewFile = () => <p>New</p>;
 
 const CodeEditor = ({ code, mode, disabled = false }) => {
   return (
@@ -43,47 +42,57 @@ export const Editor = observer(() => {
   const [saveButtonLabel, setSaveButtonLabel] = useState("Save & Run");
   const [saveButtonDisabled, setSaveButtonDisabled] = useState(false);
   const { user, backend } = useAppState();
-  const { trfid } = useParams();
 
-  if (user.data_stacks.length === 0) {
-    return <NotFound>Data stacks for user</NotFound>;
+  if (user.dataStack === null) {
+    return <NotFound>No Data stacks for user</NotFound>;
   }
-  const trf = _.find(user.data_stacks[0].transformations, (t) => t.id === trfid);
-  if (!trf) {
-    return <NotFound>Transformation with id {trfid}</NotFound>;
+
+  const { trfid } = useParams();
+  const creating = trfid === "new";
+
+  let trf;
+  if (creating) {
+    trf = { id: "", type: "sql", source: "select * from" };
+  } else {
+    trf = _.find(user.dataStack.transformations, (t) => t.id === trfid);
+    if (!trf) {
+      return <NotFound>No Transformation with id {trfid}</NotFound>;
+    }
   }
 
   const codeValue = useFormValue(trf.source);
+  const idValue = useFormValue(trf.id);
+
   const [rows, setRows] = useState([]);
   const saveAndRun = () => {
     setSaveButtonLabel("Saving.");
     setSaveButtonDisabled(true);
-    backend.postTransformation(trf.id, codeValue.v).then(() => {
-      setSaveButtonLabel("Loading");
-      backend.loadTransformation(trf.id).then((rows) => {
-        setSaveButtonDisabled(false);
-        setSaveButtonLabel("Save & Run");
-        setRows(rows);
+    backend
+      .postTransformation(creating ? "" : trfid, { type: "select", id: idValue.v, source: codeValue.v })
+      .then((data) => {
+        setSaveButtonLabel("Loading");
+        backend.loadTransformation(data.id).then((rows) => {
+          setSaveButtonDisabled(false);
+          setSaveButtonLabel("Save & Run");
+          setRows(rows);
+        });
       });
-    });
   };
 
   return (
     <form onSubmit={saveAndRun}>
       <Box>
         <Box display="flex" mb={3}>
-          <Box style={{ flexGrow: 1 }}>Editing {trf.id}:</Box>
+          <Box style={{ flexGrow: 1 }}>ID: {creating ? <TextField value={idValue} /> : <pre>{trf.id}</pre>}</Box>
           <Box>
             <Box display="flex">
               <Box mx={1}>
-                <ButtonLink target="/workbench/new/" onClick={saveAndRun} disabled={saveButtonDisabled}>
+                <ButtonLink onClick={saveAndRun} disabled={saveButtonDisabled}>
                   {saveButtonLabel}
                 </ButtonLink>
               </Box>
               <Box mx={1}>
-                <ButtonLink target="/workbench/new/" disabled={true}>
-                  Commit
-                </ButtonLink>
+                <ButtonLink disabled={true}>Commit</ButtonLink>
               </Box>
             </Box>
           </Box>
@@ -98,14 +107,12 @@ export const Editor = observer(() => {
 
 export const FileTable = observer(() => {
   const { user } = useAppState();
-  let files;
-
-  if (user.data_stacks.length > 0) {
-    const dataStack = user.data_stacks[0];
-    files = dataStack.transformations.map(({ id, type, last_modified }) => ({ id, type, lastModified: last_modified }));
-  } else {
-    files = [];
-  }
+  const transformations = user.dataStack ? user.dataStack.transformations : [];
+  const files = transformations.map(({ id, type, last_modified }) => ({
+    id,
+    type,
+    lastModified: last_modified,
+  }));
 
   const columns = [
     { defaultFlex: 1, name: "id", header: "id" },
@@ -131,7 +138,7 @@ export const FileTable = observer(() => {
         <Box>
           <Box display="flex">
             <Box mx={1}>
-              <ButtonLink target="/tranformations/new/">New Transformation</ButtonLink>
+              <ButtonLink target="/transformations/new">New Transformation</ButtonLink>
             </Box>
           </Box>
         </Box>
@@ -147,22 +154,15 @@ export const FileTable = observer(() => {
   );
 });
 
-export const Browser = () => {
-  return <FileTable />;
-};
-
 export const TransformationsContent = () => {
   let { path } = useRouteMatch();
   return (
     <Switch>
-      <Route path={`${path}new/`}>
-        <NewFile />
-      </Route>
       <Route path={`${path}:trfid`}>
         <Editor />
       </Route>
       <Route path={path}>
-        <Browser />
+        <FileTable />
       </Route>
     </Switch>
   );

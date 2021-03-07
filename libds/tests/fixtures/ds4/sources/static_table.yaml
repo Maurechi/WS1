@@ -1,0 +1,5 @@
+type: libds.src.static.StaticTable
+data: |
+  date       value notes
+  2001-01-01 ABC   "some stuff goes here"
+  2002-02-02 DEF

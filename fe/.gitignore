@@ -1,5 +1,3 @@
+/build/
+/node_modules/
 /.eslintcache
-# dependencies
-/node_modules
-# production
-/build

@@ -46,12 +46,14 @@ function do_lint {
 
 function _list-python-test-files-for-linting () {
     find ./be/tests -name "*.py" -print0
+    find ./libds/tests -name "*.py" -print0
 }
 
 function _list-python-source-files-for-linting () {
     find ./be/src -name "*.py" -print0
     find ./ops -name "*.py" -print0
     find ./fe/docker -name "*.py" -print0
+    find ./libds/src -name "*.py" -print0
     for f in $(find ./ops/ -type f); do
         if head -1 ${f} | grep '#!/usr/bin/env python' > /dev/null; then
             echo -n ${f}

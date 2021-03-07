@@ -10,17 +10,14 @@ RUN apt-get install -y libpq-dev gcc
 RUN echo "dash dash/sh boolean false" | debconf-set-selections
 RUN dpkg-reconfigure dash
 
-RUN apt-get install -y python3-dev=3.7.3-1 python3-venv=3.7.3-1
-# RUN curl -o /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-20.10.3.tgz && \
-#     tar -C /tmp/ -zxvf /tmp/docker.tgz && \
-#     cp /tmp/docker/docker /usr/bin/docker
+RUN curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+RUN echo -e 'export PATH="/root/.pyenv/bin:$PATH"\neval "$(pyenv init -)"\neval "$(pyenv virtualenv-init -)"\n' >> ~/.bashrc
+RUN apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl git
+RUN bash -l -c 'pyenv install 3.9.2'
+RUN bash -l -c 'pyenv global 3.9.2'
+RUN bash -l -c 'pip install -U pip wheel'
 
 RUN mkdir -p /diaas/be
-WORKDIR /diaas/be
-RUN python3 -mvenv .venv ; source .venv/bin/activate ; pip install -U pip wheel
-COPY ./be/requirements.txt ./
-RUN source .venv/bin/activate ; pip install -r requirements.txt
-COPY ./be ./
-
-ENTRYPOINT ["/diaas/be/docker/docker-entrypoint.sh"]
+COPY ./be/requirements.txt ./diaas/be/
+RUN bash -l -c 'pip install -r /diaas/be/requirements.txt'
 CMD ["/diaas/be/docker/up"]
