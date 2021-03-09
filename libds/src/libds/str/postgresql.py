@@ -22,7 +22,7 @@ class PostgreSQL(SQLAlchemyStore):
     def make_table_name(self, schema_name, table_name):
         return f"{schema_name}.{table_name}"
 
-    def append_records(self, schema_name, table_name, records, recreate):
+    def append_raw(self, schema_name, table_name, records, recreate):
         table_name = self.make_table_name(schema_name, table_name)
         with self.engine.connect() as conn:
             conn.execute(sa.text(f"""CREATE SCHEMA IF NOT EXISTS {schema_name}"""))
