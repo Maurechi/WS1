@@ -75,6 +75,7 @@ class BaseTransformation:
         return datetime.fromtimestamp(self.filename.stat().st_mtime)
 
     def update_source(self, source):
+        self.filename.parent.mkdir(parents=True, exist_ok=True)
         with self.filename.open("wb") as file:
             file.write(source.encode("utf-8"))
         return self.__class__.from_file(self.data_stack, self.filename)
