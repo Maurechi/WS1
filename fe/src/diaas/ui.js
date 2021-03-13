@@ -82,6 +82,12 @@ export const HCenter = ({ children, ...BoxProps }) => (
   </Box>
 );
 
+export const VCenter = ({ children, ...BoxProps }) => (
+  <Box display="flex" width="100%" alignItems="center" {...BoxProps}>
+    {children}
+  </Box>
+);
+
 export const NotFound = ({ children }) => (
   <Box style={{ width: "100%" }}>
     <HCenter>Not Found</HCenter>

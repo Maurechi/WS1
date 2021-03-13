@@ -22,7 +22,7 @@ import { Code } from "diaas/sources/Code.js";
 import { GoogleSheet } from "diaas/sources/GoogleSheet.js";
 import { StaticTable } from "diaas/sources/StaticTable.js";
 import { useAppState } from "diaas/state.js";
-import { ButtonLink } from "diaas/ui.js";
+import { ButtonLink, VCenter } from "diaas/ui.js";
 
 const UnknownSourceType = ({ user, source }) => {
   return <pre>{JSON.stringify({ user, source })}</pre>;
@@ -112,17 +112,21 @@ export const SourcesTable = observer(() => {
   );
 });
 
-export const ConnectorCard = ({ logo, name, target }) => {
+export const ConnectorCard = ({ logo, name, target, disabled }) => {
   return (
     <Paper>
       <ButtonLink target={`${target}`} style={{ width: "100%" }} variant="outlined" color="#000000">
         <Box display="flex" alignItems="center" justifyContent="flex-start" style={{ width: "100%" }}>
           <Box p={2}>
-            {logo && <img alt={`logo for ${name}`} src={`/i/logos/${logo}`} width="30px" />}
+            {logo && (
+              <VCenter style={{ minHeight: "50px" }}>
+                <img alt={`logo for ${name}`} src={`/i/logos/${logo}`} width="30px" style={{filter: disabled ? "grayscale(1)" : "none"}}/>
+              </VCenter>
+            )}
             {!logo && <img alt="filler logo for layout purposes" src="/i/logos/postgresql.svg" width="30px" />}
           </Box>
           <Box flexGrow={2}>
-            <Box mx={1} style={{ textAlign: "left" }}>
+            <Box mx={1} style={{ textAlign: "left",  textDecoration: disabled ? "line-through" : "none", color: disabled ? "#999999" : "inherit"}}>
               {name}
             </Box>
           </Box>
@@ -204,19 +208,16 @@ export const NewSourceChooser = () => {
         </Box>
         <Grid container spacing={4}>
           <Grid item xs={4}>
-            <ConnectorCard logo="google-sheets.svg" name="Google Sheets" target="google-sheets" />
+            <ConnectorCard logo="google-adwords.png" name="Google Adwords" target="google-adwords" disabled/>
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard logo="google-adwords.png" name="Google Adwords" target="google-adwords" />
+            <ConnectorCard logo="google-analytics.svg" name="Google Analytics" disabled/>
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard logo="google-analytics.svg" name="Google Analytics" />
+            <ConnectorCard logo="facebook.svg" name="Facebook ADs" target="facebook-ads" disabled/>
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard logo="facebook.svg" name="Facebook ADs" target="facebook-ads" />
-          </Grid>
-          <Grid item xs={4}>
-            <ConnectorCard logo="microsoft-bing.svg" name="Bing" />
+            <ConnectorCard logo="microsoft-bing.svg" name="Bing" disabled/>
           </Grid>
         </Grid>
       </Box>
@@ -227,10 +228,10 @@ export const NewSourceChooser = () => {
         </Box>
         <Grid container spacing={4}>
           <Grid item xs={4}>
-            <ConnectorCard name="Salesforce" logo="salesforce.webp" />
+            <ConnectorCard name="Salesforce" logo="salesforce.webp" disabled/>
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard name="Pipedrive" logo="pipedrive.svg" />
+            <ConnectorCard name="Pipedrive" logo="pipedrive.svg" disabled/>
           </Grid>
         </Grid>
       </Box>
@@ -241,16 +242,19 @@ export const NewSourceChooser = () => {
         </Box>
         <Grid container spacing={4}>
           <Grid item xs={4}>
-            <ConnectorCard logo="postgresql.svg" name="PostgreSQL" />
+            <ConnectorCard logo="csv.png" name="Static Table" />
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard name="CSV" logo="csv.png" />
+            <ConnectorCard logo="postgresql.svg" name="PostgreSQL" disabled/>
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard name="BigQuery" logo="bigquery.png" />
+            <ConnectorCard logo="google-sheets.svg" name="Google Sheets" target="google-sheets" disabled />
           </Grid>
           <Grid item xs={4}>
-            <ConnectorCard name="Redshift" logo="redshift.png" />
+            <ConnectorCard name="BigQuery" logo="bigquery.png" disabled/>
+          </Grid>
+          <Grid item xs={4}>
+            <ConnectorCard name="Redshift" logo="redshift.png" disabled/>
           </Grid>
         </Grid>
       </Box>
