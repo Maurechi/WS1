@@ -1,8 +1,9 @@
-import json
-
+import arrow
+import clickhouse_driver.errors
 from clickhouse_driver import Client
 
 from libds.str import BaseTable, Store
+from libds.utils import Progress
 
 
 class ClickHouseClient:
@@ -11,7 +12,11 @@ class ClickHouseClient:
 
     def execute(self, stmt, *args, **kwargs):
         # print(f"Executing `{stmt}`")
-        return self.client.execute(stmt, *args, **kwargs)
+        try:
+            return self.client.execute(stmt, *args, **kwargs)
+        except clickhouse_driver.errors.ServerException as se:
+            print(f"Failed on query {stmt}")
+            raise se
 
 
 class ClickHouse(Store):
@@ -31,7 +36,7 @@ class ClickHouse(Store):
             host=self.parameters["host"], port=self.parameters["port"]
         )
 
-    def append_records(self, schema_name, table_name, records, recreate):
+    def _ensure_raw_table(self, schema_name, table_name):
         client = self.client()
         client.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
         full_name = schema_name + "." + table_name
@@ -52,27 +57,54 @@ class ClickHouse(Store):
                 ENGINE MergeTree()
                 ORDER BY (primary_key, deleted_at);"""
         )
+        return client, full_name
 
-        if recreate:
-            client.execute(f"TRUNCATE TABLE IF EXISTS {full_name}_raw;")
+    def most_recent_raw_timestamp(self, schema_name, table_name):
+        client, full_name = self._ensure_raw_table(schema_name, table_name)
+        rows = list(client.execute(f"SELECT max(valid_at) FROM {full_name}_raw"))
+        if len(rows) == 1 and len(rows[0]) == 1:
+            val = rows[0][0]
+            if val == "":
+                return None
+            else:
+                return arrow.get(rows[0][0])
+        else:
+            return None
 
-        def row_for_clickhouse(row):
-            if row.primary_key is None:
+    def truncate_raw_table(self, schema_name, table_name):
+        client, full_name = self._ensure_raw_table(schema_name, table_name)
+        client.execute(f"TRUNCATE TABLE {full_name}_raw")
+        client.execute(f"TRUNCATE TABLE {full_name}_del")
+
+    def append_raw(self, schema_name, table_name, records):
+        client, full_name = self._ensure_raw_table(schema_name, table_name)
+        raw_name = full_name + "_raw"
+
+        progress = Progress(
+            lambda c, rec: print(
+                f"Processed {c} records to {full_name}, last was {rec}", flush=True
+            )
+        )
+
+        def record_for_clickhouse(record):
+
+            if record.primary_key is None:
                 has_primary_key = 0
                 primary_key = ""
             else:
                 has_primary_key = 1
-                primary_key = row.primary_key
-            data = json.dumps(row.data)
-            if row.valid_at is None:
+                primary_key = record.primary_key
+            if record.valid_at is None:
                 valid_at = ""
             else:
-                valid_at = row.valid_at.isoformat()
-            return [has_primary_key, primary_key, data, valid_at]
+                valid_at = record.valid_at.isoformat()
+            values = [has_primary_key, primary_key, record.data_str, valid_at]
+            progress.tick(values)
+            return values
 
+        insert = f"""INSERT INTO {raw_name} (has_primary_key, primary_key, data, valid_at) VALUES"""
         num_rows = client.execute(
-            f"""INSERT INTO {full_name}_raw (has_primary_key, primary_key, data, valid_at) VALUES""",
-            (row_for_clickhouse(row) for row in records),
+            insert, (record_for_clickhouse(row) for row in records)
         )
 
         table = Table(
@@ -84,7 +116,7 @@ class ClickHouse(Store):
             "rows": table.sample(
                 limit=max(23, num_rows),
                 order_by="rand()",
-                where=f"inserted_at = (select max(inserted_at) FROM {full_name}_raw)",
+                where=f"inserted_at = (select max(inserted_at) FROM {raw_name})",
             ),
         }
 

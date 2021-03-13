@@ -125,7 +125,15 @@ def source_update(source_id, config):
 @click.argument("source_id")
 @click.option("-r", "--reload", is_flag=True, default=False)
 def source_load(source_id, reload):
-    return COMMAND.ds.get_source(source_id).load(reload)
+    src = COMMAND.ds.get_source(source_id)
+    return src.load(reload)
+
+
+@command
+@click.argument("source_id")
+def source_inspect(source_id):
+    src = COMMAND.ds.get_source(source_id)
+    return dict(info=src.info(), inspect=src.inspect())
 
 
 @command

@@ -24,6 +24,10 @@ import { StaticTable } from "diaas/sources/StaticTable.js";
 import { useAppState } from "diaas/state.js";
 import { ButtonLink } from "diaas/ui.js";
 
+const UnknownSourceType = ({ user, source }) => {
+  return <pre>{JSON.stringify({ user, source })}</pre>;
+};
+
 // NOTE we could do something smarter here not have to edit this file
 // every time we define a new componnet. however we'd still need to
 // import the code and then we'd have unusedimports dangling around.
@@ -35,15 +39,21 @@ const SOURCE_TYPE_REGISTRY = {
   "libds.src.static.StaticTable": { editor: StaticTable, iconURL: "csv.png", label: "Manual Data Entry" },
 };
 
-const lookupSourceType = (source) => SOURCE_TYPE_REGISTRY[source.type];
-
-const SourceEditor = ({ user, source }) => {
-  const Component = source.definition["in"] === "code" ? Code : lookupSourceType(source).editor;
-  return <Component user={user} source={source} />;
+const lookupSourceSpec = (source) => {
+  if (source.definition["in"] === "code") {
+    return { editor: Code, iconURL: "python.png", label: "Code" };
+  } else {
+    const mapped = SOURCE_TYPE_REGISTRY[source.type];
+    if (mapped) {
+      return mapped;
+    } else {
+      return { editor: UnknownSourceType, iconURL: "unknown.png", label: "Unknown" };
+    }
+  }
 };
 
 const SourceType = ({ source }) => {
-  const { iconURL, label } = lookupSourceType(source);
+  const { iconURL, label } = lookupSourceSpec(source);
   return (
     <>
       <img width="20px" src={`/i/logos/${iconURL}`} alt={label} /> {label}
@@ -256,6 +266,7 @@ const SourceEditorContent = observer(() => {
     console.log("error");
     return <ErrorDialog title="This was not supposed to happen." message={`No source found with id '${id}'`} />;
   } else {
+    const SourceEditor = lookupSourceSpec(source).editor;
     return <SourceEditor user={user} source={source} />;
   }
 });

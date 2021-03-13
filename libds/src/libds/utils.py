@@ -38,3 +38,20 @@ def hash_password(pw):
         password=pw.encode("utf-8"), salt=salt, dklen=20, n=16384, r=8, p=1
     )
     return f"scrypt${salt.hex()}${hash.hex()}"
+
+
+class Progress:
+    def __init__(self, progress=None):
+        self.c = 0
+        self.step = 1
+        self.progress = progress
+        self.last_value = None
+
+    def tick(self, value):
+        self.last_value = value
+        self.c += 1
+        if self.c % self.step == 0:
+            self.progress(self.c, self.last_value)
+        if self.c >= 10 * self.step:
+            self.step = self.step * 10
+        return value

@@ -1,7 +1,7 @@
 import shlex
 from datetime import datetime
 
-from libds.src import Row, StaticSource
+from libds.src import Record, StaticSource
 
 
 class StaticTable(StaticSource):
@@ -47,7 +47,7 @@ class StaticTable(StaticSource):
 
     def collect_new_records(self, since):
         for row in self.rows:
-            yield Row(
+            yield Record(
                 primary_key=None,
                 data={key: value for key, value in zip(self.columns, row)},
                 valid_at=datetime.utcnow(),

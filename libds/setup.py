@@ -10,7 +10,8 @@ __version__ = version_globals['__version__']
 
 extras_require = {
     "postgresql":["psycopg2"],
-    "clickhouse":["clickhouse-driver"]
+    "clickhouse":["clickhouse-driver"],
+    "mysql":["mysqlclient"],
 }
 
 all = set()

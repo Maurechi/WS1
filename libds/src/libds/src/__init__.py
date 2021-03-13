@@ -1,3 +1,4 @@
+import json
 import re
 import runpy
 
@@ -6,11 +7,30 @@ from ruamel.yaml import YAML
 from libds.utils import ThreadLocalList, ThreadLocalValue
 
 
-class Row:
-    def __init__(self, primary_key, data, valid_at):
+class Record:
+    def __init__(self, primary_key=None, data=None, valid_at=None, data_str=None):
         self.primary_key = primary_key
-        self.data = data
+        self._data = data
+        self._data_str = data_str
         self.valid_at = valid_at
+
+    @property
+    def data_str(self):
+        if self._data_str is not None:
+            return self._data_str
+        elif self._data is not None:
+            return json.dumps(self._data)
+        else:
+            return None
+
+    @property
+    def data(self):
+        if self._data is not None:
+            return self._data
+        elif self._data_str is not None:
+            return json.loads(self._data_str)
+        else:
+            return None
 
 
 CURRENT_DATA_STACK = ThreadLocalValue()
@@ -27,7 +47,7 @@ def load_sources(data_stack):
         source_py = source_py.resolve()
         CURRENT_FILENAME.value = source_py
         LOCAL_SOURCES.reset()
-        runpy.run_path(source_py)
+        runpy.run_path(source_py, run_name=f"sources/{source_py.stem}")
         sources.extend(LOCAL_SOURCES)
 
     for file in sources_dir.glob("*.yaml"):
@@ -66,9 +86,6 @@ class BaseSource:
     def type(self):
         return self.__class__.__module__ + "." + self.__class__.__name__
 
-    def row(self, data, modified_at=None, id=None):
-        return Row(modified_at=modified_at, id=id, data=data)
-
     @property
     def id(self):
         if self._id is None:
@@ -102,6 +119,12 @@ class BaseSource:
             definition["config"] = self.raw_config
         default["definition"] = definition
         return {**default, **data}
+
+    def info(self):
+        return self._info()
+
+    def inspect(self):
+        return {}
 
     @classmethod
     def load_from_config_file(cls, data_stack, filename):
@@ -142,13 +165,13 @@ class BaseSource:
     def _split_table_name(self):
         name = self._table_name
         if name is None:
-            return "source", self.id
+            return "public", self.id
         else:
             m = re.match("^([^.]+)[.](.*)$", name)
             if m:
                 return m[1], m[2]
             else:
-                return "source", name
+                return "public", name
 
     @property
     def table_name(self):
@@ -159,7 +182,9 @@ class BaseSource:
         return self._split_table_name()[0]
 
     def load(self, recreate=False):
-        return self.data_stack.store.append_records(
+        if recreate:
+            self.data_stack.store.truncate_raw_table(self.schema_name, self.table_name)
+        return self.data_stack.store.append_raw(
             schema_name=self.schema_name,
             table_name=self.table_name,
             records=self.collect_new_records(None),

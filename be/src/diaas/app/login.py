@@ -1,7 +1,6 @@
 import cachecontrol
 import google.auth.transport.requests
 import requests
-from flask import request
 from google.oauth2.id_token import verify_oauth2_token
 
 from diaas.app.utils import Request

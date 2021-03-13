@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import google.oauth2.service_account
 from googleapiclient.discovery import build
 
-from libds.src import Row, StaticSource
+from libds.src import Record, StaticSource
 
 
 def lookup_spreadsheet_id(spreadsheet):
@@ -106,7 +106,7 @@ class GoogleSheet(StaticSource):
                 rows = values
 
         for row in rows:
-            yield Row(
+            yield Record(
                 primary_key=None,
                 data={key: value for key, value in zip(columns, row)},
                 valid_at=datetime.utcnow(),
