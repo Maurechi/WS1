@@ -19,5 +19,8 @@ RUN bash -l -c 'pip install -U pip wheel'
 
 RUN mkdir -p /diaas/be
 COPY ./be/requirements.txt ./diaas/be/
+
+RUN apt-get install -y default-libmysqlclient-dev
+
 RUN bash -l -c 'pip install -r /diaas/be/requirements.txt'
 CMD ["/diaas/be/docker/up"]
