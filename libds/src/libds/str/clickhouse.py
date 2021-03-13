@@ -1,8 +1,6 @@
 import arrow
-import json
-
-from clickhouse_driver import Client
 import clickhouse_driver.errors
+from clickhouse_driver import Client
 
 from libds.str import BaseTable, Store
 from libds.utils import Progress
@@ -66,7 +64,7 @@ class ClickHouse(Store):
         rows = list(client.execute(f"SELECT max(valid_at) FROM {full_name}_raw"))
         if len(rows) == 1 and len(rows[0]) == 1:
             val = rows[0][0]
-            if val == '':
+            if val == "":
                 return None
             else:
                 return arrow.get(rows[0][0])
@@ -82,7 +80,11 @@ class ClickHouse(Store):
         client, full_name = self._ensure_raw_table(schema_name, table_name)
         raw_name = full_name + "_raw"
 
-        progress = Progress(lambda c, rec: print(f"Processed {c} records to {full_name}, last was {rec}", flush=True))
+        progress = Progress(
+            lambda c, rec: print(
+                f"Processed {c} records to {full_name}, last was {rec}", flush=True
+            )
+        )
 
         def record_for_clickhouse(record):
 
@@ -101,7 +103,9 @@ class ClickHouse(Store):
             return values
 
         insert = f"""INSERT INTO {raw_name} (has_primary_key, primary_key, data, valid_at) VALUES"""
-        num_rows = client.execute(insert, (record_for_clickhouse(row) for row in records))
+        num_rows = client.execute(
+            insert, (record_for_clickhouse(row) for row in records)
+        )
 
         table = Table(
             store=self, schema_name=schema_name, table_name=table_name + "_raw"

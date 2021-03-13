@@ -1,9 +1,11 @@
 from hashlib import sha256
-from pprint import pprint, pformat  # noqa: F401
+from pprint import pformat, pprint  # noqa: F401
+
 import MySQLdb
-from libds.src import BaseSource, Record
 from MySQLdb import _exceptions as exceptions
 from MySQLdb.cursors import SSCursor
+
+from libds.src import BaseSource, Record
 
 
 def _fetchone(cur, stmt, *args):
@@ -21,13 +23,13 @@ def _quote_with(string, q_char):
 
 
 class MySQL(BaseSource):
-    ALL_TABLES = ';-all-;'
+    ALL_TABLES = ";-all-;"
 
     def __init__(self, **kwargs):
-        self.connect_args = kwargs.pop('connect_args', {})
-        self.tables = kwargs.pop('tables', None)
-        self.target_schema = kwargs.pop('target_schema', 'public')
-        self.target_table_name_prefix = kwargs.pop('target_table_name_prefix', None)
+        self.connect_args = kwargs.pop("connect_args", {})
+        self.tables = kwargs.pop("tables", None)
+        self.target_schema = kwargs.pop("target_schema", "public")
+        self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
         super().__init__(**kwargs)
 
     def info(self):
@@ -39,11 +41,16 @@ class MySQL(BaseSource):
         )
 
     def connect(self):
-        connect_args = dict(use_unicode=True, charset='utf8', cursorclass=SSCursor)
+        connect_args = dict(use_unicode=True, charset="utf8", cursorclass=SSCursor)
 
         if "port" in self.connect_args:
             connect_args["port"] = int(self.connect_args["port"])
-        mapping = {"host":"host","username":"user", "password":"passwd","database":"db"}
+        mapping = {
+            "host": "host",
+            "username": "user",
+            "password": "passwd",
+            "database": "db",
+        }
         for frm, to in mapping.items():
             if frm in self.connect_args:
                 connect_args[to] = self.connect_args[frm]
@@ -52,7 +59,10 @@ class MySQL(BaseSource):
 
     def select_tables(self, cur):
         tables = {}
-        for t in _fetchall(cur, "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = database() ORDER BY ordinal_position"):
+        for t in _fetchall(
+            cur,
+            "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = database() ORDER BY ordinal_position",
+        ):
             table_name, column_name = t
             if table_name not in tables:
                 tables[table_name] = []
@@ -61,8 +71,10 @@ class MySQL(BaseSource):
 
     def inspect(self):
         connect_args = self.connect_args.copy()
-        if 'password' in connect_args:
-            connect_args['password'] = "sha256:" + sha256(connect_args['password'].encode('utf-8')).hexdigest()
+        if "password" in connect_args:
+            connect_args["password"] = (
+                "sha256:" + sha256(connect_args["password"].encode("utf-8")).hexdigest()
+            )
         try:
             cur = self.connect().cursor()
         except exceptions.OperationalError as oe:
@@ -71,11 +83,18 @@ class MySQL(BaseSource):
             else:
                 code = oe.__class__.__name__
 
-            return dict({"error": {"code": code,
-                                   "error": pformat(oe),
-                                   "args": connect_args}})
+            return dict(
+                {"error": {"code": code, "error": pformat(oe), "args": connect_args}}
+            )
 
-        return dict(data=dict(conn=connect_args, database=_fetchone(cur, "SELECT database()"), tables_available=self.select_tables(cur), tables=self.tables))
+        return dict(
+            data=dict(
+                conn=connect_args,
+                database=_fetchone(cur, "SELECT database()"),
+                tables_available=self.select_tables(cur),
+                tables=self.tables,
+            )
+        )
 
     def load(self, recreate=False):
         # NOTE sort the table names so we always process things in the same order 20210309:mb
@@ -104,23 +123,29 @@ class MySQL(BaseSource):
             store.truncate_raw_table(schema_name, table_name)
 
         cur = self.connect().cursor()
-        column_names = _fetchall(cur, "SELECT column_name FROM information_schema.columns WHERE table_name = %s AND table_schema = database() ORDER BY ordinal_position", [table_name])
+        column_names = _fetchall(
+            cur,
+            "SELECT column_name FROM information_schema.columns WHERE table_name = %s AND table_schema = database() ORDER BY ordinal_position",
+            [table_name],
+        )
 
         json_obj = []
         for (name,) in column_names:
-            if 'exclude' in spec:
-                if name in spec['exclude']:
+            if "exclude" in spec:
+                if name in spec["exclude"]:
                     continue
-            if 'include' in spec:
-                if name not in spec['include']:
+            if "include" in spec:
+                if name not in spec["include"]:
                     continue
             json_obj.append(_quote_with(name, '"'))
-            json_obj.append(_quote_with(name, '`'))
+            json_obj.append(_quote_with(name, "`"))
 
-        primary_key_expr = spec.get('primary_key', 'NULL')
-        valid_at_expr = spec.get('valid_at', 'NULL')
+        primary_key_expr = spec.get("primary_key", "NULL")
+        valid_at_expr = spec.get("valid_at", "NULL")
 
-        most_recent_raw_timestamp = store.most_recent_raw_timestamp(schema_name, table_name)
+        most_recent_raw_timestamp = store.most_recent_raw_timestamp(
+            schema_name, table_name
+        )
         query = f"SELECT json_object({', '.join(json_obj)}), cast({primary_key_expr} as char), {valid_at_expr} FROM {table_name}"
         query_args = []
         if most_recent_raw_timestamp is not None:
