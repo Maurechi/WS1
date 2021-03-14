@@ -3,25 +3,33 @@ import React, { createContext, useCallback, useContext, useState } from "react";
 import v from "voca";
 
 import { wrapInBox } from "diaas/ui.js";
+import { ignore } from "diaas/utils.js";
 
 export const useFormValue = (initialValue, config) => {
   let [value, setValue] = useState(initialValue);
   let [isDirty, setIsDirty] = useState(false);
   let [isTouched, setIsTouched] = useState(false);
 
-  const { transform = (x) => x } = config || {};
+  const { transform = (x) => x, trim = true, onChange = (is, was) => ignore(is, was) } = config || {};
   return {
     getter() {
       return transform(value);
     },
     setter(newValue) {
       newValue = transform(newValue);
+      if (trim) {
+        newValue = v.trim(newValue);
+      }
       if (newValue !== value) {
         setIsDirty(true);
-        setValue(newValue);
+        onChange(newValue, value);
         value = newValue;
+        setValue(newValue);
       }
       return value;
+    },
+    toggle() {
+      return this.setter(!this.v);
     },
     touch() {
       isTouched = true;
@@ -42,7 +50,7 @@ export const useFormValue = (initialValue, config) => {
   };
 };
 
-export const TextField = wrapInBox(({ value, inputProps = {}, ...TextFieldProps }) => {
+export const TextField = wrapInBox(({ value, onChange: callerOnChange, inputProps = {}, ...TextFieldProps }) => {
   inputProps["onBlur"] = useCallback(() => value.touch(), [value]);
   const form = useFormData();
   const onKeyDown = useCallback(
@@ -53,17 +61,25 @@ export const TextField = wrapInBox(({ value, inputProps = {}, ...TextFieldProps 
     },
     [form]
   );
+
+  const onChange = useCallback(
+    (e) => {
+      if (e.target.value !== value.v) {
+        const was = value.v;
+        value.v = e.target.value;
+        if (callerOnChange) {
+          callerOnChange(value.v, was);
+        }
+      }
+    },
+    [value, callerOnChange]
+  );
+
+  inputProps["onKeyUp"] = onChange;
   if (form && form.submit) {
     inputProps["onKeyDown"] = onKeyDown;
   }
-  return (
-    <MUITextField
-      onChange={(e) => value.setter(e.target.value)}
-      value={v.trim(value.v)}
-      inputProps={inputProps}
-      {...TextFieldProps}
-    />
-  );
+  return <MUITextField onChange={onChange} value={value.v || ""} inputProps={inputProps} {...TextFieldProps} />;
 });
 
 export const Checkbox = ({ value, ...CheckboxProps }) => (

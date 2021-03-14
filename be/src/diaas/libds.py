@@ -51,8 +51,12 @@ class LibDS:
     def info(self):
         return self.call_ds(cmd=["info"])
 
-    def source_update(self, id, config):
-        return self.call_ds(cmd=["source-update", id, "-"], input=json.dumps(config))
+    def source_update(self, id, current_id, config):
+        cmd = "source-update --if-exists update --if-does-not-exist create".split()
+        if current_id is not None:
+            cmd += ["--current-id", current_id]
+        cmd += [id, json.dumps(config)]
+        return self.call_ds(cmd=cmd)
 
     def source_load(self, id):
         return self.call_ds(cmd=["source-load", id])

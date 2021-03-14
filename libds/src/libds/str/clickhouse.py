@@ -1,3 +1,5 @@
+import sys
+
 import arrow
 import clickhouse_driver.errors
 from clickhouse_driver import Client
@@ -82,7 +84,9 @@ class ClickHouse(Store):
 
         progress = Progress(
             lambda c, rec: print(
-                f"Processed {c} records to {full_name}, last was {rec}", flush=True
+                f"Processed {c} records to {full_name}, last was {rec}",
+                flush=True,
+                file=sys.stderr,
             )
         )
 

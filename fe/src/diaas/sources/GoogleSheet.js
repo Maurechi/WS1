@@ -20,6 +20,7 @@ export const GoogleSheet = ({ source }) => {
     saveAndLoadLabel.v = "Saving...";
     return state.backend
       .postSource(source.id, {
+        type: source.type,
         spreadsheet: spreadsheet.v,
         range: range.v,
         service_account_info: service_account_info.v,

@@ -10,8 +10,8 @@ import { ActionButton } from "diaas/ui.js";
 export const StaticTable = observer(({ source }) => {
   const state = useAppState();
   const config = source.definition.config;
-  const data = useFormValue(config.data);
-  const id = useFormValue(source.id);
+  const data = useFormValue(config.data, { trim: false });
+
   const targetTable = useFormValue(config.target_table);
 
   const [rows, setRows] = useState([]);
@@ -22,22 +22,21 @@ export const StaticTable = observer(({ source }) => {
   const saveAndLoadLabel = useFormValue("Save and Load");
   const saveAndLoad = () => {
     saveAndLoadLabel.v = "Saving...";
-    return state.backend.postSource(source.id, { data: data.v, target_table: targetTable.v }).then(() => {
-      saveAndLoadLabel.v = "Loading...";
-      return state.backend.loadSource(source.id).then((data) => {
-        saveAndLoadLabel.v = "Save and Load";
-        console.log("Load returned", data);
-        setRows(data.rows);
-        // return [update, load];
+    return state.backend
+      .postSource(source.id || "", { data: data.v, target_table: targetTable.v, id: targetTable.v, type: source.type })
+      .then(() => {
+        saveAndLoadLabel.v = "Loading...";
+        return state.backend.loadSource(targetTable.v).then((data) => {
+          saveAndLoadLabel.v = "Save and Load";
+          console.log("Load returned", data);
+          setRows(data.rows);
+          // return [update, load];
+        });
       });
-    });
   };
   return (
     <Form onSubmit={submit}>
       <Grid container>
-        <Grid item xs={12}>
-          <TextField pb={4} label="ID" value={id} fullWidth={true} style={{ maxWidth: "600px" }} disabled={true} />
-        </Grid>
         <Grid item xs={12}>
           <TextField pb={4} label="Target Table" value={targetTable} fullWidth={true} style={{ maxWidth: "600px" }} />
         </Grid>
