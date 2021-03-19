@@ -1,4 +1,5 @@
 import decimal
+import math
 from collections.abc import Mapping, Sequence
 from functools import wraps
 from pathlib import Path
@@ -107,6 +108,8 @@ def encode(thing):
         return thing.isoformat()
     elif isinstance(thing, Path):
         return str(thing)
+    elif math.isnan(thing) or math.isinf(thing):
+        return 'null'
     else:
         return None
 
