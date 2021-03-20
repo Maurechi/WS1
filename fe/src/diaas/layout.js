@@ -203,11 +203,11 @@ export const AppNavigation = ({ children }) => {
 
   const loc = useLocation();
 
-  const SectionMenuItem = ({ location, text, Icon }) => {
+  const SectionMenuItem = ({ location, onClick, text, Icon }) => {
     const isCurrentLocation = v.startsWith(loc.pathname, location);
     const style = isCurrentLocation ? { color: theme.palette["primary"].main } : {};
     return (
-      <ListItem button component={Link} to={location + "/"} key={text}>
+      <ListItem button component={Link} to={location + "/"} key={text} onClick={onClick}>
         <ListItemIcon>
           <Icon style={style} />
         </ListItemIcon>
@@ -246,7 +246,12 @@ export const AppNavigation = ({ children }) => {
           <SectionMenuItem location="/stores" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
           <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
-          <SectionMenuItem location="/analytics" text="Analytics" Icon={SearchIcon} />
+          <SectionMenuItem
+            location="/analytics"
+            onClick={() => window.open("/analytics", "caravel-analytics")}
+            text="Analytics"
+            Icon={SearchIcon}
+          />
         </List>
         <Divider />
         <List>
