@@ -35,7 +35,9 @@ class ClickHouse(Store):
 
     def client(self):
         return ClickHouseClient(
-            host=self.parameters["host"], port=self.parameters["port"]
+            host=self.parameters["host"],
+            port=self.parameters["port"],
+            database="public",
         )
 
     def _ensure_raw_table(self, schema_name, table_name):
