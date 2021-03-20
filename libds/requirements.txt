@@ -35,7 +35,7 @@ requests==2.25.1          # via google-api-core, requests-oauthlib
 rsa==4.6                  # via google-auth
 ruamel.yaml==0.16.12      # via -r requirements.in
 six==1.15.0               # via google-api-core, google-api-python-client, google-auth, google-auth-httplib2, protobuf, python-dateutil
-sqlalchemy==1.4.0b3       # via -r requirements.in
+sqlalchemy==1.4.2         # via -r requirements.in
 uritemplate==3.0.1        # via google-api-python-client
 urllib3==1.26.2           # via requests
 
