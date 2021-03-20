@@ -118,15 +118,15 @@ class SQLModel(BaseModel):
 
         template = env.get_template(str(filename.relative_to(models_dir)))
         config = dict(
-            dependencies=None,
+            dependencies=[],
             table_name=None,
             schema_name=None,
             is_query=not filename.stem.startswith("lib"),
         )
 
-        def depends_on(*ids):
-            config["dependencies"] = ids
-            return _pprint_call("depends_on", ids=ids)
+        def depends_on(model_id, *other_deps):
+            config["dependencies"] += [model_id] + list(other_deps)
+            return model_id
 
         def table_name(table, schema=None):
             if table is not None:
@@ -186,7 +186,9 @@ class SQLCodeModel(SQLModel):
         super().__init__(sql, "sql", **kwargs)
 
     def load(self, reload):
-        return self.data_stack.store.execute_sql(select=self.sql)
+        store = self.data_stack.store
+        store.execute_sql(select=self.sql)
+        return store.get_table(self.schema_name, self.table_name).sample()
 
     def info(self):
         info = super().info()
