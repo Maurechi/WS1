@@ -1,7 +1,9 @@
 import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
 import React, { createContext, useCallback, useContext, useState } from "react";
+import * as uuid from "uuid";
 import v from "voca";
 
+import AceEditor from "diaas/AceEditor";
 import { wrapInBox } from "diaas/ui.js";
 import { ignore } from "diaas/utils.js";
 
@@ -114,5 +116,21 @@ export const Form = ({ children, onSubmit }) => {
     <FormContext.Provider value={formData}>
       <form onSubmit={onSubmit}>{children}</form>
     </FormContext.Provider>
+  );
+};
+
+export const CodeEditor = ({ mode, value, disabled = false }) => {
+  const [divId] = useState(uuid.v4());
+  return (
+    <AceEditor
+      width="100%"
+      mode={mode}
+      theme="solarized_light"
+      name={divId}
+      value={value.v}
+      onChange={value.setter}
+      fontSize={18}
+      readOnly={disabled}
+    />
   );
 };

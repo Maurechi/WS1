@@ -6,37 +6,10 @@ import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
-// NOTE this is a disaster. i know. eslint wants to reoder import
-// alphabetically (which is somthing we generally want in this code
-// base). however AceEditor needs to be loaded before its dependencies
-// (and this is really AceEditor's fault). So we have to split the
-// laods into 2 files, name them so that eslint wan't swap the load
-// order, and then finally re import everything. would be great to
-// have a way to tell eslint "don't reorder these 3 lines", but i
-// wasn't able to find it.
-// 20201215:mb
-import "diaas/AceEditor_A_Editor";
-import "diaas/AceEditor_B_Dependencies";
-import AceEditor from "diaas/AceEditor";
-import { TextField, useFormValue } from "diaas/form.js";
+import { CodeEditor, TextField, useFormValue } from "diaas/form.js";
 import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { ButtonLink, NotFound } from "diaas/ui.js";
-
-const CodeEditor = ({ code, mode, disabled = false }) => {
-  return (
-    <AceEditor
-      width="100%"
-      mode={mode}
-      theme="solarized_light"
-      name="UNIQUE_ID_OF_DIV"
-      value={code.v}
-      onChange={code.setter}
-      fontSize={18}
-      readOnly={disabled}
-    />
-  );
-};
 
 export const Editor = observer(() => {
   const [saveButtonLabel, setSaveButtonLabel] = useState("Save & Run");
@@ -95,7 +68,7 @@ export const Editor = observer(() => {
             </Box>
           </Box>
         </Box>
-        <CodeEditor mode={model.type} code={codeValue} />
+        <CodeEditor mode={model.type} value={codeValue} />
         <Divider />
         <SampleDataTable rows={rows} />
       </Box>
