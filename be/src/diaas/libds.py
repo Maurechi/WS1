@@ -67,8 +67,8 @@ class LibDS:
             cmd += ["--type", type]
         if current_id is not None:
             cmd += ["--current-id", current_id]
-        cmd += [id, source]
-        return self.call_ds(cmd=cmd)
+        cmd += [id, "-"]
+        return self.call_ds(cmd=cmd, input=source)
 
     def model_load(self, id):
         return self.call_ds(cmd=["model-load", id])
