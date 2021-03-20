@@ -18,13 +18,16 @@ class SQLite(SQLAlchemyStore):
     def make_table_name(self, schema_name, table_name):
         return f"{schema_name}_{table_name}"
 
-    def append_raw(self, schema_name, table_name, records, recreate):
+    def truncate_raw_table(self, schema_name, table_name):
+        table_name = self.make_table_name(schema_name, table_name)
+        with self.engine.connect() as conn:
+            conn.execute(sa.text(f"""DROP TABLE IF EXISTS {table_name}_raw"""))
+            conn.execute(sa.text(f"""DROP TABLE IF EXISTS {table_name}_del"""))
+
+    def append_raw(self, schema_name, table_name, records):
         table_name = self.make_table_name(schema_name, table_name)
 
         with self.engine.connect() as conn:
-            if recreate:
-                conn.execute(sa.text(f"""DROP TABLE IF EXISTS {table_name}_raw"""))
-                conn.execute(sa.text(f"""DROP TABLE IF EXISTS {table_name}_del"""))
             conn.execute(
                 sa.text(
                     f"""

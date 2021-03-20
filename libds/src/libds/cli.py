@@ -9,6 +9,7 @@ from pathlib import Path
 import click
 
 from libds import DataStack, __version__
+from libds.src import BaseSource
 from libds.trf import (
     PythonTransformation,
     SQLCodeTransformation,
@@ -109,16 +110,35 @@ def info():
 
 
 @command
-@click.argument("source_id")
+@click.option(
+    "--if-exists",
+    type=click.Choice(["error", "update"], case_sensitive=False),
+    default="update",
+)
+@click.option(
+    "--if-does-not-exist",
+    type=click.Choice(["error", "create"], case_sensitive=False),
+    default="create",
+)
+@click.option("--current-id")
+@click.argument("id")
 @click.argument("config")
-def source_update(source_id, config):
+def source_update(if_exists, if_does_not_exist, current_id, id, config):
     config = _arg_json(config)
-    source = COMMAND.ds.get_source(source_id)
+    source = COMMAND.ds.get_source(id)
     if source is None:
-        return {"error": {"code": "source-not-found", "id": source_id}}
+        if if_does_not_exist == "error":
+            return {"error": {"code": "source-not-found", "id": id}}
     else:
-        source.update_config(config)
-        return COMMAND.ds.get_source(source_id).info()
+        if if_exists == "error":
+            return {"error": {"code": "source-exists", "id": current_id}}
+
+    if current_id is None:
+        current_id = id
+    BaseSource.update_config_file(
+        data_stack=COMMAND.ds, current_id=current_id, id=id, config=config
+    )
+    return COMMAND.ds.get_source(id).info()
 
 
 @command
@@ -137,7 +157,6 @@ def source_inspect(source_id):
 
 
 @command
-@click.argument("transformation_id")
 @click.option("--current-id")
 @click.option(
     "--type",
@@ -155,6 +174,7 @@ def source_inspect(source_id):
     type=click.Choice(["error", "create"], case_sensitive=False),
     default="create",
 )
+@click.argument("transformation_id")
 @click.argument("source")
 def transformation_update(
     transformation_id, type, if_exists, if_does_not_exist, current_id, source

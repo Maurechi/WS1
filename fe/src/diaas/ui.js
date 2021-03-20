@@ -3,7 +3,7 @@ import _ from "lodash";
 import React, { useState } from "react";
 import { useHistory } from "react-router-dom";
 
-const StandardButton = ({ variant = "contained", color = "secondary", style, children, ...buttonProps }) => {
+export const StandardButton = ({ variant = "contained", color = "secondary", style, children, ...buttonProps }) => {
   style = Object.assign({}, style);
   if (!("fontWeight" in style)) {
     style.fontWeight = 800;
@@ -19,11 +19,14 @@ const StandardButton = ({ variant = "contained", color = "secondary", style, chi
   );
 };
 
-export const ButtonLink = ({ target, children, ...buttonProps }) => {
+export const ButtonLink = ({ target, children, onClick: callerOnClick, ...buttonProps }) => {
   const history = useHistory();
   const onClick = (e) => {
-    e.preventDefault();
-    history.push(target);
+    return Promise.resolve(callerOnClick ? callerOnClick() : null).then((res) => {
+      e.preventDefault();
+      history.push(target);
+      return res;
+    });
   };
   return (
     <StandardButton onClick={onClick} {...buttonProps}>
@@ -78,6 +81,12 @@ export const CenterContent = ({ children }) => (
 
 export const HCenter = ({ children, ...BoxProps }) => (
   <Box display="flex" width="100%" justifyContent="center" {...BoxProps}>
+    {children}
+  </Box>
+);
+
+export const VCenter = ({ children, ...BoxProps }) => (
+  <Box display="flex" width="100%" alignItems="center" {...BoxProps}>
     {children}
   </Box>
 );

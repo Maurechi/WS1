@@ -1,6 +1,7 @@
 import json
 import re
 import runpy
+from pathlib import Path
 
 from ruamel.yaml import YAML
 
@@ -151,16 +152,18 @@ class BaseSource:
         s.filename = filename
         return s
 
-    def update_config(self, config):
-        if self.defined_in == "config":
-            if "type" not in config:
-                config["type"] = self.type
-            with self.filename.open("wb") as file:
-                yaml = YAML(typ="rt")
-                yaml.dump(config, file)
-        return BaseSource.load_from_config_file(
-            self.data_stack, self.filename.resolve()
-        )
+    @classmethod
+    def update_config_file(cls, data_stack, id, current_id, config):
+        path = Path(data_stack.directory / "sources" / (id + ".yaml")).resolve()
+        if current_id != id:
+            current_path = Path(
+                data_stack.directory / "sources" / (current_id + ".yaml")
+            )
+            current_path.rename(path)
+        with path.open("wb") as file:
+            yaml = YAML(typ="rt")
+            yaml.dump(config, file)
+        return BaseSource.load_from_config_file(data_stack, path)
 
     def _split_table_name(self):
         name = self._table_name
@@ -188,7 +191,6 @@ class BaseSource:
             schema_name=self.schema_name,
             table_name=self.table_name,
             records=self.collect_new_records(None),
-            recreate=recreate,
         )
 
     def sample(self, limit=None, order_by=None):
@@ -203,5 +205,4 @@ class BaseSource:
 
 
 class StaticSource(BaseSource):
-    def load(self, recreate=None):
-        return super().load(recreate=recreate)
+    pass

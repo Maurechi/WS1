@@ -51,7 +51,19 @@ def session_delete():
 @as_json
 def source_update(id):
     libds = g.user.current_data_stack.libds
-    return libds.source_update(id, request.get_json())
+    config = request.get_json()
+    current_id = id
+    id = config.pop("id")
+    return libds.source_update(current_id=current_id, id=id, config=config)
+
+
+@api_v1.route("/sources/", methods=["POST"])
+@login_required
+@as_json
+def source_create():
+    libds = g.user.current_data_stack.libds
+    config = request.get_json()
+    return libds.source_update(current_id=None, id=config.pop("id"), config=config)
 
 
 @api_v1.route("/sources/<path:id>/load", methods=["POST"])
