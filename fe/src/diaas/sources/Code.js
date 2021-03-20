@@ -1,13 +1,13 @@
 import React from "react";
 
 export const Code = ({ source }) => {
-  const { filename } = source.definition;
+  const { filename, code } = source.definition;
   return (
     <>
       <p>
-        <b>{source.name}</b>
+        <tt>{source.id}</tt> defined in <tt>{filename}</tt>
       </p>
-      <pre>{filename}</pre>
+      <pre>{code}</pre>
     </>
   );
 };

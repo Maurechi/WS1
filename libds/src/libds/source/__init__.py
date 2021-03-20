@@ -118,6 +118,8 @@ class BaseSource:
         definition = {"in": self.defined_in, "filename": str(self.filename)}
         if self.defined_in == "config":
             definition["config"] = self.raw_config
+        elif self.defined_in == "code":
+            definition["code"] = self.filename.open("r").read()
         default["definition"] = definition
         return {**default, **data}
 
