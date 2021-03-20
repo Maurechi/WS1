@@ -1,4 +1,4 @@
-type: libds.src.google.GoogleSheet
+type: libds.source.google.GoogleSheet
 service_account_json: |
   {"does": "not", "matter": null}
 spreadsheet: "1234"

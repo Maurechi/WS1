@@ -5,7 +5,7 @@ import MySQLdb
 from MySQLdb import _exceptions as exceptions
 from MySQLdb.cursors import SSCursor
 
-from libds.src import BaseSource, Record
+from libds.source import BaseSource, Record
 
 
 def _fetchone(cur, stmt, *args):

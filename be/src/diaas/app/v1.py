@@ -74,13 +74,13 @@ def source_load(id):
     return libds.source_load(id)
 
 
-@api_v1.route("/transformation/<path:id>", methods=["POST"])
+@api_v1.route("/model/<path:id>", methods=["POST"])
 @login_required
 @as_json
-def transformation_update(id):
+def model_update(id):
     req = Request()
     libds = g.user.current_data_stack.libds
-    return libds.transformation_update(
+    return libds.model_update(
         id=req.require("id"),
         type=req.require("type"),
         source=req.require("source"),
@@ -88,22 +88,22 @@ def transformation_update(id):
     )
 
 
-@api_v1.route("/transformation/", methods=["POST"])
+@api_v1.route("/model/", methods=["POST"])
 @login_required
 @as_json
-def transformation_create():
+def model_create():
     req = Request()
     libds = g.user.current_data_stack.libds
-    return libds.transformation_update(
+    return libds.model_update(
         id=req.require("id"),
         type=req.param("type", default="select"),
         source=req.require("source"),
     )
 
 
-@api_v1.route("/transformation/<path:id>/load", methods=["POST"])
+@api_v1.route("/model/<path:id>/load", methods=["POST"])
 @login_required
 @as_json
-def transformation_load(id):
+def model_load(id):
     libds = g.user.current_data_stack.libds
-    return libds.transformation_load(id)
+    return libds.model_load(id)

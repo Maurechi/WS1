@@ -75,9 +75,9 @@ export const StoresContent = () => {
     return <Box>No Stores.</Box>;
   } else {
     const config = stores[0];
-    if (config.type === "libds.str.postgresql.PostgreSQL") {
+    if (config.type === "libds.store.postgresql.PostgreSQL") {
       return <PostgreSQL config={config} />;
-    } else if (config.type === "libds.str.clickhouse.ClickHouse") {
+    } else if (config.type === "libds.store.clickhouse.ClickHouse") {
       return <ClickHouse config={config} />;
     } else {
       return (

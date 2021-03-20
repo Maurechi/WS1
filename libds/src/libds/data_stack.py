@@ -4,9 +4,9 @@ from pathlib import Path
 import pygit2
 from ruamel.yaml import YAML
 
-from libds.src import load_sources
-from libds.str import load_store
-from libds.trf import load_trfs
+from libds.model import load_models
+from libds.source import load_sources
+from libds.store import load_store
 from libds.utils import ThreadLocalList
 
 LOCAL_DATA_STACKS = ThreadLocalList()
@@ -71,7 +71,7 @@ class DataStack:
             ),
             sources=[s.info() for s in self.sources],
             stores=[store.info() for store in self.stores],
-            transformations=[trf.info() for trf in self.trfs],
+            models=[model.info() for model in self.models],
         )
 
     @property
@@ -102,16 +102,16 @@ class DataStack:
             return None
 
     @property
-    def trfs(self):
-        return load_trfs(self)
+    def models(self):
+        return load_models(self)
 
-    def get_trf(self, id):
-        for trf in self.trfs:
-            if trf.id == id:
-                return trf
+    def get_model(self, id):
+        for model in self.models:
+            if model.id == id:
+                return model
         else:
             return None
 
     @property
-    def transformations_dir(self):
-        return self.directory / "transformations"
+    def models_dir(self):
+        return self.directory / "models"

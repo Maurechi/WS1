@@ -1,4 +1,4 @@
-from libds.src.static import StaticTable
+from libds.source.static import StaticTable
 
 StaticTable.from_data(
     """

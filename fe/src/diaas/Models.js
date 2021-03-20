@@ -47,43 +47,41 @@ export const Editor = observer(() => {
     return <NotFound>No Data stacks for user</NotFound>;
   }
 
-  const { trfid } = useParams();
-  const creating = trfid === "new";
+  const { modelId } = useParams();
+  const creating = modelId === "new";
 
-  let trf;
+  let model;
   if (creating) {
-    trf = { id: "", type: "sql", source: "select * from" };
+    model = { id: "", type: "sql", source: "select * from" };
   } else {
-    trf = _.find(user.dataStack.transformations, (t) => t.id === trfid);
-    if (!trf) {
-      return <NotFound>No Transformation with id {trfid}</NotFound>;
+    model = _.find(user.dataStack.models, (m) => m.id === modelId);
+    if (!model) {
+      return <NotFound>No Model with id {modelId}</NotFound>;
     }
   }
 
-  const codeValue = useFormValue(trf.source);
-  const idValue = useFormValue(trf.id);
+  const codeValue = useFormValue(model.source);
+  const idValue = useFormValue(model.id);
 
   const [rows, setRows] = useState([]);
   const saveAndRun = () => {
     setSaveButtonLabel("Saving.");
     setSaveButtonDisabled(true);
-    backend
-      .postTransformation(creating ? "" : trfid, { type: "select", id: idValue.v, source: codeValue.v })
-      .then((data) => {
-        setSaveButtonLabel("Loading");
-        backend.loadTransformation(data.id).then((rows) => {
-          setSaveButtonDisabled(false);
-          setSaveButtonLabel("Save & Run");
-          setRows(rows);
-        });
+    backend.postModel(creating ? "" : modelId, { type: "select", id: idValue.v, source: codeValue.v }).then((data) => {
+      setSaveButtonLabel("Loading");
+      backend.loadModel(data.id).then((rows) => {
+        setSaveButtonDisabled(false);
+        setSaveButtonLabel("Save & Run");
+        setRows(rows);
       });
+    });
   };
 
   return (
     <form onSubmit={saveAndRun}>
       <Box>
         <Box display="flex" mb={3}>
-          <Box style={{ flexGrow: 1 }}>ID: {creating ? <TextField value={idValue} /> : <pre>{trf.id}</pre>}</Box>
+          <Box style={{ flexGrow: 1 }}>ID: {creating ? <TextField value={idValue} /> : <pre>{model.id}</pre>}</Box>
           <Box>
             <Box display="flex">
               <Box mx={1}>
@@ -97,7 +95,7 @@ export const Editor = observer(() => {
             </Box>
           </Box>
         </Box>
-        <CodeEditor mode={trf.type} code={codeValue} />
+        <CodeEditor mode={model.type} code={codeValue} />
         <Divider />
         <SampleDataTable rows={rows} />
       </Box>
@@ -107,8 +105,8 @@ export const Editor = observer(() => {
 
 export const FileTable = observer(() => {
   const { user } = useAppState();
-  const transformations = user.dataStack ? user.dataStack.transformations : [];
-  const files = transformations.map(({ id, type, last_modified }) => ({
+  const models = user.dataStack ? user.dataStack.models : [];
+  const files = models.map(({ id, type, last_modified }) => ({
     id,
     type,
     lastModified: last_modified,
@@ -134,11 +132,11 @@ export const FileTable = observer(() => {
   return (
     <Box>
       <Box display="flex" mb={3}>
-        <Box style={{ flexGrow: 1 }}>Transformations:</Box>
+        <Box style={{ flexGrow: 1 }}>Models:</Box>
         <Box>
           <Box display="flex">
             <Box mx={1}>
-              <ButtonLink target="/transformations/new">New Transformation</ButtonLink>
+              <ButtonLink target="/models/new">New Model</ButtonLink>
             </Box>
           </Box>
         </Box>
@@ -154,11 +152,11 @@ export const FileTable = observer(() => {
   );
 });
 
-export const TransformationsContent = () => {
+export const ModelsContent = () => {
   let { path } = useRouteMatch();
   return (
     <Switch>
-      <Route path={`${path}:trfid`}>
+      <Route path={`${path}:modelId`}>
         <Editor />
       </Route>
       <Route path={path}>

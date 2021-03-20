@@ -13,12 +13,12 @@ import { AnalyticsContent } from "diaas/Analytics";
 import { TextField, useFormValue } from "diaas/form.js";
 import { JobsContent } from "diaas/Jobs";
 import { AppNavigation, AppSplash } from "diaas/layout.js";
+import { ModelsContent } from "diaas/Models.js";
 import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
 import { StoresContent } from "diaas/Stores.js";
 import { ThemeProvider } from "diaas/Theme.js";
-import { TransformationsContent } from "diaas/Transformations.js";
 import { HCenter } from "diaas/ui.js";
 import { ignore } from "diaas/utils.js";
 
@@ -160,8 +160,8 @@ const AppContent = () => (
           <Route path="/sources/">
             <SourcesContent />
           </Route>
-          <Route path="/transformations/">
-            <TransformationsContent />
+          <Route path="/models/">
+            <ModelsContent />
           </Route>
           <Route path="/stores/">
             <StoresContent />

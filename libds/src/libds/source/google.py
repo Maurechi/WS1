@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import google.oauth2.service_account
 from googleapiclient.discovery import build
 
-from libds.src import Record, StaticSource
+from libds.source import Record, StaticSource
 
 
 def lookup_spreadsheet_id(spreadsheet):

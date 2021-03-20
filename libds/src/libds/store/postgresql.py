@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 import sqlalchemy as sa
 
-from libds.str.sqlalchemy import SQLAlchemyStore
+from libds.store.sqlalchemy import SQLAlchemyStore
 from libds.utils import hash_password
 
 
@@ -52,7 +52,7 @@ class PostgreSQL(SQLAlchemyStore):
 
         return self._insert_rows(table_name, records)
 
-    def create_or_replace_transformation(self, table, schema, select):
+    def create_or_replace_model(self, table, schema, select):
         with self.engine.connect() as conn:
             view_name = self.make_table_name(schema, table)
             # NOTE we need to drop the view here as postgresql does

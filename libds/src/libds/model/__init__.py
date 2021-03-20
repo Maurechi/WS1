@@ -11,17 +11,16 @@ from libds.utils import ThreadLocalValue
 CURRENT_DATA_STACK = ThreadLocalValue()
 
 
-def load_trfs(data_stack):
-    sqls = data_stack.transformations_dir.glob("**/*.sql")
-    pys = data_stack.transformations_dir.glob("**/*.py")
-    trfs = [
-        BaseTransformation.from_file(data_stack, filename)
-        for filename in chain(sqls, pys)
+def load_models(data_stack):
+    sqls = data_stack.models_dir.glob("**/*.sql")
+    pys = data_stack.models_dir.glob("**/*.py")
+    models = [
+        BaseModel.from_file(data_stack, filename) for filename in chain(sqls, pys)
     ]
-    return filter(None, trfs)
+    return filter(None, models)
 
 
-class BaseTransformation:
+class BaseModel:
     def __init__(
         self,
         id=None,
@@ -90,9 +89,9 @@ class BaseTransformation:
     @classmethod
     def from_file(cls, data_stack, filename):
         if filename.suffix == ".sql":
-            return SQLTransformation.from_file(data_stack, filename)
+            return SQLModel.from_file(data_stack, filename)
         elif filename.suffix == ".py":
-            return PythonTransformation.from_file(data_stack, filename)
+            return PythonModel.from_file(data_stack, filename)
 
 
 def _pprint_call(func, **args):
@@ -104,7 +103,7 @@ def _pprint_call(func, **args):
     return str
 
 
-class SQLTransformation(BaseTransformation):
+class SQLModel(BaseModel):
     def __init__(self, sql=None, type=None, **kwargs):
         super().__init__(**kwargs)
         self.sql = sql
@@ -115,12 +114,10 @@ class SQLTransformation(BaseTransformation):
 
     @classmethod
     def from_file(cls, data_stack, filename):
-        transformations_dir = data_stack.directory / "transformations"
-        env = Environment(
-            loader=FileSystemLoader([str(transformations_dir)]), autoescape=False
-        )
+        models_dir = data_stack.directory / "models"
+        env = Environment(loader=FileSystemLoader([str(models_dir)]), autoescape=False)
 
-        template = env.get_template(str(filename.relative_to(transformations_dir)))
+        template = env.get_template(str(filename.relative_to(models_dir)))
         config = dict(
             dependencies=None,
             table_name=None,
@@ -152,9 +149,9 @@ class SQLTransformation(BaseTransformation):
             is_statement=is_statement,
         )
         if config["is_query"]:
-            cls = SQLQueryTransformation
+            cls = SQLQueryModel
         else:
-            cls = SQLCodeTransformation
+            cls = SQLCodeModel
         return cls(
             data_stack=data_stack,
             filename=filename,
@@ -165,12 +162,12 @@ class SQLTransformation(BaseTransformation):
         )
 
 
-class SQLQueryTransformation(SQLTransformation):
+class SQLQueryModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "select", **kwargs)
 
     def load(self, reload):
-        self.data_stack.store.create_or_replace_transformation(
+        self.data_stack.store.create_or_replace_model(
             table_name=self.table_name, schema_name=self.schema_name, select=self.sql
         )
         table = self.data_stack.store.get_table(self.schema_name, self.table_name)
@@ -180,12 +177,12 @@ class SQLQueryTransformation(SQLTransformation):
     def create(cls, data_stack, id):
         return cls(
             data_stack=data_stack,
-            filename=data_stack.transformations_dir / f"{id}.sql",
+            filename=data_stack.models_dir / f"{id}.sql",
             sql=None,
         )
 
 
-class SQLCodeTransformation(SQLTransformation):
+class SQLCodeModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "sql", **kwargs)
 
@@ -199,10 +196,10 @@ class SQLCodeTransformation(SQLTransformation):
         return info
 
 
-class PythonTransformation(BaseTransformation):
-    def __init__(self, transform, **kwargs):
+class PythonModel(BaseModel):
+    def __init__(self, model, **kwargs):
         super().__init__(**kwargs)
-        self.transform = transform
+        self.model = model
         self.type = "python"
 
     @classmethod
@@ -211,12 +208,10 @@ class PythonTransformation(BaseTransformation):
         globals = runpy.run_path(filename)
         CURRENT_DATA_STACK.value = None
 
-        if "transform" in globals:
-            return cls(
-                data_stack=data_stack, filename=filename, transform=globals["transform"]
-            )
+        if "model" in globals:
+            return cls(data_stack=data_stack, filename=filename, model=globals["model"])
         else:
-            raise ValueError(f"No transform function defined in {filename}")
+            raise ValueError(f"No model function defined in {filename}")
 
     def load(self, reload):
-        return self.transform(self.data_stack.store)
+        return self.model(self.data_stack.store)

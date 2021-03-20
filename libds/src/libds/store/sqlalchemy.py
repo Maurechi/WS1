@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import sqlalchemy as sa
 
-from libds.str import BaseTable, Store
+from libds.store import BaseTable, Store
 
 
 class SQLAlchemyStore(Store):

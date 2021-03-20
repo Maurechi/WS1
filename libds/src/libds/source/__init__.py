@@ -135,14 +135,14 @@ class BaseSource:
             raise ValueError("Missing required property `type`")
         cls = None
         if type is not None:
-            if type == "libds.src.static.StaticTable":
-                import libds.src.static
+            if type == "libds.source.static.StaticTable":
+                import libds.source.static
 
-                cls = libds.src.static.StaticTable
-            if type == "libds.src.google.GoogleSheet":
-                import libds.src.google
+                cls = libds.source.static.StaticTable
+            if type == "libds.source.google.GoogleSheet":
+                import libds.source.google
 
-                cls = libds.src.google.GoogleSheet
+                cls = libds.source.google.GoogleSheet
         if cls is None:
             raise ValueError(f"Don't know which source to use for type {type}")
 

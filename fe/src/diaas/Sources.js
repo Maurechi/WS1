@@ -22,10 +22,10 @@ const UnknownSourceType = ({ user, source }) => {
 // import the code and then we'd have unusedimports dangling around.
 // this feels like a decent comporommise to me. 20210102:mb
 const SOURCE_TYPE_REGISTRY = {
-  "libds.src.google.GoogleSheet": { editor: GoogleSheet, iconURL: "google-sheets.svg", label: "Google Sheet" },
-  "libds.src.facebook.Ads": { editor: GoogleSheet, iconURL: "facebook.svg", label: "Facebook Ads" },
-  "libds.src.google.Adwords": { editor: Code, iconURL: "google-adwords.png", label: "Google Ads" },
-  "libds.src.static.StaticTable": { editor: StaticTable, iconURL: "csv.png", label: "Manual Data Entry" },
+  "libds.source.google.GoogleSheet": { editor: GoogleSheet, iconURL: "google-sheets.svg", label: "Google Sheet" },
+  "libds.source.facebook.Ads": { editor: GoogleSheet, iconURL: "facebook.svg", label: "Facebook Ads" },
+  "libds.source.google.Adwords": { editor: Code, iconURL: "google-adwords.png", label: "Google Ads" },
+  "libds.source.static.StaticTable": { editor: StaticTable, iconURL: "csv.png", label: "Manual Data Entry" },
 };
 
 const lookupSourceSpec = (source) => {
@@ -195,7 +195,7 @@ export const NewSourceChooser = () => {
         </Box>
         <Grid container spacing={4}>
           <Grid item xs={4}>
-            <NewConnectorCard logo="csv.png" name="Static Table" type="libds.src.static.StaticTable" />
+            <NewConnectorCard logo="csv.png" name="Static Table" type="libds.source.static.StaticTable" />
           </Grid>
           <Grid item xs={4}>
             <NewConnectorCard logo="postgresql.svg" name="PostgreSQL" disabled />

@@ -61,8 +61,8 @@ class LibDS:
     def source_load(self, id):
         return self.call_ds(cmd=["source-load", id])
 
-    def transformation_update(self, id, type=None, source=None, current_id=None):
-        cmd = "transformation-update --if-exists update --if-does-not-exist create".split()
+    def model_update(self, id, type=None, source=None, current_id=None):
+        cmd = "model-update --if-exists update --if-does-not-exist create".split()
         if type is not None:
             cmd += ["--type", type]
         if current_id is not None:
@@ -70,5 +70,5 @@ class LibDS:
         cmd += [id, source]
         return self.call_ds(cmd=cmd)
 
-    def transformation_load(self, id):
-        return self.call_ds(cmd=["transformation-load", id])
+    def model_load(self, id):
+        return self.call_ds(cmd=["model-load", id])

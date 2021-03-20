@@ -1,4 +1,4 @@
-type: libds.src.static.StaticTable
+type: libds.source.static.StaticTable
 data: |
   date       value notes
   2001-01-01 ABC   "some stuff goes here"

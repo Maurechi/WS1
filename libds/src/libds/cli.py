@@ -9,12 +9,8 @@ from pathlib import Path
 import click
 
 from libds import DataStack, __version__
-from libds.src import BaseSource
-from libds.trf import (
-    PythonTransformation,
-    SQLCodeTransformation,
-    SQLQueryTransformation,
-)
+from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
+from libds.source import BaseSource
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -174,43 +170,39 @@ def source_inspect(source_id):
     type=click.Choice(["error", "create"], case_sensitive=False),
     default="create",
 )
-@click.argument("transformation_id")
+@click.argument("model_id")
 @click.argument("source")
-def transformation_update(
-    transformation_id, type, if_exists, if_does_not_exist, current_id, source
-):
+def model_update(model_id, type, if_exists, if_does_not_exist, current_id, source):
     if current_id is None:
-        current_id = transformation_id
-    trf = COMMAND.ds.get_trf(current_id)
-    if trf is None:
+        current_id = model_id
+    model = COMMAND.ds.get_model(current_id)
+    if model is None:
         if if_does_not_exist == "error":
-            return {
-                "error": {"code": "transformation-does-not-exist", "id": current_id}
-            }
+            return {"error": {"code": "model-does-not-exist", "id": current_id}}
 
         if type == "select":
-            cls = SQLQueryTransformation
+            cls = SQLQueryModel
         elif type == "sql":
-            cls = SQLCodeTransformation
+            cls = SQLCodeModel
         elif type == "python":
-            cls = PythonTransformation
-        trf = cls.create(data_stack=COMMAND.ds, id=current_id)
+            cls = PythonModel
+        model = cls.create(data_stack=COMMAND.ds, id=current_id)
 
-    if trf is not None:
+    if model is not None:
         if if_exists == "error":
-            return {"error": {"code": "transformation-exists", "id": current_id}}
+            return {"error": {"code": "model-exists", "id": current_id}}
 
-    trf.update_source(_arg_str(source))
-    if transformation_id != current_id:
-        trf = trf.update_id(transformation_id)
-    return COMMAND.ds.get_trf(transformation_id).info()
+    model.update_source(_arg_str(source))
+    if model_id != current_id:
+        model = model.update_id(model_id)
+    return COMMAND.ds.get_model(model_id).info()
 
 
 @command
-@click.argument("transformation_id")
+@click.argument("model_id")
 @click.option("-r", "--reload", is_flag=True, default=False)
-def transformation_load(transformation_id, reload):
-    return COMMAND.ds.get_trf(transformation_id).load(reload)
+def model_load(model_id, reload):
+    return COMMAND.ds.get_model(model_id).load(reload)
 
 
 @command

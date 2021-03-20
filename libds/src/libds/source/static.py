@@ -1,7 +1,7 @@
 import shlex
 from datetime import datetime
 
-from libds.src import Record, StaticSource
+from libds.source import Record, StaticSource
 
 
 class StaticTable(StaticSource):

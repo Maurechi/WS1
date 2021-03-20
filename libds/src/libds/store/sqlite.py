@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 
-from libds.src import SQLAlchemyStore
+from libds.source import SQLAlchemyStore
 
 
 class SQLite(SQLAlchemyStore):
@@ -51,7 +51,7 @@ class SQLite(SQLAlchemyStore):
 
         return self._insert_rows(table_name, records)
 
-    def create_or_replace_transformation(self, table, schema, select):
+    def create_or_replace_model(self, table, schema, select):
         with self.engine.connect() as conn:
             view_name = self.make_table_name(schema, table)
             conn.execute(sa.text(f"DROP VIEW IF EXISTS {view_name};"))

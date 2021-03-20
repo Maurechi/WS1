@@ -244,7 +244,7 @@ export const AppNavigation = ({ children }) => {
         <List>
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
           <SectionMenuItem location="/stores" text="Storage" Icon={StorageIcon} />
-          <SectionMenuItem location="/transformations" text="Transformations" Icon={BuildIcon} />
+          <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
           <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
           <SectionMenuItem location="/analytics" text="Analytics" Icon={SearchIcon} />
         </List>

@@ -4,7 +4,7 @@ import arrow
 import clickhouse_driver.errors
 from clickhouse_driver import Client
 
-from libds.str import BaseTable, Store
+from libds.store import BaseTable, Store
 from libds.utils import Progress
 
 
@@ -124,7 +124,7 @@ class ClickHouse(Store):
             ),
         }
 
-    def create_or_replace_transformation(self, table_name, schema_name, select):
+    def create_or_replace_model(self, table_name, schema_name, select):
         client = self.client()
         client.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
         client.execute(f"DROP TABLE IF EXISTS {schema_name}.{table_name};")
