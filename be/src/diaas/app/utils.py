@@ -109,7 +109,7 @@ def encode(thing):
     elif isinstance(thing, Path):
         return str(thing)
     elif math.isnan(thing) or math.isinf(thing):
-        return 'null'
+        return "null"
     else:
         return None
 
