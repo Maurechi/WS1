@@ -169,8 +169,7 @@ class SQLQueryModel(SQLModel):
         self.data_stack.store.create_or_replace_model(
             table_name=self.table_name, schema_name=self.schema_name, select=self.sql
         )
-        table = self.data_stack.store.get_table(self.schema_name, self.table_name)
-        return table.sample()
+        return self.data_stack.store.get_table(self.schema_name, self.table_name)
 
     @classmethod
     def create(cls, data_stack, id):

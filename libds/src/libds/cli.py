@@ -199,11 +199,43 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
     return COMMAND.ds.get_model(model_id).info()
 
 
+def _model_load(model_id, reload):
+    table = COMMAND.ds.get_model(model_id).load(reload)
+    return table.sample()
+
+
 @command
 @click.argument("model_id")
 @click.option("-r", "--reload", is_flag=True, default=False)
 def model_load(model_id, reload):
-    return COMMAND.ds.get_model(model_id).load(reload)
+    return _model_load(model_id, reload)
+
+
+@command
+@click.option("-r", "--reload", is_flag=True, default=False)
+def model_load_all(reload):
+    # NOTE in python3.7 and up dicts guarantee insertion order. 20210320:mb
+    sorted = {}
+
+    def walk(m):
+        for dep in m.dependencies:
+            walk(COMMAND.ds.get_model(dep))
+        sorted[m.id] = m
+
+    for m in COMMAND.ds.models:
+        walk(m)
+
+    samples = []
+    for id in sorted.keys():
+        if reload:
+            loading = "reloading"
+        else:
+            loading = "loading"
+        print(f"{loading.capitalize()} {id}", file=sys.stderr, flush=True)
+        samples.append(dict(id=id, sample=_model_load(id, reload)))
+        print(f"Done {loading} {id}", file=sys.stderr, flush=True)
+
+    return samples
 
 
 @command
