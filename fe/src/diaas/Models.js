@@ -120,6 +120,7 @@ export const FileTable = observer(() => {
         isProperty="id"
         columns={columns}
         dataSource={files}
+        defaultSortInfo={{ name: "id", dir: 1 }}
         style={{ minHeight: 550 }}
         onRenderRow={onRenderRow}
       />
