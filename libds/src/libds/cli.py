@@ -192,9 +192,10 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
         if if_exists == "error":
             return {"error": {"code": "model-exists", "id": current_id}}
 
-    model.update_source(_arg_str(source))
     if model_id != current_id:
         model = model.update_id(model_id)
+    model.update_source(_arg_str(source))
+
     return COMMAND.ds.get_model(model_id).info()
 
 

@@ -54,7 +54,9 @@ export const Editor = observer(() => {
     <form onSubmit={saveAndRun}>
       <Box>
         <Box display="flex" mb={3}>
-          <Box style={{ flexGrow: 1 }}>ID: {creating ? <TextField value={idValue} /> : <pre>{model.id}</pre>}</Box>
+          <Box style={{ flexGrow: 1 }}>
+            ID: <TextField value={idValue} />{" "}
+          </Box>
           <Box>
             <Box display="flex">
               <Box mx={1}>

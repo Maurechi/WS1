@@ -82,8 +82,7 @@ class BaseModel:
     def update_id(self, id):
         new_filename = self.filename.with_name(id).with_suffix(self.filename.suffix)
         self.filename.rename(new_filename)
-        self.filename = new_filename
-        self.id = id
+        self._init_properties(new_filename, id, None, None)
         return self
 
     @classmethod
