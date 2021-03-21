@@ -1,4 +1,5 @@
 import runpy
+import sys
 from datetime import datetime
 from itertools import chain
 from pathlib import Path
@@ -39,6 +40,13 @@ class BaseModel:
         if dependencies is None:
             dependencies = []
         self.dependencies = dependencies
+
+    @classmethod
+    def from_file(cls, data_stack, filename):
+        if filename.suffix == ".sql":
+            return SQLModel.from_file(data_stack, filename)
+        elif filename.suffix == ".py":
+            return PythonModel.from_file(data_stack, filename)
 
     def _init_properties(self, filename, id, table_name, schema_name):
         self.filename = Path(filename)
@@ -85,12 +93,11 @@ class BaseModel:
         self._init_properties(new_filename, id, None, None)
         return self
 
-    @classmethod
-    def from_file(cls, data_stack, filename):
-        if filename.suffix == ".sql":
-            return SQLModel.from_file(data_stack, filename)
-        elif filename.suffix == ".py":
-            return PythonModel.from_file(data_stack, filename)
+    def load(self, reload):
+        print(f"Will load data for {self.id}", file=sys.stderr)
+        self.load_data(reload=reload)
+        return self.data_stack.store.get_table(self.schema_name, self.table_name)
+        # return NullTable(self.schema_name, self.table_name)
 
 
 def _pprint_call(func, **args):
@@ -165,11 +172,10 @@ class SQLQueryModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "select", **kwargs)
 
-    def load(self, reload):
+    def load_data(self, reload):
         self.data_stack.store.create_or_replace_model(
             table_name=self.table_name, schema_name=self.schema_name, select=self.sql
         )
-        return self.data_stack.store.get_table(self.schema_name, self.table_name)
 
     @classmethod
     def create(cls, data_stack, id):
@@ -184,10 +190,8 @@ class SQLCodeModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "sql", **kwargs)
 
-    def load(self, reload):
-        store = self.data_stack.store
-        store.execute_sql(select=self.sql)
-        return store.get_table(self.schema_name, self.table_name).sample()
+    def load_data(self, reload):
+        self.data_stack.store.execute_sql(select=self.sql)
 
     def info(self):
         info = super().info()
@@ -213,5 +217,5 @@ class PythonModel(BaseModel):
         else:
             raise ValueError(f"No model function defined in {filename}")
 
-    def load(self, reload):
-        return self.model(self.data_stack.store)
+    def load_data(self, reload):
+        self.model(self.data_stack.store)

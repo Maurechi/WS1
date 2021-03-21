@@ -11,6 +11,7 @@ import click
 from libds import DataStack, __version__
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.source import BaseSource
+from libds.utils import DependencyGraph
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -199,42 +200,51 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
     return COMMAND.ds.get_model(model_id).info()
 
 
-def _model_load(model_id, reload):
-    table = COMMAND.ds.get_model(model_id).load(reload)
-    return table.sample()
+def model_load_one(model_id, reload):
+    if reload:
+        loading = "reloading"
+    else:
+        loading = "loading"
+    print(f"{loading.capitalize()} {model_id}", file=sys.stderr, flush=True)
+    sample = COMMAND.ds.get_model(model_id).load(reload).sample()
+    # print(f"Done {loading} {model_id}", file=sys.stderr, flush=True)
+    return sample
+
+
+def _compute_model_load_order(model_ids):
+    g = DependencyGraph()
+
+    for m in COMMAND.ds.models:
+        for dep in m.dependencies:
+            g.edge(dep, m.id)
+
+    return g.cascade_from_nodes(model_ids)
 
 
 @command
 @click.argument("model_id")
 @click.option("-r", "--reload", is_flag=True, default=False)
-def model_load(model_id, reload):
-    return _model_load(model_id, reload)
+@click.option("--cascade/--no-cascade", is_flag=True, default=True)
+def model_load(model_id, reload, cascade):
+    if COMMAND.ds.get_model(model_id) is None:
+        return {"error": {"code": "model-not-found", "id": model_id}}
+    if cascade:
+        models = _compute_model_load_order([model_id])
+        samples = [model_load_one(model_id, reload) for model_id in models]
+        return samples[0]
+    else:
+        return model_load_one(model_id, reload)
 
 
 @command
 @click.option("-r", "--reload", is_flag=True, default=False)
 def model_load_all(reload):
-    # NOTE in python3.7 and up dicts guarantee insertion order. 20210320:mb
-    sorted = {}
-
-    def walk(m):
-        for dep in m.dependencies:
-            walk(COMMAND.ds.get_model(dep))
-        sorted[m.id] = m
-
-    for m in COMMAND.ds.models:
-        walk(m)
-
-    samples = []
-    for id in sorted.keys():
-        if reload:
-            loading = "reloading"
-        else:
-            loading = "loading"
-        print(f"{loading.capitalize()} {id}", file=sys.stderr, flush=True)
-        samples.append(dict(id=id, sample=_model_load(id, reload)))
-        print(f"Done {loading} {id}", file=sys.stderr, flush=True)
-
+    model_ids = [model.id for model in COMMAND.ds.models]
+    models = _compute_model_load_order(model_ids)
+    samples = [
+        dict(id=model_id, sample=model_load_one(model_id, reload))
+        for model_id in models
+    ]
     return samples
 
 
