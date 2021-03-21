@@ -207,4 +207,5 @@ class BaseSource:
 
 
 class StaticSource(BaseSource):
-    pass
+    def load(self, reload=None):
+        return super().load(reload=True)
