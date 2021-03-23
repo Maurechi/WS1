@@ -72,3 +72,6 @@ class LibDS:
 
     def model_load(self, id):
         return self.call_ds(cmd=["model-load", id])
+
+    def execute(self, statement):
+        return self.call_ds(cmd=["execute", "-"], input=statement)

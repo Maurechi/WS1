@@ -83,6 +83,10 @@ class Backend {
   loadModel(model_id) {
     return this.post(`/model/${model_id}/load`).then(dataIfStatusEquals(200));
   }
+
+  execute(payload) {
+    return this.post(`/stores/0/execute`, payload).then(dataIfStatusEquals(200));
+  }
 }
 
 class User {

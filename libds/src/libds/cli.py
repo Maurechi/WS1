@@ -249,6 +249,13 @@ def model_load_all(reload):
 
 
 @command
+@click.argument("statement")
+def execute(statement):
+    statement = _arg_str(statement)
+    return COMMAND.ds.stores[0].execute(statement)
+
+
+@command
 @click.pass_context
 def help(ctx):
     click.echo(ctx.parent.get_help())

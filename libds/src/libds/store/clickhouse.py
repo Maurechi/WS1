@@ -4,7 +4,7 @@ import arrow
 import clickhouse_driver.errors
 from clickhouse_driver import Client
 
-from libds.store import BaseTable, Store
+from libds.store import BaseTable, Store, to_sample_value
 from libds.utils import Progress
 
 
@@ -137,10 +137,25 @@ class ClickHouse(Store):
     def get_table(self, schema_name, table_name):
         return Table(store=self, schema_name=schema_name, table_name=table_name)
 
+    def execute(self, statement):
+        return _execute(self.client(), statement)
+
+
+def _execute(client, statement):
+    iter, cols = client.execute(statement, with_column_types=True)
+
+    rows = []
+    for data in iter:
+        row = {}
+        for value, col in zip(data, cols):
+            row[col[0]] = to_sample_value(value)
+        rows.append(row)
+
+    return rows
+
 
 class Table(BaseTable):
     def _sample(self, limit, order_by, where):
-        client = self.store.client()
         stmt = f"SELECT * FROM {self.schema_name}.{self.table_name}"
         if where is not None:
             stmt += f" WHERE {where} "
@@ -148,13 +163,4 @@ class Table(BaseTable):
             stmt += f" ORDER BY {order_by} "
         if limit is not None:
             stmt += f" LIMIT {limit} "
-        iter, cols = client.execute(stmt, with_column_types=True)
-
-        rows = []
-        for data in iter:
-            row = {}
-            for value, col in zip(data, cols):
-                row[col[0]] = self.to_sample_value(value)
-            rows.append(row)
-
-        return rows
+        return _execute(self.store.client(), stmt)
