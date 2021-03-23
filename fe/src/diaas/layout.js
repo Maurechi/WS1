@@ -243,7 +243,7 @@ export const AppNavigation = ({ children }) => {
         <Divider />
         <List>
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
-          <SectionMenuItem location="/stores" text="Storage" Icon={StorageIcon} />
+          <SectionMenuItem location="/store" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
           <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
           <SectionMenuItem

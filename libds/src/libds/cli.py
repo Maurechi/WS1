@@ -226,8 +226,18 @@ def _compute_model_load_order(model_ids):
 @click.option("-r", "--reload", is_flag=True, default=False)
 @click.option("--cascade/--no-cascade", is_flag=True, default=True)
 def model_load(model_id, reload, cascade):
-    if COMMAND.ds.get_model(model_id) is None:
+    m = COMMAND.ds.get_model(model_id)
+    if m is None:
         return {"error": {"code": "model-not-found", "id": model_id}}
+
+    if cascade:
+        o = Orchestrator(tasks=m.load_task())
+        samples = o.execute()
+        return samples[0]
+    else:
+        return model_load_one(model_id, reload)
+
+
     if cascade:
         models = _compute_model_load_order([model_id])
         samples = [model_load_one(model_id, reload) for model_id in models]

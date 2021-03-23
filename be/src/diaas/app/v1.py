@@ -109,7 +109,7 @@ def model_load(id):
     return libds.model_load(id)
 
 
-@api_v1.route("/stores/0/execute", methods=["POST"])
+@api_v1.route("/store/execute", methods=["POST"])
 @login_required
 @as_json
 def execute():

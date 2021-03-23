@@ -17,7 +17,7 @@ import { ModelsContent } from "diaas/Models.js";
 import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
-import { StoresContent } from "diaas/Stores.js";
+import { StoreContent } from "diaas/Store.js";
 import { ThemeProvider } from "diaas/Theme.js";
 import { HCenter } from "diaas/ui.js";
 import { ignore } from "diaas/utils.js";
@@ -163,8 +163,8 @@ const AppContent = () => (
           <Route path="/models/">
             <ModelsContent />
           </Route>
-          <Route path="/stores/">
-            <StoresContent />
+          <Route path="/store/">
+            <StoreContent />
           </Route>
           <Route path="/jobs/">
             <JobsContent />

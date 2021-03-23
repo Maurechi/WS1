@@ -85,7 +85,7 @@ class Backend {
   }
 
   execute(payload) {
-    return this.post(`/stores/0/execute`, payload).then(dataIfStatusEquals(200));
+    return this.post(`/store/execute`, payload).then(dataIfStatusEquals(200));
   }
 }
 

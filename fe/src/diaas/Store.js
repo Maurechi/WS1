@@ -2,26 +2,26 @@ import { Box } from "@material-ui/core";
 
 import { useAppState } from "diaas/state.js";
 
-const SourceLogo = ({ logo, alt }) => (
+const StoreLogo = ({ logo, alt }) => (
   <p>
     <img width="100em" src={`/i/logos/${logo}`} alt={alt} />
   </p>
 );
 
-const SourceTable = ({ config, children }) => (
+const StoreTable = ({ store, children }) => (
   <table>
     <tbody>
       <tr>
         <td>Id:</td>
         <td>
-          <tt>{config.id}</tt>
+          <tt>{store.id}</tt>
         </td>
       </tr>
       {children}
       <tr>
         <td>Parameters:</td>
         <td>
-          <pre>{JSON.stringify(config, null, 4)}</pre>
+          <pre>{JSON.stringify(store, null, 4)}</pre>
         </td>
       </tr>
     </tbody>
@@ -68,22 +68,21 @@ const ClickHouse = ({ config }) => {
   );
 };
 
-export const StoresContent = () => {
+export const StoreContent = () => {
   const { user } = useAppState();
-  const stores = user.dataStack ? user.dataStack.stores : [];
-  if (stores.length === 0) {
-    return <Box>No Stores.</Box>;
+  const store = user.dataStack ? user.dataStack.store : null;
+  if (store === null) {
+    return <Box>No Store.</Box>;
   } else {
-    const config = stores[0];
-    if (config.type === "libds.store.postgresql.PostgreSQL") {
+    if (store.type === "libds.store.postgresql.PostgreSQL") {
       return <PostgreSQL config={config} />;
-    } else if (config.type === "libds.store.clickhouse.ClickHouse") {
+    } else if (store.type === "libds.store.clickhouse.ClickHouse") {
       return <ClickHouse config={config} />;
     } else {
       return (
         <>
-          <SourceLogo logo="404.gif" alt="Unknown Type" />
-          <SourceTable config={config} />
+          <StoreLogo logo="404.gif" alt="Unknown Type" />
+          <StoreTable store={store} />
         </>
       );
     }
