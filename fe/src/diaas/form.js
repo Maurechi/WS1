@@ -131,6 +131,8 @@ export const CodeEditor = ({ mode, value, disabled = false }) => {
       onChange={value.setter}
       fontSize={18}
       readOnly={disabled}
+      minLines={4}
+      maxLines={20}
     />
   );
 };

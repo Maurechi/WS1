@@ -1,15 +1,15 @@
-import "@inovua/reactdatagrid-community/index.css";
-import ReactDataGrid from "@inovua/reactdatagrid-community";
-import { Box, Divider } from "@material-ui/core";
+import { Box, Divider, Grid, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
+import { DataGrid } from "diaas/DataGrid.js";
 import { CodeEditor, TextField, useFormValue } from "diaas/form.js";
-import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
+import { Notebook } from "diaas/Notebook.js";
+import { SampleDataTable } from "diaas/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
-import { ButtonLink, NotFound } from "diaas/ui.js";
+import { ButtonLink, NotFound, StandardButton, VCenter } from "diaas/ui.js";
 
 export const Editor = observer(() => {
   const [saveButtonLabel, setSaveButtonLabel] = useState("Save & Run");
@@ -50,28 +50,52 @@ export const Editor = observer(() => {
     });
   };
 
+  const SaveAndRunButton = () => (
+    <StandardButton onClick={saveAndRun} disabled={saveButtonDisabled}>
+      {" "}
+      {saveButtonLabel}{" "}
+    </StandardButton>
+  );
+
   return (
     <form onSubmit={saveAndRun}>
       <Box>
         <Box display="flex" mb={3}>
           <Box style={{ flexGrow: 1 }}>
-            ID: <TextField value={idValue} />{" "}
+            <Typography variant="h4">Settings</Typography>
+            <VCenter>
+              <Box pr={2}>ID2:</Box>
+              <Box>
+                {" "}
+                <TextField value={idValue} />{" "}
+              </Box>
+            </VCenter>
           </Box>
           <Box>
             <Box display="flex">
               <Box mx={1}>
-                <ButtonLink onClick={saveAndRun} disabled={saveButtonDisabled}>
-                  {saveButtonLabel}
-                </ButtonLink>
+                <SaveAndRunButton />
               </Box>
               <Box mx={1}>
-                <ButtonLink disabled={true}>Commit</ButtonLink>
+                <StandardButton disabled={true}>Commit</StandardButton>
               </Box>
             </Box>
           </Box>
         </Box>
-        <CodeEditor mode={model.type} value={codeValue} />
         <Divider />
+        <Grid container>
+          <Grid item xs={6}>
+            <Typography variant="h4">Model</Typography>
+            <CodeEditor mode={model.type} value={codeValue} />
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="h4">Note Book</Typography>
+            <Notebook />
+          </Grid>
+        </Grid>
+        <Divider />
+        <Typography variant="h4">Data Sample</Typography>
+        <SaveAndRunButton />
         <SampleDataTable rows={rows} />
       </Box>
     </form>
@@ -116,7 +140,7 @@ export const FileTable = observer(() => {
           </Box>
         </Box>
       </Box>
-      <ReactDataGrid
+      <DataGrid
         isProperty="id"
         columns={columns}
         dataSource={files}
