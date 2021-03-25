@@ -72,13 +72,15 @@ class DataStack:
                 ),
             ),
             sources=[s.info() for s in self.sources],
-            stores=[store.info() for store in self.stores],
+            store=self.store.info(),
             models=[model.info() for model in self.models],
         )
 
-    @property
-    def sources(self):
-        return load_sources(self)
+    def load(self):
+        self.sources = load_sources(self)
+        self.models = load_models(self)
+        self.store = load_store(self)
+        return self
 
     def get_source(self, id):
         for s in self.sources:
@@ -86,26 +88,6 @@ class DataStack:
                 return s
         else:
             return None
-
-    @property
-    def stores(self):
-        store = load_store(self)
-        if store is None:
-            return []
-        else:
-            return [store]
-
-    @property
-    def store(self):
-        stores = self.stores
-        if len(stores) > 0:
-            return stores[0]
-        else:
-            return None
-
-    @property
-    def models(self):
-        return load_models(self)
 
     def get_model(self, id):
         # print(f"Looking for model {id} in {list(self.models)}")

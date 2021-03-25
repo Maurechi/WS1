@@ -33,6 +33,7 @@ class Command:
         self.format = format
         if directory is not None:
             self.ds = DataStack.from_dir(directory)
+            self.ds.load()
 
     def results(self, data):
         result = dict(meta=dict(version=__version__))

@@ -28,42 +28,42 @@ const StoreTable = ({ store, children }) => (
   </table>
 );
 
-const PostgreSQL = (config) => {
+const PostgreSQL = (store) => {
   return (
     <>
-      <SourceLogo logo="postgresql.svg" alt="PostgreSQL DB" />
-      <SourceTable config={config}>
+      <StoreLogo logo="postgresql.svg" alt="PostgreSQL DB" />
+      <StoreTable store={store}>
         <tr>
           <td>Host:</td>
-          <td>{config.parameters.host}</td>
+          <td>{store.parameters.host}</td>
         </tr>
         <tr>
           <td>Port:</td>
-          <td>{config.parameters.port}</td>
+          <td>{store.parameters.port}</td>
         </tr>
         <tr>
           <td>User:</td>
-          <td>{config.parameters.user}</td>
+          <td>{store.parameters.user}</td>
         </tr>
-      </SourceTable>
+      </StoreTable>
     </>
   );
 };
 
-const ClickHouse = ({ config }) => {
+const ClickHouse = ({ store }) => {
   return (
     <>
-      <SourceLogo logo="clickhouse.png" alt="ClickHouse" />
-      <SourceTable config={config}>
+      <StoreLogo logo="clickhouse.png" alt="ClickHouse" />
+      <StoreTable store={store}>
         <tr>
           <td>Host:</td>
-          <td>{config.parameters.host}</td>
+          <td>{store.parameters.host}</td>
         </tr>
         <tr>
           <td>Port:</td>
-          <td>{config.parameters.port}</td>
+          <td>{store.parameters.port}</td>
         </tr>
-      </SourceTable>
+      </StoreTable>
     </>
   );
 };
@@ -75,9 +75,9 @@ export const StoreContent = () => {
     return <Box>No Store.</Box>;
   } else {
     if (store.type === "libds.store.postgresql.PostgreSQL") {
-      return <PostgreSQL config={config} />;
+      return <PostgreSQL store={store} />;
     } else if (store.type === "libds.store.clickhouse.ClickHouse") {
-      return <ClickHouse config={config} />;
+      return <ClickHouse store={store} />;
     } else {
       return (
         <>
