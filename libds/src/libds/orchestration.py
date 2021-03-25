@@ -1,28 +1,18 @@
+import os
+import sys
+from pathlib import Path
+import uuid
 import multiprocessing as mp
 import time
 import traceback
 from pprint import pformat, pprint  # noqa: F401
+import arrow
 
 
-def apply_task(task):
-    # print("_apply_task({pformat(task)})")
-    # return task.execute()
-    return None
-
-
-def orchestrator(o):
-    try:
-        with mp.Pool(processes=2, maxtasksperchild=1) as pool:
-            while True:
-                o.tick(pool)
-                if o.done:
-                    break
-                else:
-                    time.sleep(1)
-    except Exception as e:
-        o.queue.put([True, traceback.format_exc()])
-        raise e
-    o.queue.put([False, None])
+def apply_task(task, log_dir):
+    sys.stdout = (log_dir / f"{task.id}.stdout").open("w")
+    sys.stderr = (log_dir / f"{task.id}.stderr").open("w")
+    return task.execute()
 
 
 class TaskState:
@@ -79,7 +69,7 @@ class Orchestrator:
                 t.blockers = [task for task in t.blockers if task.state != "DONE"]
                 if len(t.blockers) == 0:
                     print("  No blockers, running")
-                    t.async_result = pool.apply_async(apply_task, args=[t.task])
+                    t.async_result = pool.apply_async(apply_task, args=[t.task, self.log_dir])
                     t.state = "RUNNING"
                 else:
                     print(f"  {len(t.blockers)} blockers:")
@@ -109,17 +99,74 @@ class Orchestrator:
 
         return self
 
-    def execute(self):
-        self.process = mp.Process(target=orchestrator, args=[self])
-        self.process.start()
-        return self
+    def fork(self):
+        try:
+            return os.fork()
+        except OSError as err:
+            print(f'fork failed: {err}', file=sys.stderr)
+            sys.exit(1)
 
-    def wait(self):
-        err, msg = self.queue.get()
-        if err:
-            raise Exception(f"Exception in orchestrator thread: {msg}")
+    def orchestrate_inner(self):
+        try:
+            with mp.Pool(processes=2, maxtasksperchild=1) as pool:
+                while True:
+                    self.tick(pool)
+                    if self.done:
+                        break
+                    else:
+                        time.sleep(1)
+        except Exception:
+            tb = traceback.format_exc()
+            print(f"Done with error: {tb}")
+            return [True, tb]
+        print("Done without errors")
+        return [False, None]
+
+    def orchestrate(self):
+        stdout = sys.stdout
+        stderr = sys.stderr
+
+        with self.pid_file.open("w") as f:
+            print(str(os.getpid()), file=f)
+
+        sys.stdout = (self.log_dir / "orchestrator.stdout").open("w")
+        sys.stderr = (self.log_dir / "orchestrator.stderr").open("w")
+        ret = self.orchestrate_inner()
+        sys.stdout = stdout
+        sys.stderr = stderr
+
+        if self.pid_file.exists():
+            self.pid_file.unlink()
+
+        return ret
+
+    def execute(self, wait=False):
+        self.id = f"{arrow.get()}-{uuid.uuid4()}"
+        self.log_dir = Path("logs") / self.id
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.pid_file = self.log_dir / "pid.txt"
+
+        if wait:
+            err, msg = self.orchestrate()
+            if err:
+                raise Exception(f"Exception in orchestrator thread: {msg}")
+            else:
+                return None
         else:
-            return self
+            if self.fork() > 0:
+                return self.pid_file
+
+            # NOTE From this point on we're in the child and we never return 20210326:mb
+
+            os.setsid()
+            os.umask(0)
+
+            if self.fork() > 0:
+                sys.exit()
+
+            self.orchestrate()
+
+            sys.exit(0)
 
 
 class Task:
@@ -133,5 +180,4 @@ class Task:
         return []
 
     def execute(self):
-        print(f"{self.id} executing.")
-        return True
+        raise NotImplementedError()

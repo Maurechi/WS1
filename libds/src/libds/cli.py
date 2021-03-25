@@ -227,15 +227,17 @@ def _compute_model_load_order(model_ids):
 @click.argument("model_id")
 @click.option("-r", "--reload", is_flag=True, default=False)
 @click.option("--cascade/--no-cascade", is_flag=True, default=True)
-def model_load(model_id, reload, cascade):
+@click.option("--wait/--no-wait", is_flag=True, default=False)
+def model_load(model_id, reload, cascade, wait):
     m = COMMAND.ds.get_model(model_id)
     if m is None:
         return {"error": {"code": "model-not-found", "id": model_id}}
 
     load_task = m.load_task(reload=reload, cascade=cascade)
-    o = Orchestrator(tasks=[load_task]).execute()
-    o.wait()
-    return COMMAND.ds.get_model(model_id).table().sample()
+    o = Orchestrator(tasks=[load_task])
+    pid_file = o.execute(wait=wait)
+    return {'oid': o.id, 'pid-file': str(pid_file)}
+    # return COMMAND.ds.get_model(model_id).table().sample()
 
 
 @command
