@@ -7,6 +7,7 @@ from pprint import pformat
 
 from jinja2 import Environment, FileSystemLoader
 
+from libds.orchestration import Task
 from libds.utils import ThreadLocalValue
 
 CURRENT_DATA_STACK = ThreadLocalValue()
@@ -15,10 +16,10 @@ CURRENT_DATA_STACK = ThreadLocalValue()
 def load_models(data_stack):
     sqls = data_stack.models_dir.glob("**/*.sql")
     pys = data_stack.models_dir.glob("**/*.py")
-    models = [
-        BaseModel.from_file(data_stack, filename) for filename in chain(sqls, pys)
-    ]
-    return filter(None, models)
+    files = chain(sqls, pys)
+    models = [BaseModel.from_file(data_stack, filename) for filename in files]
+    models = list(filter(None, models))
+    return models
 
 
 class BaseModel:
@@ -93,11 +94,48 @@ class BaseModel:
         self._init_properties(new_filename, id, None, None)
         return self
 
-    def load(self, reload):
-        print(f"Will load data for {self.id}", file=sys.stderr)
-        self.load_data(reload=reload)
+    def load_task(self, reload=False, cascade=True):
+        return ModelLoadTask(self, cascade=cascade, reload=reload)
+
+    def table(self):
         return self.data_stack.store.get_table(self.schema_name, self.table_name)
-        # return NullTable(self.schema_name, self.table_name)
+
+
+class ModelLoadTask(Task):
+    def __init__(self, model, cascade, reload):
+        super().__init__(
+            id=model.__class__.__module__
+            + "."
+            + model.__class__.__name__
+            + "."
+            + model.id
+        )
+        self.model = model
+        self.reload = reload
+        self.cascade = cascade
+
+    def pre_requisites(self):
+        if self.cascade:
+            models = [
+                self.model.data_stack.get_model(id) for id in self.model.dependencies
+            ]
+            return [ModelLoadTask(model, self.cascade, self.reload) for model in models]
+        else:
+            return []
+
+    def post_requisites(self):
+        if self.cascade:
+            models = set()
+            for m in self.model.data_stack.models:
+                if self.model.id in m.dependencies:
+                    models.add(m)
+            return [ModelLoadTask(model, self.cascade, self.reload) for model in models]
+        else:
+            return []
+
+    def execute(self):
+        print(f"Will load data for {self.id} on {self.model}", file=sys.stderr)
+        # self.model.load_data(reload=self.reload)
 
 
 def _pprint_call(func, **args):
@@ -166,6 +204,9 @@ class SQLModel(BaseModel):
             schema_name=config["schema_name"],
             dependencies=config["dependencies"],
         )
+
+    def __repr__(self):
+        return f"<{self.__class__.__module__}.{self.__class__.__name__} id={self.id}>"
 
 
 class SQLQueryModel(SQLModel):

@@ -10,6 +10,7 @@ import click
 
 from libds import DataStack, __version__
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
+from libds.orchestration import Orchestrator
 from libds.source import BaseSource
 from libds.utils import DependencyGraph, DoesNotExist
 
@@ -81,7 +82,7 @@ COMMAND = None
     "-f",
     "--format",
     type=click.Choice(["yaml", "json"], case_sensitive=False),
-    default="yaml",
+    default="json",
 )
 def cli(directory, format):
     global COMMAND
@@ -231,20 +232,10 @@ def model_load(model_id, reload, cascade):
     if m is None:
         return {"error": {"code": "model-not-found", "id": model_id}}
 
-    if cascade:
-        o = Orchestrator(tasks=m.load_task())
-        samples = o.execute()
-        return samples[0]
-    else:
-        return model_load_one(model_id, reload)
-
-
-    if cascade:
-        models = _compute_model_load_order([model_id])
-        samples = [model_load_one(model_id, reload) for model_id in models]
-        return samples[0]
-    else:
-        return model_load_one(model_id, reload)
+    load_task = m.load_task(reload=reload, cascade=cascade)
+    o = Orchestrator(tasks=[load_task]).execute()
+    o.wait()
+    return COMMAND.ds.get_model(model_id).table().sample()
 
 
 @command
@@ -263,7 +254,7 @@ def model_load_all(reload):
 @click.argument("statement")
 def execute(statement):
     statement = _arg_str(statement)
-    return COMMAND.ds.stores[0].execute(statement)
+    return COMMAND.ds.store.execute(statement)
 
 
 @command
