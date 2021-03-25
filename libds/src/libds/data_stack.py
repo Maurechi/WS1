@@ -7,7 +7,7 @@ from ruamel.yaml import YAML
 from libds.model import load_models
 from libds.source import load_sources
 from libds.store import load_store
-from libds.utils import ThreadLocalList
+from libds.utils import DoesNotExist, ThreadLocalList
 
 LOCAL_DATA_STACKS = ThreadLocalList()
 
@@ -16,6 +16,8 @@ class DataStack:
     def __init__(self, directory=None, config={}):
         self.directory = directory
         self.config = config
+        self.models_dir = self.directory / "models"
+
         LOCAL_DATA_STACKS.append(self)
 
     @classmethod
@@ -40,7 +42,7 @@ class DataStack:
         data_stack_yaml = dir / "data_stack.yaml"
         if data_stack_yaml.exists():
             yaml = YAML(typ="safe")
-            ds = DataStack(config=yaml.load(data_stack_yaml))
+            ds = DataStack(directory=dir, config=yaml.load(data_stack_yaml))
 
         if ds is None:
             raise Exception("No data stack defined.")
@@ -106,12 +108,9 @@ class DataStack:
         return load_models(self)
 
     def get_model(self, id):
+        # print(f"Looking for model {id} in {list(self.models)}")
         for model in self.models:
             if model.id == id:
                 return model
         else:
-            return None
-
-    @property
-    def models_dir(self):
-        return self.directory / "models"
+            raise DoesNotExist(f"Model: {id}")

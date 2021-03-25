@@ -11,7 +11,7 @@ import click
 from libds import DataStack, __version__
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.source import BaseSource
-from libds.utils import DependencyGraph
+from libds.utils import DependencyGraph, DoesNotExist
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -176,8 +176,12 @@ def source_inspect(source_id):
 def model_update(model_id, type, if_exists, if_does_not_exist, current_id, source):
     if current_id is None:
         current_id = model_id
-    model = COMMAND.ds.get_model(current_id)
-    if model is None:
+    try:
+        model = COMMAND.ds.get_model(current_id)
+        if if_exists == "error":
+            return {"error": {"code": "model-exists", "id": current_id}}
+
+    except DoesNotExist:
         if if_does_not_exist == "error":
             return {"error": {"code": "model-does-not-exist", "id": current_id}}
 
@@ -188,10 +192,6 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
         elif type == "python":
             cls = PythonModel
         model = cls.create(data_stack=COMMAND.ds, id=current_id)
-
-    if model is not None:
-        if if_exists == "error":
-            return {"error": {"code": "model-exists", "id": current_id}}
 
     if model_id != current_id:
         model = model.update_id(model_id)

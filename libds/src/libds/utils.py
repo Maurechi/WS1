@@ -87,3 +87,7 @@ class DependencyGraph:
             for node in reversed(ordering):
                 backwards[node] = True
         return reversed(backwards.keys())
+
+
+class DoesNotExist(Exception):
+    pass
