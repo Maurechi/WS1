@@ -34,6 +34,7 @@ import v from "voca";
 import appBarGraphic from "./AppBarGraphic.png";
 import { useAppState } from "diaas/state";
 import { HCenter } from "diaas/ui.js";
+import { useLocalStorage } from "diaas/utils.js";
 
 const drawerWidth = 240;
 
@@ -199,7 +200,7 @@ const AppNavigationToolbar = observer(() => {
 export const AppNavigation = ({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
+  const drawerState = useLocalStorage("diaas:layout.navBarDrawerState", false);
 
   const loc = useLocation();
 
@@ -218,19 +219,25 @@ export const AppNavigation = ({ children }) => {
 
   return (
     <div className={classes.root}>
-      <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: open })}>
-        <AppNavigationToolbar drawerOpen={open} />
+      <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: drawerState.v })}>
+        <AppNavigationToolbar drawerOpen={drawerState.v} />
       </MUIAppBar>
       <Drawer
         variant="permanent"
-        className={clsx(classes.drawer, { [classes.drawerOpen]: open, [classes.drawerClose]: !open })}
-        classes={{ paper: clsx({ [classes.drawerOpen]: open, [classes.drawerClose]: !open }) }}
+        className={clsx(classes.drawer, { [classes.drawerOpen]: drawerState.v, [classes.drawerClose]: !drawerState.v })}
+        classes={{ paper: clsx({ [classes.drawerOpen]: drawerState.v, [classes.drawerClose]: !drawerState.v }) }}
       >
         <div className={classes.toolbar}>&nbsp;</div>
         <List>
-          <ListItem button key="openCloseToggle" onClick={() => setOpen(!open)}>
+          <ListItem
+            button
+            key="openCloseToggle"
+            onClick={() => {
+              drawerState.v = !drawerState.v;
+            }}
+          >
             <ListItemIcon>
-              <div style={{ transform: open ? "scaleX(-1)" : undefined }}>
+              <div style={{ transform: drawerState.v ? "scaleX(-1)" : undefined }}>
                 <DoubleArrowIcon />
               </div>
             </ListItemIcon>

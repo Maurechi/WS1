@@ -88,7 +88,7 @@ const GoogleLoginButton = ({ loginHandler, loginInProgress }) => {
 };
 
 const EmailLoginForm = ({ loginHandler, loginInProgress }) => {
-  const email = useFormValue("", { transform: (e) => v.trim(e) });
+  const email = useFormValue("");
   const emailIsValid = v.trim(email.v).length > 0 && v.search(email.v, /.@.+[.].+/) > -1;
 
   const submit = (e) => {

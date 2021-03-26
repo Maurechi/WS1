@@ -5,51 +5,23 @@ import v from "voca";
 
 import AceEditor from "diaas/AceEditor";
 import { wrapInBox } from "diaas/ui.js";
-import { ignore } from "diaas/utils.js";
+import { useCell } from "diaas/utils.js";
 
 export const useFormValue = (initialValue, config) => {
-  let [value, setValue] = useState(initialValue);
-  let [isDirty, setIsDirty] = useState(false);
-  let [isTouched, setIsTouched] = useState(false);
+  const { trim = true } = config || {};
 
-  const { transform = (x) => x, trim = true, onChange = (is, was) => ignore(is, was) } = config || {};
-  return {
-    getter() {
-      return transform(value);
-    },
-    setter(newValue) {
-      newValue = transform(newValue);
-      if (trim) {
-        newValue = v.trim(newValue);
-      }
-      if (newValue !== value) {
-        setIsDirty(true);
-        onChange(newValue, value);
-        value = newValue;
-        setValue(newValue);
-      }
+  let [value, setValue] = useState(initialValue);
+
+  return useCell({
+    store: (newValue) => {
+      value = trim ? v.trim(newValue) : newValue;
+      setValue(value);
       return value;
     },
-    toggle() {
-      return this.setter(!this.v);
+    load: () => {
+      return value;
     },
-    touch() {
-      isTouched = true;
-      setIsTouched(true);
-    },
-    get v() {
-      return this.getter();
-    },
-    set v(newValue) {
-      this.setter(newValue);
-    },
-    get isDirty() {
-      return isDirty;
-    },
-    get isTouched() {
-      return isTouched;
-    },
-  };
+  });
 };
 
 export const TextField = wrapInBox(({ value, onChange: callerOnChange, inputProps = {}, ...TextFieldProps }) => {
