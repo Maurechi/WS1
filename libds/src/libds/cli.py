@@ -226,13 +226,20 @@ def _compute_model_load_order(model_ids):
 @command
 @click.argument("model_id")
 @click.option("-r", "--reload", is_flag=True, default=False)
-@click.option("--cascade/--no-cascade", is_flag=True, default=True)
+@click.option(
+    "--cascade",
+    default="AFTER",
+    type=click.Choice(["BEFORE", "BOTH", "AFTER"], case_sensitive=False),
+)
+@click.option("--no-cascade", is_flag=True, default=False)
 @click.option("--wait/--no-wait", is_flag=True, default=False)
-def model_load(model_id, reload, cascade, wait):
+def model_load(model_id, reload, cascade, no_cascade, wait):
     m = COMMAND.ds.get_model(model_id)
     if m is None:
         return {"error": {"code": "model-not-found", "id": model_id}}
 
+    if no_cascade:
+        cascade = None
     load_task = m.load_task(reload=reload, cascade=cascade)
     o = Orchestrator(tasks=[load_task])
     o.execute(wait=wait)

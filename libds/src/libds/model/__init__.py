@@ -94,7 +94,7 @@ class BaseModel:
         self._init_properties(new_filename, id, None, None)
         return self
 
-    def load_task(self, reload=False, cascade=True):
+    def load_task(self, reload=False, cascade="AFTER"):
         return ModelLoadTask(self, cascade=cascade, reload=reload)
 
     def table(self):
@@ -115,7 +115,7 @@ class ModelLoadTask(Task):
         self.cascade = cascade
 
     def pre_requisites(self):
-        if self.cascade:
+        if self.cascade in ["BOTH", "BEFORE"]:
             models = [
                 self.model.data_stack.get_model(id) for id in self.model.dependencies
             ]
@@ -124,7 +124,7 @@ class ModelLoadTask(Task):
             return []
 
     def post_requisites(self):
-        if self.cascade:
+        if self.cascade in ["BOTH", "AFTER"]:
             models = set()
             for m in self.model.data_stack.models:
                 if self.model.id in m.dependencies:
