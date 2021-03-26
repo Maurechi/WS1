@@ -135,7 +135,7 @@ class ModelLoadTask(Task):
 
     def execute(self):
         print(f"Will load data for {self.id} on {self.model}", file=sys.stderr)
-        # self.model.load_data(reload=self.reload)
+        self.model.load_data(reload=self.reload)
 
 
 def _pprint_call(func, **args):
