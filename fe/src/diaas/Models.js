@@ -89,7 +89,7 @@ export const Editor = observer(() => {
             <CodeEditor mode={model.type} value={codeValue} />
           </Grid>
           <Grid item xs={6}>
-            <Typography variant="h4">Note Book</Typography>
+            <Typography variant="h4">Notebook</Typography>
             <Notebook />
           </Grid>
         </Grid>
