@@ -1,5 +1,6 @@
 import multiprocessing as mp
 import os
+import re
 import sys
 import time
 import traceback
@@ -14,6 +15,28 @@ def apply_task(task, log_dir):
     sys.stdout = (log_dir / f"{task.id}.stdout").open("w")
     sys.stderr = (log_dir / f"{task.id}.stderr").open("w")
     return task.execute()
+
+
+def dbg(*msg, file=None):
+    if file is None:
+        file = sys.stdout
+
+    prefix = f"{os.getpid()}@{arrow.get()}"
+    text = [prefix]
+    msg = list(msg)
+
+    for o in msg:
+        if not re.match(r"\s+$", text[-1]):
+            text.append(" ")
+
+        if isinstance(o, (str, int)):
+            text.append(str(o))
+        else:
+            text.append(pformat(o))
+
+    line = "".join(text)
+    print(line, file=file)
+    return line
 
 
 class TaskState:
@@ -59,7 +82,7 @@ class Orchestrator:
         tasks = self.tasks
         for t in tasks:
             if t.state is None:
-                print(f"{t.task.id}: INIT")
+                dbg(t.task.id, "INIT")
                 t.state = "PENDING"
                 t.result = None
                 t.async_result = None
@@ -69,23 +92,23 @@ class Orchestrator:
                 ]
                 self.tasks = self.add_tasks(self.tasks, t.blockers)
             elif t.state == "PENDING":
-                print(f"{t.task.id}: PENDING")
+                dbg(t.task.id, "PENDING")
                 t.blockers = [task for task in t.blockers if task.state != "DONE"]
                 if len(t.blockers) == 0:
-                    print("  No blockers, running")
+                    dbg("  No blockers, running")
                     t.async_result = pool.apply_async(
                         apply_task, args=[t.task, self.log_dir]
                     )
                     t.state = "RUNNING"
                 else:
-                    print(f"  {len(t.blockers)} blockers:")
+                    dbg("  ", len(t.blockers), "blockers:")
                     for b in t.blockers:
-                        print(f"    {b.task.id} {b.state}")
+                        dbg("    ", b.task.id, b.state)
             elif t.state == "RUNNING":
-                print(f"{t.task.id}: RUNNING")
+                dbg(t.task.id, "RUNNING")
                 try:
                     res = t.async_result.get(0)
-                    print("  COMPLETE")
+                    dbg("  COMPLETE")
                     t.state = "DONE"
                     t.result = res
                     for t2 in self.tasks:
@@ -94,10 +117,10 @@ class Orchestrator:
                         self.tasks, self.make_task_states(t.task.post_requisites())
                     )
                 except mp.TimeoutError:
-                    print("  IN PROGRESS")
+                    dbg("  IN PROGRESS")
 
         done = True
-        print("States: " + ",".join([str(t.state) for t in self.tasks]))
+        dbg("States:", [str(t.state) for t in self.tasks])
         for t in self.tasks:
             if t.state != "DONE":
                 done = False
@@ -109,7 +132,7 @@ class Orchestrator:
         try:
             return os.fork()
         except OSError as err:
-            print(f"fork failed: {err}", file=sys.stderr)
+            dbg("fork failed:", err, file=sys.stderr)
             sys.exit(1)
 
     def orchestrate_inner(self):
@@ -123,9 +146,9 @@ class Orchestrator:
                         time.sleep(1)
         except Exception:
             tb = traceback.format_exc()
-            print(f"Done with error: {tb}")
+            dbg("Done with error:", tb)
             return [True, tb]
-        print("Done without errors")
+        dbg("Done without errors")
         return [False, None]
 
     def orchestrate(self):
