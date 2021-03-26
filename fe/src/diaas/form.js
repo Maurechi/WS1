@@ -17,11 +17,8 @@ export const useFormValue = (initialValue, config) => {
       newValue = transform(newValue);
       value = trim ? v.trim(newValue) : newValue;
       setValue(value);
-      return value;
     },
-    load: () => {
-      return value;
-    },
+    load: () => value,
   });
 };
 
@@ -102,7 +99,7 @@ export const CodeEditor = ({ mode, value, disabled = false }) => {
       name={divId}
       value={value.v}
       onChange={value.setter}
-      fontSize={18}
+      fontSize={14}
       readOnly={disabled}
       minLines={4}
       maxLines={20}

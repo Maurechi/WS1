@@ -1,12 +1,15 @@
+import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 
 import { CodeEditor, useFormValue } from "diaas/form.js";
 import { SampleDataTable } from "diaas/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { StandardButton as Button } from "diaas/ui.js";
+import { ignore, useLocalStorage } from "diaas/utils.js";
 
-export const Cell = () => {
-  const value = useFormValue("select 1", { trim: false });
+ignore(useLocalStorage, useFormValue);
+
+export const Cell = observer(({ value }) => {
   const {
     user: { dataStack: ds },
     backend,
@@ -32,20 +35,33 @@ export const Cell = () => {
       <hr />
     </>
   );
-};
+});
 
-export const Notebook = () => {
-  const [cells, setCells] = useState([<Cell />]);
+export const Notebook = ({ id, baseTable }) => {
+  const values = useLocalStorage(`diaas:Notebook/${id}/cells`, [`select *\nfrom ${baseTable}\nlimit 23`]);
 
   const newCellClick = () => {
-    setCells(cells.concat([<Cell />]));
+    values.v = values.v.concat([`select *\nfrom ${baseTable}\nlimit 23`]);
   };
+
+  const cellValues = values.v.map((_, i) => {
+    return {
+      get v() {
+        return values.v[i];
+      },
+      setter(newValue) {
+        let newValues = values.v.slice();
+        newValues[i] = newValue;
+        values.v = newValues;
+      },
+    };
+  });
 
   return (
     <ul style={{ listStyle: "none" }}>
-      {cells.map((e, i) => (
+      {cellValues.map((v, i) => (
         <li key={i}>
-          <Cell />
+          <Cell value={v} />
         </li>
       ))}
       <li key="add-cell">

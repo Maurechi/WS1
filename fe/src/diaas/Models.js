@@ -32,7 +32,7 @@ export const Editor = observer(() => {
     }
   }
 
-  const codeValue = useFormValue(model.source);
+  const codeValue = useFormValue(model.source, { trim: false });
   const idValue = useFormValue(model.id);
 
   const saveButtonState = useFormValue("IDLE");
@@ -53,16 +53,14 @@ export const Editor = observer(() => {
         saveButtonState.v = "IDLE";
       } else {
         saveButtonEnabled.v = false;
-        console.log("loadingTicker === ", loadingTicker.v);
         loadingTicker.v = loadingTicker.v + 1;
-        console.log("Incremented loadingTicker to", loadingTicker.v);
         saveButtonLabel.v = "Loading:" + ".".repeat(loadingTicker.v);
       }
     } else {
       console.log("Unknown save button state", saveButtonState.v);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   useEffect(() => {
     const timer = setInterval(updater, 500);
@@ -95,8 +93,7 @@ export const Editor = observer(() => {
             <VCenter>
               <Box pr={2}>ID:</Box>
               <Box>
-                {" "}
-                <TextField value={idValue} />{" "}
+                <TextField value={idValue} />
               </Box>
             </VCenter>
           </Box>
@@ -119,7 +116,7 @@ export const Editor = observer(() => {
           </Grid>
           <Grid item xs={6}>
             <Typography variant="h4">Notebook</Typography>
-            <Notebook />
+            <Notebook id={modelId} baseTable={modelId} />
           </Grid>
         </Grid>
       </Box>

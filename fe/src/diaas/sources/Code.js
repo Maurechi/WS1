@@ -4,7 +4,7 @@ import { CodeEditor, useFormValue } from "diaas/form.js";
 
 export const Code = ({ source }) => {
   const { filename, code } = source.definition;
-  const value = useFormValue(code);
+  const value = useFormValue(code, { trim: false });
   return (
     <>
       <p>

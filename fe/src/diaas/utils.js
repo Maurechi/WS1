@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 // eslint-disable-next-line
 export const ignore = (v) => null;
 
@@ -19,7 +19,7 @@ export const useCell = (config) => {
         onChange(newValue, value);
         store(newValue);
       }
-      return value;
+      return newValue;
     },
     toggle() {
       return this.setter(!this.v);
@@ -44,22 +44,27 @@ export const useCell = (config) => {
 };
 
 export const useLocalStorage = (key, initialValue) => {
-  if (initialValue === undefined) {
-    initialValue = null;
+  if (!window.localStorage.getItem(key)) {
+    window.localStorage.setItem(key, JSON.stringify(initialValue));
   }
-  useEffect(() => {
-    if (!window.localStorage.getItem(key)) {
-      window.localStorage.setItem(key, JSON.stringify(initialValue));
-    }
-  });
+
+  let [value, setValue] = useState(JSON.parse(window.localStorage.getItem(key)));
+
+  let [timer, setTimer] = useState(null);
 
   return useCell({
     store: (newValue) => {
-      window.localStorage.setItem(key, JSON.stringify(newValue));
-      return newValue;
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => window.localStorage.setItem(key, JSON.stringify(value)), 500);
+      setTimer(timer);
+
+      value = newValue;
+      setValue(newValue);
     },
     load: () => {
-      return JSON.parse(window.localStorage.getItem(key));
+      return value;
     },
   });
 };
