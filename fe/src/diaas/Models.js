@@ -1,20 +1,19 @@
 import { Box, Divider, Grid, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
-import React, { useState } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
 import { CodeEditor, TextField, useFormValue } from "diaas/form.js";
 import { Notebook } from "diaas/Notebook.js";
-import { SampleDataTable } from "diaas/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { ButtonLink, NotFound, StandardButton, VCenter } from "diaas/ui.js";
 
 export const Editor = observer(() => {
-  const [saveButtonLabel, setSaveButtonLabel] = useState("Save & Run");
-  const [saveButtonDisabled, setSaveButtonDisabled] = useState(false);
-  const { user, backend } = useAppState();
+  const saveButtonLabel = useFormValue("INITIAL");
+  const saveButtonEnabled = useFormValue(true);
+  const { user, backend, jobs } = useAppState();
 
   if (user.dataStack === null) {
     return <NotFound>No Data stacks for user</NotFound>;
@@ -36,24 +35,54 @@ export const Editor = observer(() => {
   const codeValue = useFormValue(model.source);
   const idValue = useFormValue(model.id);
 
-  const [rows, setRows] = useState([]);
+  const saveButtonState = useFormValue("IDLE");
+
+  const loadingJobId = useFormValue(null);
+  const loadingTicker = useFormValue(0, { trim: false, transform: (v) => v % 4 });
+
+  const updater = useCallback(() => {
+    if (saveButtonState.v === "IDLE") {
+      saveButtonLabel.v = "Save & Run.";
+      saveButtonEnabled.v = true;
+    } else if (saveButtonState.v === "SAVING") {
+      saveButtonLabel.v = "Saving";
+      saveButtonEnabled.v = false;
+    } else if (saveButtonState.v === "RUNNING") {
+      const isDone = jobs.byId && loadingJobId.v in jobs.byId && jobs.byId[loadingJobId.v].state === "DONE";
+      if (isDone) {
+        saveButtonState.v = "IDLE";
+      } else {
+        saveButtonEnabled.v = false;
+        console.log("loadingTicker === ", loadingTicker.v);
+        loadingTicker.v = loadingTicker.v + 1;
+        console.log("Incremented loadingTicker to", loadingTicker.v);
+        saveButtonLabel.v = "Loading:" + ".".repeat(loadingTicker.v);
+      }
+    } else {
+      console.log("Unknown save button state", saveButtonState.v);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(updater, 500);
+    return () => clearInterval(timer);
+  }, [updater]);
+
   const saveAndRun = () => {
-    setSaveButtonLabel("Saving.");
-    setSaveButtonDisabled(true);
+    saveButtonState.v = "SAVING";
+    updater();
     backend.postModel(creating ? "" : modelId, { type: "select", id: idValue.v, source: codeValue.v }).then((data) => {
-      setSaveButtonLabel("Loading");
-      backend.loadModel(data.id).then((rows) => {
-        setSaveButtonDisabled(false);
-        setSaveButtonLabel("Save & Run");
-        setRows(rows);
+      saveButtonState.v = "RUNNING";
+      backend.loadModel(data.id).then(({ job: { id } }) => {
+        loadingJobId.v = id;
       });
     });
   };
 
   const SaveAndRunButton = () => (
-    <StandardButton onClick={saveAndRun} disabled={saveButtonDisabled}>
-      {" "}
-      {saveButtonLabel}{" "}
+    <StandardButton onClick={saveAndRun} disabled={!saveButtonEnabled.v}>
+      {saveButtonLabel.v}
     </StandardButton>
   );
 
@@ -64,7 +93,7 @@ export const Editor = observer(() => {
           <Box style={{ flexGrow: 1 }}>
             <Typography variant="h4">Settings</Typography>
             <VCenter>
-              <Box pr={2}>ID2:</Box>
+              <Box pr={2}>ID:</Box>
               <Box>
                 {" "}
                 <TextField value={idValue} />{" "}
@@ -93,10 +122,6 @@ export const Editor = observer(() => {
             <Notebook />
           </Grid>
         </Grid>
-        <Divider />
-        <Typography variant="h4">Data Sample</Typography>
-        <SaveAndRunButton />
-        <SampleDataTable rows={rows} />
       </Box>
     </form>
   );

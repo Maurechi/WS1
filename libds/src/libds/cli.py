@@ -236,7 +236,7 @@ def model_load(model_id, reload, cascade, wait):
     load_task = m.load_task(reload=reload, cascade=cascade)
     o = Orchestrator(tasks=[load_task])
     o.execute(wait=wait)
-    return {"oid": o.id}
+    return {"job": {"id": o.id}}
     # return COMMAND.ds.get_model(model_id).table().sample()
 
 
@@ -250,7 +250,7 @@ def model_load_all(reload, wait):
         ]
     )
     o.execute(wait=wait)
-    return {"oid": o.id}
+    return {"job": {"id": o.id}}
 
 
 @command

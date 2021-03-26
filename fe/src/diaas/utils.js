@@ -55,12 +55,10 @@ export const useLocalStorage = (key, initialValue) => {
 
   return useCell({
     store: (newValue) => {
-      console.log("Storing", newValue, "under", key);
       window.localStorage.setItem(key, JSON.stringify(newValue));
       return newValue;
     },
     load: () => {
-      console.log("Getting", key);
       return JSON.parse(window.localStorage.getItem(key));
     },
   });

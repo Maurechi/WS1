@@ -8,12 +8,13 @@ import { wrapInBox } from "diaas/ui.js";
 import { useCell } from "diaas/utils.js";
 
 export const useFormValue = (initialValue, config) => {
-  const { trim = true } = config || {};
+  const { trim = true, transform = (x) => x } = config || {};
 
   let [value, setValue] = useState(initialValue);
 
   return useCell({
     store: (newValue) => {
+      newValue = transform(newValue);
       value = trim ? v.trim(newValue) : newValue;
       setValue(value);
       return value;

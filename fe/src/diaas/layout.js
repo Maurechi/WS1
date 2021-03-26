@@ -197,9 +197,10 @@ const AppNavigationToolbar = observer(() => {
   );
 });
 
-export const AppNavigation = ({ children }) => {
+export const AppNavigation = observer(({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
+  const { jobs } = useAppState();
   const drawerState = useLocalStorage("diaas:layout.navBarDrawerState", false);
 
   const loc = useLocation();
@@ -214,6 +215,16 @@ export const AppNavigation = ({ children }) => {
         </ListItemIcon>
         <ListItemText primary={text} primaryTypographyProps={{ style: style }} />
       </ListItem>
+    );
+  };
+
+  const JobsMenuItem = () => {
+    return (
+      <SectionMenuItem
+        location="/jobs"
+        text={jobs.numActive === 0 ? "Jobs" : `Jobs (${jobs.numActive})`}
+        Icon={PlayArrowIcon}
+      />
     );
   };
 
@@ -252,7 +263,7 @@ export const AppNavigation = ({ children }) => {
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
           <SectionMenuItem location="/store" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
-          <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
+          <JobsMenuItem />
           <SectionMenuItem
             location="/analytics"
             onClick={() => window.open("/analytics", "caravel-analytics")}
@@ -273,4 +284,4 @@ export const AppNavigation = ({ children }) => {
       </main>
     </div>
   );
-};
+});
