@@ -1,11 +1,12 @@
+import multiprocessing as mp
 import os
 import sys
-from pathlib import Path
-import uuid
-import multiprocessing as mp
 import time
 import traceback
+import uuid
+from pathlib import Path
 from pprint import pformat, pprint  # noqa: F401
+
 import arrow
 
 
@@ -28,7 +29,10 @@ class Orchestrator:
         self.process = None
         self.queue = mp.Queue()
 
-        self.tasks = [TaskState(task) for task in tasks]
+        self.tasks = []
+        for task in tasks:
+            if task.id not in [t.task.id for t in self.tasks]:
+                self.tasks.append(TaskState(task))
 
     def add_tasks(self, list, tasks):
         for task in tasks:
@@ -69,7 +73,9 @@ class Orchestrator:
                 t.blockers = [task for task in t.blockers if task.state != "DONE"]
                 if len(t.blockers) == 0:
                     print("  No blockers, running")
-                    t.async_result = pool.apply_async(apply_task, args=[t.task, self.log_dir])
+                    t.async_result = pool.apply_async(
+                        apply_task, args=[t.task, self.log_dir]
+                    )
                     t.state = "RUNNING"
                 else:
                     print(f"  {len(t.blockers)} blockers:")
@@ -103,7 +109,7 @@ class Orchestrator:
         try:
             return os.fork()
         except OSError as err:
-            print(f'fork failed: {err}', file=sys.stderr)
+            print(f"fork failed: {err}", file=sys.stderr)
             sys.exit(1)
 
     def orchestrate_inner(self):
@@ -181,3 +187,29 @@ class Task:
 
     def execute(self):
         raise NotImplementedError()
+
+
+class Job:
+    def __init__(self, dir):
+        self.directory = dir
+
+    def info(self):
+        data = {"id": self.directory.name}
+        try:
+            pid_string = (self.directory / "pid.txt").open("r").read().strip()
+            data["state"] = "RUNNING"
+            data["pid"] = int(pid_string)
+        except FileNotFoundError:
+            data["state"] = "DONE"
+        return data
+
+
+def load_jobs(data_stack):
+    jobs = []
+    for dirname in (data_stack.directory / "logs").glob("*"):
+        if dirname in (".", ".."):
+            continue
+        dir = Path(dirname)
+        if dir.is_dir():
+            jobs.append(Job(dir))
+    return jobs

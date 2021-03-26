@@ -5,6 +5,7 @@ import pygit2
 from ruamel.yaml import YAML
 
 from libds.model import load_models
+from libds.orchestration import load_jobs
 from libds.source import load_sources
 from libds.store import load_store
 from libds.utils import DoesNotExist, ThreadLocalList
@@ -80,6 +81,7 @@ class DataStack:
         self.sources = load_sources(self)
         self.models = load_models(self)
         self.store = load_store(self)
+        self.jobs = load_jobs(self)
         return self
 
     def get_source(self, id):

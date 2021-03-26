@@ -235,21 +235,22 @@ def model_load(model_id, reload, cascade, wait):
 
     load_task = m.load_task(reload=reload, cascade=cascade)
     o = Orchestrator(tasks=[load_task])
-    pid_file = o.execute(wait=wait)
-    return {'oid': o.id, 'pid-file': str(pid_file)}
+    o.execute(wait=wait)
+    return {"oid": o.id}
     # return COMMAND.ds.get_model(model_id).table().sample()
 
 
 @command
 @click.option("-r", "--reload", is_flag=True, default=False)
-def model_load_all(reload):
-    model_ids = [model.id for model in COMMAND.ds.models]
-    models = _compute_model_load_order(model_ids)
-    samples = [
-        dict(id=model_id, sample=model_load_one(model_id, reload))
-        for model_id in models
-    ]
-    return samples
+@click.option("--wait/--no-wait", is_flag=True, default=False)
+def model_load_all(reload, wait):
+    o = Orchestrator(
+        tasks=[
+            model.load_task(reload=reload, cascade=True) for model in COMMAND.ds.models
+        ]
+    )
+    o.execute(wait=wait)
+    return {"oid": o.id}
 
 
 @command
@@ -257,6 +258,11 @@ def model_load_all(reload):
 def execute(statement):
     statement = _arg_str(statement)
     return COMMAND.ds.store.execute(statement)
+
+
+@command
+def jobs_list():
+    return [j.info() for j in COMMAND.ds.jobs]
 
 
 @command

@@ -118,3 +118,11 @@ def execute():
     return libds.execute(
         statement=req.require("statement"),
     )
+
+
+@api_v1.route("/jobs/", methods=["GET"])
+@login_required
+@as_json
+def jobs_list():
+    libds = g.user.current_data_stack.libds
+    return libds.jobs_list()

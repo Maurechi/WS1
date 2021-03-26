@@ -75,3 +75,6 @@ class LibDS:
 
     def execute(self, statement):
         return self.call_ds(cmd=["execute", "-"], input=statement)
+
+    def jobs_list(self):
+        return self.call_ds(cmd=["jobs-list"])

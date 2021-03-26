@@ -87,6 +87,10 @@ class Backend {
   execute(payload) {
     return this.post(`/store/execute`, payload).then(dataIfStatusEquals(200));
   }
+
+  jobsList() {
+    return this.get(`/jobs/`).then(dataIfStatusEquals(200));
+  }
 }
 
 class User {
