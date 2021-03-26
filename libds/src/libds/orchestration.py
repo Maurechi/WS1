@@ -201,6 +201,21 @@ class Job:
             data["pid"] = int(pid_string)
         except FileNotFoundError:
             data["state"] = "DONE"
+
+        data["orchestrator"] = {}
+        try:
+            data["orchestrator"]["stdout"] = (
+                (self.directory / "orchestrator.stdout").open("r").read()
+            )
+        except FileNotFoundError:
+            pass
+        try:
+            data["orchestrator"]["stderr"] = (
+                (self.directory / "orchestrator.stderr").open("r").read()
+            )
+        except FileNotFoundError:
+            pass
+
         return data
 
 

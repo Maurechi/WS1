@@ -11,10 +11,16 @@ export const JobsTable = () => {
   useEffect(() => {
     state.backend.jobsList().then(setJobs);
   }, [state]);
+
   const columns = [
-    { defaultFlex: 2, name: "id", header: "ID" },
+    { defaultFlex: 1, name: "id", header: "ID" },
     { defaultFlex: 1, name: "state", header: "State" },
+    { defaultFlex: 3, name: "logs", header: "Log" },
   ];
+
+  const dataSource = jobs.map((j) => {
+    return { id: j.id, state: j.state, logs: j.orchestrator.stdout };
+  });
 
   return (
     <Box>
@@ -24,7 +30,7 @@ export const JobsTable = () => {
       <DataGrid
         isProperty="id"
         columns={columns}
-        dataSource={jobs}
+        dataSource={dataSource}
         style={{ minHeight: 550 }}
         defaultSortInfo={{ name: "id", dir: -1 }}
       />
