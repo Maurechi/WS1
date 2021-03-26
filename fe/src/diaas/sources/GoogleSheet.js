@@ -36,7 +36,6 @@ export const GoogleSheet = ({ source }) => {
       saveAndLoadLabel.v = "Loading...";
       return state.backend.loadSource(source.id).then((data) => {
         saveAndLoadLabel.v = "Save and Load";
-        console.log("Load returned", data);
         setRows(data.rows);
         // return [update, load];
       });
