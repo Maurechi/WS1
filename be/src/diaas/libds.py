@@ -7,7 +7,17 @@ from diaas.config import CONFIG
 
 
 class LibDSException(Exception):
-    pass
+    def source(self):
+        return None
+
+    def details(self):
+        return None
+
+    def code(self):
+        return self.__class__.__module__ + "." + self.__class__.__name__
+
+    def __str__(self):
+        return "<" + " ".join[self.code(), self.details(), self.source()] + ">"
 
 
 class LibDSRuntimeError(LibDSException):
@@ -17,7 +27,7 @@ class LibDSRuntimeError(LibDSException):
         self.stderr = stderr
         self.returncode = returncode
 
-    def __str__(self):
+    def details(self):
         return (
             f"ds failed: {self.cmd} => {self.returncode}: {self.stderr}; {self.stdout}"
         )
@@ -29,6 +39,21 @@ class LibDSOutputParseError(LibDSException):
 
 class LibDSVersionMismatch(LibDSException):
     pass
+
+
+class LibDSError(LibDSException):
+    def __init__(self, cmd, error):
+        self.cmd = cmd
+        self.error = error
+
+    def code(self):
+        return self.error["code"] + "(" + super().code() + ")"
+
+    def details(self):
+        return self.error.get("details", None)
+
+    def source(self):
+        return self.error.get("source", None)
 
 
 class LibDS:
@@ -72,10 +97,13 @@ class LibDS:
             )
         meta = response.get("meta", {})
         meta_version = meta.get("version", "0.0.0")
-        if self.MIN_VERSION <= meta_version:
-            return response["data"]
-        else:
+        if self.MIN_VERSION > meta_version:
             raise LibDSVersionMismatch(f"Wrong ds version: {meta_version}")
+
+        if "error" in response:
+            raise LibDSError(cmd=cmd, error=response["error"])
+        else:
+            return response["data"]
 
     def info(self):
         return self.call_ds(cmd=["info"])

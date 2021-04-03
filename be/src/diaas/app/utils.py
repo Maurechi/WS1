@@ -32,12 +32,12 @@ class ApiError(Exception):
     STATUS = None
     CODE = None
 
-    def __init__(self, status=None, code=None, source=None, title=None, detail=None):
+    def __init__(self, status=None, code=None, source=None, title=None, details=None):
         self.status = status or self.STATUS
         self.code = code or self.CODE
         self._source = source
         self.title = title
-        self.detail = detail
+        self.details = details
 
     def source(self):
         return self._source
@@ -47,7 +47,7 @@ class ApiError(Exception):
             self.status,
             self.code,
             title=self.title,
-            detail=self.detail,
+            details=self.details,
             source=self.source(),
         )
 
@@ -66,8 +66,9 @@ def register_error_handlers(app):
                 errors=[
                     error_json(
                         status,
-                        e.__class__.__module__ + "." + e.__class__.__name__,
-                        source=str(e),
+                        e.code(),
+                        source=e.source(),
+                        details=e.details(),
                     )
                 ]
             ),

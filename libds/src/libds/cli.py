@@ -12,7 +12,7 @@ from libds import DataStack, __version__
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.orchestration import Orchestrator
 from libds.source import BaseSource
-from libds.utils import DependencyGraph, DoesNotExist
+from libds.utils import DependencyGraph, DoesNotExist, DSException
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -39,7 +39,10 @@ class Command:
     def results(self, data):
         result = dict(meta=dict(version=__version__))
         if data is not None:
-            result.update(dict(data=data))
+            if "error" in data and len(data) == 1:
+                result["error"] = data["error"]
+            else:
+                result["data"] = data
 
         if self.format == "yaml":
             from ruamel.yaml import YAML
@@ -264,7 +267,12 @@ def model_load_all(reload, wait):
 @click.argument("statement")
 def execute(statement):
     statement = _arg_str(statement)
-    return COMMAND.ds.store.execute(statement)
+    try:
+        return COMMAND.ds.store.execute(statement)
+    except DSException as e:
+        return {"error": e.as_json()}
+    except Exception as e:
+        return {"error": {"code": "error", "details": str(e)}}
 
 
 @command
