@@ -60,7 +60,7 @@ export const Editor = observer(() => {
       console.log("Unknown save button state", saveButtonState.v);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  });
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(updater, 500);
