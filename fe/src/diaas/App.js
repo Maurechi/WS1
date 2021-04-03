@@ -212,12 +212,34 @@ class ErrorBoundary extends React.Component {
 }
 
 const FatalError = ({ details }) => {
-  let toClipBoard = null;
-  if ("clipboard" in navigator) {
-    toClipBoard = () => navigator.clipboard.writeText(details.title + "\n\n" + details.message);
+  let err = "";
+
+  const ToClipBoard = () => {
+    if ("clipboard" in navigator) {
+      const onClick = () => navigator.clipboard.writeText("```" + err + "```");
+      return (
+        <HCenter>
+          <Button variant="contained" color="primary" onClick={onClick}>
+            Copy error to clipboard
+          </Button>
+        </HCenter>
+      );
+    } else {
+      return <></>;
+    }
+  };
+
+  if (details.data) {
+    details.data.errors.forEach((e) => {
+      err += `Code: ${e.code}\n`;
+      err += `Title: ${e.title || "-"}\n`;
+      err += `Detail: ${e.detail || "-"}\n`;
+      err += `Source: ${e.source}\n`;
+    });
   } else {
-    toClipBoard = false;
+    err += `Title: ${details.title}\n${details.message}`;
   }
+
   return (
     <HCenter>
       <Grid container>
@@ -227,17 +249,15 @@ const FatalError = ({ details }) => {
           </HCenter>
         </Grid>
         <Grid item xs={12}>
-          <HCenter>{details.title}</HCenter>
-          <HCenter>
-            <pre>{details.message}</pre>
-          </HCenter>
-          {toClipBoard && (
-            <HCenter>
-              <Button variant="contained" color="primary" onClick={toClipBoard}>
-                Copy error to clipboard
-              </Button>
-            </HCenter>
-          )}
+          {" "}
+          <ToClipBoard />{" "}
+        </Grid>
+        <Grid item xs={12}>
+          <pre style={{ whiteSpace: "pre-wrap" }}>{err}</pre>
+        </Grid>
+        <Grid item xs={12}>
+          {" "}
+          <ToClipBoard />{" "}
         </Grid>
       </Grid>
     </HCenter>

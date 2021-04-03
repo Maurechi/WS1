@@ -37,9 +37,16 @@ class Backend {
         return response;
       },
       function (error) {
-        self.state.setFatalError({ title: "Backend api error", message: JSON.stringify(error) });
-        // Do something with response error
-        return Promise.reject(error);
+        if (error.response) {
+          self.state.setFatalError({ title: "Backend api error", data: error.response.data });
+        } else {
+          self.state.setFatalError({ title: "Network error", message: JSON.stringify(error, null, 4) });
+        }
+
+        // setFatalError will pop up an unclosable error dialog,
+        // there's no point in progressing, so just let our caller
+        // hang forever.
+        return new Promise(() => null);
       }
     );
   }

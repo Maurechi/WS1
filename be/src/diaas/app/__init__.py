@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_session import Session
 
 from diaas.app.internal import internal_api
-from diaas.app.utils import flask_json
+from diaas.app.utils import flask_json, register_error_handlers
 from diaas.app.v1 import api_v1
 from diaas.config import CONFIG
 from diaas.db import alembic, db
@@ -15,6 +15,7 @@ if CONFIG.ENABLE_SENTRY:
 
 def create_app(testing=False):
     app = Flask(__name__)
+    register_error_handlers(app)
     app.config["TESTING"] = testing
     app.register_blueprint(api_v1, url_prefix="/api/1")
     app.register_blueprint(internal_api, url_prefix="/api/_")

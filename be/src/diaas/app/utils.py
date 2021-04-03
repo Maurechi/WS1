@@ -11,7 +11,21 @@ from flask_json import FlaskJSON, json_response, request
 from sentry_sdk import configure_scope
 
 from diaas.db import db
+from diaas.libds import LibDSException
 from diaas.model import User
+
+
+def _dict_without_none_values(d):
+    return {k: v for k, v in d.items() if v is not None}
+
+
+def error_json(status, code, **kwargs):
+    json = {
+        "status": status,
+        "code": code,
+    }
+    json.update(_dict_without_none_values(kwargs))
+    return json
 
 
 class ApiError(Exception):
@@ -29,25 +43,38 @@ class ApiError(Exception):
         return self._source
 
     def as_json(self):
-        error = {
-            "status": self.status,
-            "code": self.code,
-        }
-        if self.title is not None:
-            error["title"] = self.title
-        if self.detail is not None:
-            error["detail"] = self.detail
-        source = self.source()
-        if source is not None:
-            error["source"] = source
-        return error
+        return error_json(
+            self.status,
+            self.code,
+            title=self.title,
+            detail=self.detail,
+            source=self.source(),
+        )
 
 
-def register_error_handler(app):
+def register_error_handlers(app):
     def errorhandler(e):
         return json_response(status_=e.status, data_=dict(errors=[e.as_json()]))
 
     app.errorhandler(ApiError)(errorhandler)
+
+    def LibDSException_handler(e):
+        status = 400
+        return json_response(
+            status_=status,
+            data_=dict(
+                errors=[
+                    error_json(
+                        status,
+                        e.__class__.__module__ + "." + e.__class__.__name__,
+                        source=str(e),
+                    )
+                ]
+            ),
+        )
+
+    app.errorhandler(LibDSException)(LibDSException_handler)
+
     return app
 
 
