@@ -34,6 +34,7 @@ import v from "voca";
 import appBarGraphic from "./AppBarGraphic.png";
 import { useAppState } from "diaas/state";
 import { HCenter } from "diaas/ui.js";
+import { useLocalStorage } from "diaas/utils.js";
 
 const drawerWidth = 240;
 
@@ -196,18 +197,19 @@ const AppNavigationToolbar = observer(() => {
   );
 });
 
-export const AppNavigation = ({ children }) => {
+export const AppNavigation = observer(({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
+  const { jobs } = useAppState();
+  const drawerState = useLocalStorage("diaas:layout.navBarDrawerState", false);
 
   const loc = useLocation();
 
-  const SectionMenuItem = ({ location, text, Icon }) => {
+  const SectionMenuItem = ({ location, onClick, text, Icon }) => {
     const isCurrentLocation = v.startsWith(loc.pathname, location);
     const style = isCurrentLocation ? { color: theme.palette["primary"].main } : {};
     return (
-      <ListItem button component={Link} to={location + "/"} key={text}>
+      <ListItem button component={Link} to={location + "/"} key={text} onClick={onClick}>
         <ListItemIcon>
           <Icon style={style} />
         </ListItemIcon>
@@ -216,21 +218,37 @@ export const AppNavigation = ({ children }) => {
     );
   };
 
+  const JobsMenuItem = () => {
+    return (
+      <SectionMenuItem
+        location="/jobs"
+        text={jobs.numActive === 0 ? "Jobs" : `Jobs (${jobs.numActive})`}
+        Icon={PlayArrowIcon}
+      />
+    );
+  };
+
   return (
     <div className={classes.root}>
-      <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: open })}>
-        <AppNavigationToolbar drawerOpen={open} />
+      <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: drawerState.v })}>
+        <AppNavigationToolbar drawerOpen={drawerState.v} />
       </MUIAppBar>
       <Drawer
         variant="permanent"
-        className={clsx(classes.drawer, { [classes.drawerOpen]: open, [classes.drawerClose]: !open })}
-        classes={{ paper: clsx({ [classes.drawerOpen]: open, [classes.drawerClose]: !open }) }}
+        className={clsx(classes.drawer, { [classes.drawerOpen]: drawerState.v, [classes.drawerClose]: !drawerState.v })}
+        classes={{ paper: clsx({ [classes.drawerOpen]: drawerState.v, [classes.drawerClose]: !drawerState.v }) }}
       >
         <div className={classes.toolbar}>&nbsp;</div>
         <List>
-          <ListItem button key="openCloseToggle" onClick={() => setOpen(!open)}>
+          <ListItem
+            button
+            key="openCloseToggle"
+            onClick={() => {
+              drawerState.v = !drawerState.v;
+            }}
+          >
             <ListItemIcon>
-              <div style={{ transform: open ? "scaleX(-1)" : undefined }}>
+              <div style={{ transform: drawerState.v ? "scaleX(-1)" : undefined }}>
                 <DoubleArrowIcon />
               </div>
             </ListItemIcon>
@@ -243,10 +261,15 @@ export const AppNavigation = ({ children }) => {
         <Divider />
         <List>
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
-          <SectionMenuItem location="/stores" text="Storage" Icon={StorageIcon} />
+          <SectionMenuItem location="/store" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
-          <SectionMenuItem location="/jobs" text="Jobs" Icon={PlayArrowIcon} />
-          <SectionMenuItem location="/analytics" text="Analytics" Icon={SearchIcon} />
+          <JobsMenuItem />
+          <SectionMenuItem
+            location="/analytics"
+            onClick={() => window.open("/analytics", "caravel-analytics")}
+            text="Analytics"
+            Icon={SearchIcon}
+          />
         </List>
         <Divider />
         <List>
@@ -261,4 +284,4 @@ export const AppNavigation = ({ children }) => {
       </main>
     </div>
   );
-};
+});

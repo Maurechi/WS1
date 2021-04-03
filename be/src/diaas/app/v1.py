@@ -107,3 +107,22 @@ def model_create():
 def model_load(id):
     libds = g.user.current_data_stack.libds
     return libds.model_load(id)
+
+
+@api_v1.route("/store/execute", methods=["POST"])
+@login_required
+@as_json
+def execute():
+    req = Request()
+    libds = g.user.current_data_stack.libds
+    return libds.execute(
+        statement=req.require("statement"),
+    )
+
+
+@api_v1.route("/jobs/", methods=["GET"])
+@login_required
+@as_json
+def jobs_list():
+    libds = g.user.current_data_stack.libds
+    return libds.jobs_list()

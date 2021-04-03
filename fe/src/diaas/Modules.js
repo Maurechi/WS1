@@ -1,9 +1,9 @@
-import "@inovua/reactdatagrid-community/index.css";
-import ReactDataGrid from "@inovua/reactdatagrid-community";
 import { Box } from "@material-ui/core";
 import MoreHoriz from "@material-ui/icons/MoreHoriz";
 import React from "react";
 import { Route, Switch, useRouteMatch } from "react-router-dom";
+
+import { DataGrid } from "diaas/DataGrid.js";
 
 export const ModulesTable = () => {
   const renderName = ({ data }) => (
@@ -33,7 +33,7 @@ export const ModulesTable = () => {
       <Box display="flex" mb={3}>
         <Box style={{ flexGrow: 1 }}>Modules:</Box>
       </Box>
-      <ReactDataGrid isProperty="id" columns={columns} dataSource={rows} style={{ minHeight: 550 }} />
+      <DataGrid isProperty="id" columns={columns} dataSource={rows} style={{ minHeight: 550 }} />
     </Box>
   );
 };

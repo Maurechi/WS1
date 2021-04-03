@@ -1,8 +1,8 @@
 // NOTE ideally this would be in Source.js, but we put it here to
 // avoid recursive dependencies 20210116:mb
-import "@inovua/reactdatagrid-community/index.css";
-import ReactDataGrid from "@inovua/reactdatagrid-community";
 import React from "react";
+
+import { DataGrid } from "diaas/DataGrid.js";
 
 export const SampleDataTable = ({ rows }) => {
   if (rows.length === 0) {
@@ -10,5 +10,5 @@ export const SampleDataTable = ({ rows }) => {
   }
   const columnNames = Object.keys(rows[0]);
   const columns = columnNames.map((c) => ({ name: c, header: c }));
-  return <ReactDataGrid columns={columns} dataSource={rows} />;
+  return <DataGrid columns={columns} dataSource={rows} />;
 };

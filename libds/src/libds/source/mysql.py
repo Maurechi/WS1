@@ -96,7 +96,7 @@ class MySQL(BaseSource):
             )
         )
 
-    def load(self, recreate=False):
+    def load(self, reload=False):
         # NOTE sort the table names so we always process things in the same order 20210309:mb
         if self.tables == MySQL.ALL_TABLES:
             cur = self.connect().cursor()
@@ -108,10 +108,10 @@ class MySQL(BaseSource):
         # same order, not needed by convenient for the caller
         # 20210310:mb
         for table_name in sorted(tables.keys()):
-            self.load_one_table(table_name, tables[table_name], recreate)
+            self.load_one_table(table_name, tables[table_name], reload)
         return []
 
-    def load_one_table(self, table_name, spec, recreate):
+    def load_one_table(self, table_name, spec, reload):
         store = self.data_stack.store
         if spec is None:
             spec = {}
@@ -119,7 +119,7 @@ class MySQL(BaseSource):
         if self.target_table_name_prefix is not None:
             table_name = self.target_table_name_prefix + table_name
 
-        if recreate:
+        if reload:
             store.truncate_raw_table(schema_name, table_name)
 
         cur = self.connect().cursor()

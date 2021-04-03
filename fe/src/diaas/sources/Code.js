@@ -1,13 +1,16 @@
 import React from "react";
 
+import { CodeEditor, useFormValue } from "diaas/form.js";
+
 export const Code = ({ source }) => {
-  const { filename } = source.definition;
+  const { filename, code } = source.definition;
+  const value = useFormValue(code, { trim: false });
   return (
     <>
       <p>
-        <b>{source.name}</b>
+        <tt>{source.id}</tt> defined in <tt>{filename}</tt>
       </p>
-      <pre>{filename}</pre>
+      <CodeEditor mode="python" value={value} disabled={true} />
     </>
   );
 };

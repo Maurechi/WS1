@@ -118,6 +118,8 @@ class BaseSource:
         definition = {"in": self.defined_in, "filename": str(self.filename)}
         if self.defined_in == "config":
             definition["config"] = self.raw_config
+        elif self.defined_in == "code":
+            definition["code"] = self.filename.open("r").read()
         default["definition"] = definition
         return {**default, **data}
 
@@ -184,8 +186,8 @@ class BaseSource:
     def schema_name(self):
         return self._split_table_name()[0]
 
-    def load(self, recreate=False):
-        if recreate:
+    def load(self, reload=False):
+        if reload:
             self.data_stack.store.truncate_raw_table(self.schema_name, self.table_name)
         return self.data_stack.store.append_raw(
             schema_name=self.schema_name,
@@ -205,4 +207,5 @@ class BaseSource:
 
 
 class StaticSource(BaseSource):
-    pass
+    def load(self, reload=None):
+        return super().load(reload=True)

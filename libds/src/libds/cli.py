@@ -10,7 +10,9 @@ import click
 
 from libds import DataStack, __version__
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
+from libds.orchestration import Orchestrator
 from libds.source import BaseSource
+from libds.utils import DependencyGraph, DoesNotExist
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -32,6 +34,7 @@ class Command:
         self.format = format
         if directory is not None:
             self.ds = DataStack.from_dir(directory)
+            self.ds.load()
 
     def results(self, data):
         result = dict(meta=dict(version=__version__))
@@ -79,7 +82,7 @@ COMMAND = None
     "-f",
     "--format",
     type=click.Choice(["yaml", "json"], case_sensitive=False),
-    default="yaml",
+    default="json",
 )
 def cli(directory, format):
     global COMMAND
@@ -175,8 +178,12 @@ def source_inspect(source_id):
 def model_update(model_id, type, if_exists, if_does_not_exist, current_id, source):
     if current_id is None:
         current_id = model_id
-    model = COMMAND.ds.get_model(current_id)
-    if model is None:
+    try:
+        model = COMMAND.ds.get_model(current_id)
+        if if_exists == "error":
+            return {"error": {"code": "model-exists", "id": current_id}}
+
+    except DoesNotExist:
         if if_does_not_exist == "error":
             return {"error": {"code": "model-does-not-exist", "id": current_id}}
 
@@ -188,21 +195,81 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
             cls = PythonModel
         model = cls.create(data_stack=COMMAND.ds, id=current_id)
 
-    if model is not None:
-        if if_exists == "error":
-            return {"error": {"code": "model-exists", "id": current_id}}
-
-    model.update_source(_arg_str(source))
     if model_id != current_id:
         model = model.update_id(model_id)
+    model.update_source(_arg_str(source))
+
     return COMMAND.ds.get_model(model_id).info()
+
+
+def model_load_one(model_id, reload):
+    if reload:
+        loading = "reloading"
+    else:
+        loading = "loading"
+    print(f"{loading.capitalize()} {model_id}", file=sys.stderr, flush=True)
+    sample = COMMAND.ds.get_model(model_id).load(reload).sample()
+    # print(f"Done {loading} {model_id}", file=sys.stderr, flush=True)
+    return sample
+
+
+def _compute_model_load_order(model_ids):
+    g = DependencyGraph()
+
+    for m in COMMAND.ds.models:
+        for dep in m.dependencies:
+            g.edge(dep, m.id)
+
+    return g.cascade_from_nodes(model_ids)
 
 
 @command
 @click.argument("model_id")
 @click.option("-r", "--reload", is_flag=True, default=False)
-def model_load(model_id, reload):
-    return COMMAND.ds.get_model(model_id).load(reload)
+@click.option(
+    "--cascade",
+    default="AFTER",
+    type=click.Choice(["BEFORE", "BOTH", "AFTER"], case_sensitive=False),
+)
+@click.option("--no-cascade", is_flag=True, default=False)
+@click.option("--wait/--no-wait", is_flag=True, default=False)
+def model_load(model_id, reload, cascade, no_cascade, wait):
+    m = COMMAND.ds.get_model(model_id)
+    if m is None:
+        return {"error": {"code": "model-not-found", "id": model_id}}
+
+    if no_cascade:
+        cascade = None
+    load_task = m.load_task(reload=reload, cascade=cascade)
+    o = Orchestrator(tasks=[load_task])
+    o.execute(wait=wait)
+    return {"job": {"id": o.id}}
+    # return COMMAND.ds.get_model(model_id).table().sample()
+
+
+@command
+@click.option("-r", "--reload", is_flag=True, default=False)
+@click.option("--wait/--no-wait", is_flag=True, default=False)
+def model_load_all(reload, wait):
+    o = Orchestrator(
+        tasks=[
+            model.load_task(reload=reload, cascade=True) for model in COMMAND.ds.models
+        ]
+    )
+    o.execute(wait=wait)
+    return {"job": {"id": o.id}}
+
+
+@command
+@click.argument("statement")
+def execute(statement):
+    statement = _arg_str(statement)
+    return COMMAND.ds.store.execute(statement)
+
+
+@command
+def jobs_list():
+    return [j.info() for j in COMMAND.ds.jobs]
 
 
 @command

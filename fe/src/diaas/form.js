@@ -1,53 +1,25 @@
 import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
 import React, { createContext, useCallback, useContext, useState } from "react";
+import * as uuid from "uuid";
 import v from "voca";
 
+import AceEditor from "diaas/AceEditor";
 import { wrapInBox } from "diaas/ui.js";
-import { ignore } from "diaas/utils.js";
+import { useCell } from "diaas/utils.js";
 
 export const useFormValue = (initialValue, config) => {
-  let [value, setValue] = useState(initialValue);
-  let [isDirty, setIsDirty] = useState(false);
-  let [isTouched, setIsTouched] = useState(false);
+  const { trim = true, transform = (x) => x } = config || {};
 
-  const { transform = (x) => x, trim = true, onChange = (is, was) => ignore(is, was) } = config || {};
-  return {
-    getter() {
-      return transform(value);
-    },
-    setter(newValue) {
+  let [value, setValue] = useState(initialValue);
+
+  return useCell({
+    store: (newValue) => {
       newValue = transform(newValue);
-      if (trim) {
-        newValue = v.trim(newValue);
-      }
-      if (newValue !== value) {
-        setIsDirty(true);
-        onChange(newValue, value);
-        value = newValue;
-        setValue(newValue);
-      }
-      return value;
+      value = trim ? v.trim(newValue) : newValue;
+      setValue(value);
     },
-    toggle() {
-      return this.setter(!this.v);
-    },
-    touch() {
-      isTouched = true;
-      setIsTouched(true);
-    },
-    get v() {
-      return this.getter();
-    },
-    set v(newValue) {
-      this.setter(newValue);
-    },
-    get isDirty() {
-      return isDirty;
-    },
-    get isTouched() {
-      return isTouched;
-    },
-  };
+    load: () => value,
+  });
 };
 
 export const TextField = wrapInBox(({ value, onChange: callerOnChange, inputProps = {}, ...TextFieldProps }) => {
@@ -114,5 +86,23 @@ export const Form = ({ children, onSubmit }) => {
     <FormContext.Provider value={formData}>
       <form onSubmit={onSubmit}>{children}</form>
     </FormContext.Provider>
+  );
+};
+
+export const CodeEditor = ({ mode, value, disabled = false }) => {
+  const [divId] = useState(uuid.v4());
+  return (
+    <AceEditor
+      width="100%"
+      mode={mode}
+      theme="solarized_light"
+      name={divId}
+      value={value.v}
+      onChange={value.setter}
+      fontSize={14}
+      readOnly={disabled}
+      minLines={4}
+      maxLines={20}
+    />
   );
 };

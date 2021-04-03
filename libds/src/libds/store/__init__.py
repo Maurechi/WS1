@@ -62,6 +62,20 @@ class Store:
     def info(self):
         return self._info()
 
+    def execute(self, store):
+        raise NotImplementedError()
+
+
+def to_sample_value(value):
+    if isinstance(value, Decimal):
+        return float(value)
+    elif isinstance(value, (datetime.datetime, datetime.date)):
+        return value.isoformat()
+    elif isinstance(value, (bool, int, str, type(None), float)):
+        return value
+    else:
+        raise ValueError(f"Don't know how to make a sample datum from {value}.")
+
 
 class BaseTable:
     def __init__(self, store, schema_name, table_name):
@@ -73,13 +87,3 @@ class BaseTable:
         if limit is None:
             limit = 23
         return self._sample(limit, order_by, where)
-
-    def to_sample_value(self, value):
-        if isinstance(value, Decimal):
-            return float(value)
-        elif isinstance(value, (datetime.datetime, datetime.date)):
-            return value.isoformat()
-        elif isinstance(value, (bool, int, str, type(None), float)):
-            return value
-        else:
-            raise ValueError(f"Don't know how to make a sample datum from {value}.")

@@ -1,47 +1,19 @@
-import "@inovua/reactdatagrid-community/index.css";
-import ReactDataGrid from "@inovua/reactdatagrid-community";
-import { Box, Divider } from "@material-ui/core";
+import { Box, Divider, Grid, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
-import React, { useState } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
-// NOTE this is a disaster. i know. eslint wants to reoder import
-// alphabetically (which is somthing we generally want in this code
-// base). however AceEditor needs to be loaded before its dependencies
-// (and this is really AceEditor's fault). So we have to split the
-// laods into 2 files, name them so that eslint wan't swap the load
-// order, and then finally re import everything. would be great to
-// have a way to tell eslint "don't reorder these 3 lines", but i
-// wasn't able to find it.
-// 20201215:mb
-import "diaas/AceEditor_A_Editor";
-import "diaas/AceEditor_B_Dependencies";
-import AceEditor from "diaas/AceEditor";
-import { TextField, useFormValue } from "diaas/form.js";
-import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
+import { DataGrid } from "diaas/DataGrid.js";
+import { CodeEditor, TextField, useFormValue } from "diaas/form.js";
+import { Notebook } from "diaas/Notebook.js";
 import { useAppState } from "diaas/state.js";
-import { ButtonLink, NotFound } from "diaas/ui.js";
-
-const CodeEditor = ({ code, mode, disabled = false }) => {
-  return (
-    <AceEditor
-      width="100%"
-      mode={mode}
-      theme="solarized_light"
-      name="UNIQUE_ID_OF_DIV"
-      value={code.v}
-      onChange={code.setter}
-      fontSize={18}
-      readOnly={disabled}
-    />
-  );
-};
+import { ButtonLink, NotFound, StandardButton, VCenter } from "diaas/ui.js";
 
 export const Editor = observer(() => {
-  const [saveButtonLabel, setSaveButtonLabel] = useState("Save & Run");
-  const [saveButtonDisabled, setSaveButtonDisabled] = useState(false);
-  const { user, backend } = useAppState();
+  const saveButtonLabel = useFormValue("INITIAL");
+  const saveButtonEnabled = useFormValue(true);
+  const { user, backend, jobs } = useAppState();
 
   if (user.dataStack === null) {
     return <NotFound>No Data stacks for user</NotFound>;
@@ -60,44 +32,93 @@ export const Editor = observer(() => {
     }
   }
 
-  const codeValue = useFormValue(model.source);
+  const codeValue = useFormValue(model.source, { trim: false });
   const idValue = useFormValue(model.id);
 
-  const [rows, setRows] = useState([]);
+  const saveButtonState = useFormValue("IDLE");
+
+  const loadingJobId = useFormValue(null);
+  const loadingTicker = useFormValue(0, { trim: false, transform: (v) => v % 4 });
+
+  const updater = useCallback(() => {
+    if (saveButtonState.v === "IDLE") {
+      saveButtonLabel.v = "Save & Run.";
+      saveButtonEnabled.v = true;
+    } else if (saveButtonState.v === "SAVING") {
+      saveButtonLabel.v = "Saving";
+      saveButtonEnabled.v = false;
+    } else if (saveButtonState.v === "RUNNING") {
+      const isDone = jobs.byId && loadingJobId.v in jobs.byId && jobs.byId[loadingJobId.v].state === "DONE";
+      if (isDone) {
+        saveButtonState.v = "IDLE";
+      } else {
+        saveButtonEnabled.v = false;
+        loadingTicker.v = loadingTicker.v + 1;
+        saveButtonLabel.v = "Loading:" + ".".repeat(loadingTicker.v);
+      }
+    } else {
+      console.log("Unknown save button state", saveButtonState.v);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(updater, 500);
+    return () => clearInterval(timer);
+  }, [updater]);
+
   const saveAndRun = () => {
-    setSaveButtonLabel("Saving.");
-    setSaveButtonDisabled(true);
+    saveButtonState.v = "SAVING";
+    updater();
     backend.postModel(creating ? "" : modelId, { type: "select", id: idValue.v, source: codeValue.v }).then((data) => {
-      setSaveButtonLabel("Loading");
-      backend.loadModel(data.id).then((rows) => {
-        setSaveButtonDisabled(false);
-        setSaveButtonLabel("Save & Run");
-        setRows(rows);
+      saveButtonState.v = "RUNNING";
+      backend.loadModel(data.id).then(({ job: { id } }) => {
+        loadingJobId.v = id;
       });
     });
   };
+
+  const SaveAndRunButton = () => (
+    <StandardButton onClick={saveAndRun} disabled={!saveButtonEnabled.v}>
+      {saveButtonLabel.v}
+    </StandardButton>
+  );
 
   return (
     <form onSubmit={saveAndRun}>
       <Box>
         <Box display="flex" mb={3}>
-          <Box style={{ flexGrow: 1 }}>ID: {creating ? <TextField value={idValue} /> : <pre>{model.id}</pre>}</Box>
+          <Box style={{ flexGrow: 1 }}>
+            <Typography variant="h4">Settings</Typography>
+            <VCenter>
+              <Box pr={2}>ID:</Box>
+              <Box>
+                <TextField value={idValue} />
+              </Box>
+            </VCenter>
+          </Box>
           <Box>
             <Box display="flex">
               <Box mx={1}>
-                <ButtonLink onClick={saveAndRun} disabled={saveButtonDisabled}>
-                  {saveButtonLabel}
-                </ButtonLink>
+                <SaveAndRunButton />
               </Box>
               <Box mx={1}>
-                <ButtonLink disabled={true}>Commit</ButtonLink>
+                <StandardButton disabled={true}>Commit</StandardButton>
               </Box>
             </Box>
           </Box>
         </Box>
-        <CodeEditor mode={model.type} code={codeValue} />
         <Divider />
-        <SampleDataTable rows={rows} />
+        <Grid container>
+          <Grid item xs={6}>
+            <Typography variant="h4">Model</Typography>
+            <CodeEditor mode={model.type} value={codeValue} />
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="h4">Notebook</Typography>
+            <Notebook id={modelId} baseTable={modelId} />
+          </Grid>
+        </Grid>
       </Box>
     </form>
   );
@@ -141,10 +162,11 @@ export const FileTable = observer(() => {
           </Box>
         </Box>
       </Box>
-      <ReactDataGrid
+      <DataGrid
         isProperty="id"
         columns={columns}
         dataSource={files}
+        defaultSortInfo={{ name: "id", dir: 1 }}
         style={{ minHeight: 550 }}
         onRenderRow={onRenderRow}
       />

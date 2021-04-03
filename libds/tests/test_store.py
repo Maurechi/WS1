@@ -65,7 +65,7 @@ def test_source_can_load_from_cli(fixtures, tempfile):
 def test_source_to_postgresql(fixtures, tempfile):
     ds4 = DataStack.from_dir(fixtures.dir("ds4"))
     source = ds4.sources[0]
-    source.load(recreate=False)
+    source.load(reload=False)
 
     conn = ds4.store.engine.connect()
     res = conn.execute(

@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 
 import { Form, TextField, useFormValue } from "diaas/form.js";
-import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
+import { SampleDataTable } from "diaas/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { ActionButton } from "diaas/ui.js";
 
@@ -28,7 +28,6 @@ export const StaticTable = observer(({ source }) => {
         saveAndLoadLabel.v = "Loading...";
         return state.backend.loadSource(targetTable.v).then((data) => {
           saveAndLoadLabel.v = "Save and Load";
-          console.log("Load returned", data);
           setRows(data.rows);
           // return [update, load];
         });

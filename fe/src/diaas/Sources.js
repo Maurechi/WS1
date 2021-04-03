@@ -1,11 +1,10 @@
-import "@inovua/reactdatagrid-community/index.css";
-import ReactDataGrid from "@inovua/reactdatagrid-community";
 import { Box, Grid, Paper, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
+import { DataGrid } from "diaas/DataGrid.js";
 import { ErrorDialog } from "diaas/ErrorDialog.js";
 import { Code } from "diaas/sources/Code.js";
 import { GoogleSheet } from "diaas/sources/GoogleSheet.js";
@@ -99,7 +98,7 @@ export const SourcesTable = observer(() => {
           <ButtonLink target={`${path}/:new`}>New Source</ButtonLink>
         </Box>
       </Box>
-      <ReactDataGrid
+      <DataGrid
         isProperty="id"
         columns={columns}
         dataSource={rows}

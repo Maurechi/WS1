@@ -1,48 +1,39 @@
-import "@inovua/reactdatagrid-community/index.css";
-import ReactDataGrid from "@inovua/reactdatagrid-community";
 import { Box } from "@material-ui/core";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Route, Switch, useRouteMatch } from "react-router-dom";
 
+import { DataGrid } from "diaas/DataGrid.js";
+import { useAppState } from "diaas/state.js";
+
 export const JobsTable = () => {
+  const state = useAppState();
+  const [jobs, setJobs] = useState([]);
+  useEffect(() => {
+    state.backend.jobsList().then(setJobs);
+  }, [state]);
+
   const columns = [
-    { defaultFlex: 2, name: "name", header: "Name" },
-    { defaultFlex: 1, name: "status", header: "Status" },
-    { defaultFlex: 2, name: "lastRun", header: "Last Run" },
-    { defaultFlex: 2, name: "lastSuccess", header: "Last Success" },
+    { defaultFlex: 1, name: "id", header: "ID" },
+    { defaultFlex: 1, name: "state", header: "State" },
+    { defaultFlex: 3, name: "logs", header: "Log" },
   ];
 
-  const rows = [
-    { id: 1, name: "Load Source: static_kpis", status: "Failed", lastRun: "1 hour ago", lastSuccess: "6 hours ago" },
-    {
-      id: 2,
-      name: "Transform: static_kpis_d",
-      status: "Upstream Failed",
-      lastRun: "1 hour ago",
-      lastSuccess: "6 hours ago",
-    },
-    {
-      id: 3,
-      name: "Load Source: a_google_sheet",
-      status: "Complete",
-      lastRun: "3 hours ago",
-      lastSuccess: "11 hours ago",
-    },
-    {
-      id: 4,
-      name: "Transform: enrich_data.py",
-      status: "Complete",
-      lastRun: "6 hours ago",
-      lastSuccess: "6 hours ago",
-    },
-  ];
+  const dataSource = jobs.map((j) => {
+    return { id: j.id, state: j.state, logs: j.orchestrator.stdout };
+  });
 
   return (
     <Box>
       <Box display="flex" mb={3}>
         <Box style={{ flexGrow: 1 }}>Jobs:</Box>
       </Box>
-      <ReactDataGrid isProperty="id" columns={columns} dataSource={rows} style={{ minHeight: 550 }} />
+      <DataGrid
+        isProperty="id"
+        columns={columns}
+        dataSource={dataSource}
+        style={{ minHeight: 550 }}
+        defaultSortInfo={{ name: "id", dir: -1 }}
+      />
     </Box>
   );
 };

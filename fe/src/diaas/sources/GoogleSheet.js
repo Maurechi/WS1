@@ -2,7 +2,7 @@ import { Box, Divider } from "@material-ui/core";
 import React, { useState } from "react";
 
 import { TextField, useFormValue } from "diaas/form.js";
-import { SampleDataTable } from "diaas/sources/SampleDataTable.js";
+import { SampleDataTable } from "diaas/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { ActionButton } from "diaas/ui.js";
 
@@ -36,7 +36,6 @@ export const GoogleSheet = ({ source }) => {
       saveAndLoadLabel.v = "Loading...";
       return state.backend.loadSource(source.id).then((data) => {
         saveAndLoadLabel.v = "Save and Load";
-        console.log("Load returned", data);
         setRows(data.rows);
         // return [update, load];
       });

@@ -5,9 +5,10 @@ import pygit2
 from ruamel.yaml import YAML
 
 from libds.model import load_models
+from libds.orchestration import load_jobs
 from libds.source import load_sources
 from libds.store import load_store
-from libds.utils import ThreadLocalList
+from libds.utils import DoesNotExist, ThreadLocalList
 
 LOCAL_DATA_STACKS = ThreadLocalList()
 
@@ -16,6 +17,8 @@ class DataStack:
     def __init__(self, directory=None, config={}):
         self.directory = directory
         self.config = config
+        self.models_dir = self.directory / "models"
+
         LOCAL_DATA_STACKS.append(self)
 
     @classmethod
@@ -40,7 +43,7 @@ class DataStack:
         data_stack_yaml = dir / "data_stack.yaml"
         if data_stack_yaml.exists():
             yaml = YAML(typ="safe")
-            ds = DataStack(config=yaml.load(data_stack_yaml))
+            ds = DataStack(directory=dir, config=yaml.load(data_stack_yaml))
 
         if ds is None:
             raise Exception("No data stack defined.")
@@ -70,13 +73,16 @@ class DataStack:
                 ),
             ),
             sources=[s.info() for s in self.sources],
-            stores=[store.info() for store in self.stores],
+            store=self.store.info(),
             models=[model.info() for model in self.models],
         )
 
-    @property
-    def sources(self):
-        return load_sources(self)
+    def load(self):
+        self.sources = load_sources(self)
+        self.models = load_models(self)
+        self.store = load_store(self)
+        self.jobs = load_jobs(self)
+        return self
 
     def get_source(self, id):
         for s in self.sources:
@@ -85,33 +91,10 @@ class DataStack:
         else:
             return None
 
-    @property
-    def stores(self):
-        store = load_store(self)
-        if store is None:
-            return []
-        else:
-            return [store]
-
-    @property
-    def store(self):
-        stores = self.stores
-        if len(stores) > 0:
-            return stores[0]
-        else:
-            return None
-
-    @property
-    def models(self):
-        return load_models(self)
-
     def get_model(self, id):
+        # print(f"Looking for model {id} in {list(self.models)}")
         for model in self.models:
             if model.id == id:
                 return model
         else:
-            return None
-
-    @property
-    def models_dir(self):
-        return self.directory / "models"
+            raise DoesNotExist(f"Model: {id}")

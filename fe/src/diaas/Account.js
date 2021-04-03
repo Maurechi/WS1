@@ -11,7 +11,6 @@ export const AccountLogoutContent = () => {
   const state = useAppState();
   useEffect(() => {
     state.logout().then(() => {
-      console.log("Updating window location");
       window.location.pathname = "/";
       window.location.reload(true);
     });
