@@ -91,3 +91,14 @@ class DependencyGraph:
 
 class DoesNotExist(Exception):
     pass
+
+
+class DSException(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def code(self):
+        return self.__class__.__module__ + "." + self.__class__.__name__
+
+    def as_json(self):
+        return dict(code=self.code(), details=str(self))

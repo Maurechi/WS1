@@ -211,13 +211,73 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const FatalError = ({ details }) => {
-  let toClipBoard = null;
-  if ("clipboard" in navigator) {
-    toClipBoard = () => navigator.clipboard.writeText(details.title + "\n\n" + details.message);
+const FatalError = ({ error }) => {
+  let errText = "";
+  let errComponents = [];
+
+  const ToClipBoard = () => {
+    if ("clipboard" in navigator) {
+      const onClick = () => navigator.clipboard.writeText("```" + errText + "```");
+      return (
+        <HCenter>
+          <Button variant="contained" color="primary" onClick={onClick}>
+            Copy error to clipboard
+          </Button>
+        </HCenter>
+      );
+    } else {
+      return <></>;
+    }
+  };
+
+  const Row = ({ label, children }) => {
+    return (
+      <tr>
+        <td style={{ verticalAlign: "top" }}>
+          <b>{label}:</b>
+        </td>
+        <td style={{ verticalAlign: "top" }}>
+          <pre style={{ whiteSpace: "pre-wrap" }}>{children}</pre>
+        </td>
+      </tr>
+    );
+  };
+
+  if (error.data.errors) {
+    errText = "";
+    error.data.errors.forEach((e) => {
+      errText += `Code: ${e.code}\n`;
+      errText += `Title: ${e.title}\n`;
+      errText += `Source: ${e.source}\n`;
+      errText += `Details: ${e.details}\n`;
+      errText += "\n";
+      errComponents.push(
+        <table>
+          <Row label="Code">{e.code}</Row>
+          {e.title && <Row label="Title">{e.title}</Row>}
+          {e.source && <Row label="Source">{e.source}</Row>}
+          {e.details && <Row label="Details">{e.details}</Row>}
+        </table>
+      );
+    });
+  } else if (error.data) {
+    errText = JSON.stringify(error.data, null, 4);
+    errComponents.push(
+      <table>
+        <Row label="Data">{errText}</Row>
+      </table>
+    );
   } else {
-    toClipBoard = false;
+    errText = `Title: ${error.title}\n${error.details}`;
+
+    errComponents.push(
+      <table>
+        <Row label="Title">{error.title}</Row>
+        <Row label="Details">{error.details}</Row>
+      </table>
+    );
   }
+
   return (
     <HCenter>
       <Grid container>
@@ -227,17 +287,13 @@ const FatalError = ({ details }) => {
           </HCenter>
         </Grid>
         <Grid item xs={12}>
-          <HCenter>{details.title}</HCenter>
-          <HCenter>
-            <pre>{details.message}</pre>
-          </HCenter>
-          {toClipBoard && (
-            <HCenter>
-              <Button variant="contained" color="primary" onClick={toClipBoard}>
-                Copy error to clipboard
-              </Button>
-            </HCenter>
-          )}
+          <ToClipBoard />
+        </Grid>
+        <Grid item xs={12}>
+          {errComponents}
+        </Grid>
+        <Grid item xs={12}>
+          <ToClipBoard />
         </Grid>
       </Grid>
     </HCenter>
@@ -250,7 +306,7 @@ const App = observer(() => {
     state.initialize();
   }, [state]);
   if (state.fatalError) {
-    return <FatalError details={state.fatalError} />;
+    return <FatalError error={state.fatalError} />;
   } else {
     if (!state.initialized) {
       return <Loading />;

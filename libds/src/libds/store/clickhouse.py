@@ -5,7 +5,30 @@ import clickhouse_driver.errors
 from clickhouse_driver import Client
 
 from libds.store import BaseTable, Store, to_sample_value
-from libds.utils import Progress
+from libds.store.clickhouse_error_codes import ERROR_CODES
+from libds.utils import DSException, Progress
+
+
+class ClickHouseServerException(DSException):
+    def __init__(self, se, source):
+        self.se = se
+        self.source = source
+
+    def as_json(self):
+
+        error_name = ERROR_CODES.get(self.se.code, None)
+        if error_name is None:
+            error = str(self.se.code)
+        else:
+            error = f"{error_name}({self.se.code})"
+
+        details = f"{error}:\n{self.se.message}"
+
+        return dict(
+            code=self.code(),
+            details=details,
+            source=self.source,
+        )
 
 
 class ClickHouseClient:
@@ -17,8 +40,14 @@ class ClickHouseClient:
         try:
             return self.client.execute(stmt, *args, **kwargs)
         except clickhouse_driver.errors.ServerException as se:
-            print(f"Failed on query {stmt}")
-            raise se
+            source = stmt
+            if args:
+                source += "("
+                source += ",".join(args)
+                source += ")"
+            # NOTE kwargs are only ever with_column_types, which we don't care about in the error messages. 20210403:mb
+            # source += ",".join([pformat(k) + "=" + pformat(v) for k, v in kwargs.items()])
+            raise ClickHouseServerException(se=se, source=source)
 
 
 class ClickHouse(Store):
