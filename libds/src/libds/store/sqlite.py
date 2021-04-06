@@ -22,7 +22,6 @@ class SQLite(SQLAlchemyStore):
         table_name = self.make_table_name(schema_name, table_name)
         with self.engine.connect() as conn:
             conn.execute(sa.text(f"""DROP TABLE IF EXISTS {table_name}_raw"""))
-            conn.execute(sa.text(f"""DROP TABLE IF EXISTS {table_name}_del"""))
 
     def append_raw(self, schema_name, table_name, records):
         table_name = self.make_table_name(schema_name, table_name)
@@ -36,15 +35,6 @@ class SQLite(SQLAlchemyStore):
                   data text not null,
                   valid_at text,
                   ins_at text default current_timestamp,
-                );"""
-                )
-            )
-            conn.execute(
-                sa.text(
-                    f"""
-                CREATE TABLE IF NOT EXISTS {table_name}_del (
-                  primary_key text,
-                  deleted_at text,
                 );"""
                 )
             )
