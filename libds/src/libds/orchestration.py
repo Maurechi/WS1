@@ -43,6 +43,9 @@ class TaskState:
     def __init__(self, task):
         self.task = task
         self.state = None
+        self.result = None
+        self.async_result = None
+        self.blockers = []
 
 
 class Orchestrator:
