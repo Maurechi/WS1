@@ -32,9 +32,15 @@ class Command:
         directory = Path(directory)
         self.directory = directory
         self.format = format
+        self.ds = None
         if directory is not None:
             self.ds = DataStack.from_dir(directory)
             self.ds.load()
+
+    def reload_data_stack(self):
+        self.ds = DataStack.from_dir(self.ds.directory)
+        self.ds.load()
+        return self.ds
 
     def results(self, data):
         result = dict(meta=dict(version=__version__))
@@ -202,7 +208,7 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
         model = model.update_id(model_id)
     model.update_source(_arg_str(source))
 
-    return COMMAND.ds.get_model(model_id).info()
+    return COMMAND.reload_data_stack().get_model(model_id).info()
 
 
 def model_load_one(model_id, reload):
