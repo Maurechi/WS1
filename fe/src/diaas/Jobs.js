@@ -1,5 +1,5 @@
 import { Box } from "@material-ui/core";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Route, Switch, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
@@ -8,9 +8,6 @@ import { useAppState } from "diaas/state.js";
 export const JobsTable = () => {
   const state = useAppState();
   const [jobs, setJobs] = useState([]);
-  useEffect(() => {
-    state.backend.jobsList().then(setJobs);
-  }, [state]);
 
   const columns = [
     { defaultFlex: 1, name: "id", header: "ID" },

@@ -1,7 +1,7 @@
 import axios from "axios";
 import _ from "lodash";
 import { makeAutoObservable } from "mobx";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext } from "react";
 
 const dataIf = (condition) => {
   return (response) => {
@@ -189,20 +189,5 @@ export const useAppState = () => {
 export const APP_STATE = new AppStateObject();
 
 export const AppState = ({ children }) => {
-  useEffect(() => {
-    const updater = () => {
-      if (APP_STATE.user) {
-        APP_STATE.backend.jobsList().then((list) => {
-          APP_STATE.setJobs({
-            list: list,
-            byId: Object.fromEntries(list.map((j) => [j.id, j])),
-            numActive: _.filter(list, (j) => j.state !== "DONE").length,
-          });
-        });
-      }
-    };
-    const timer = setInterval(updater, 3000);
-    return () => clearInterval(timer);
-  }, []);
   return <AppStateContext.Provider value={APP_STATE}>{children}</AppStateContext.Provider>;
 };
