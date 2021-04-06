@@ -29,6 +29,8 @@ class MySQL(BaseSource):
     def __init__(self, **kwargs):
         self.connect_args = kwargs.pop("connect_args", {})
         self.tables = kwargs.pop("tables", None)
+        if isinstance(self.tables, list):
+            self.tables = {table_name: {} for table_name in self.tables}
         self.target_schema = kwargs.pop("target_schema", "public")
         self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
         super().__init__(**kwargs)
@@ -41,7 +43,7 @@ class MySQL(BaseSource):
             tables=self.tables,
         )
 
-    def connect(self):
+    def connect_args_for_mysql(self):
         connect_args = dict(use_unicode=True, charset="utf8", cursorclass=SSCursor)
 
         if "port" in self.connect_args:
@@ -58,7 +60,10 @@ class MySQL(BaseSource):
                 if value is not None:
                     connect_args[to] = value
 
-        return MySQLdb.connect(**connect_args)
+        return connect_args
+
+    def connect(self):
+        return MySQLdb.connect(**self.connect_args_for_mysql())
 
     def select_tables(self, cur):
         tables = {}
@@ -166,11 +171,21 @@ class MySQL(BaseSource):
         )
 
     def register_data_nodes(self, data_stack):
+        fqid = self.fqid()
+        details = " ".join(
+            [k + "=" + str(v) for k, v in self.connect_args_for_mysql().items()]
+        )
+        data_stack.register_data_nodes(
+            DataNode(
+                id=fqid,
+                inputs=[],
+                details=details,
+            )
+        )
         for table_name in self.table_spec().keys():
             data_stack.register_data_nodes(
                 DataNode(
                     id=self.target_schema + "." + table_name + "_raw",
-                    container=self.fqid(),
-                    inputs=[],
+                    inputs=[fqid],
                 )
             )

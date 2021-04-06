@@ -10,8 +10,8 @@ import logo from "./App.logo.png";
 import sorry_gif from "./sorry.gif";
 import { AccountProfileContent } from "diaas/Account.js";
 import { AnalyticsContent } from "diaas/Analytics";
+import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
-import { JobsContent } from "diaas/Jobs";
 import { AppNavigation, AppSplash } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
 import { ModulesContent } from "diaas/Modules";
@@ -166,8 +166,8 @@ const AppContent = () => (
           <Route path="/store/">
             <StoreContent />
           </Route>
-          <Route path="/jobs/">
-            <JobsContent />
+          <Route path="/data-nodes/">
+            <DataNodesContent />
           </Route>
           <Route path="/analytics/">
             <AnalyticsContent />
@@ -243,7 +243,7 @@ const FatalError = ({ error }) => {
     );
   };
 
-  if (error.data.errors) {
+  if (error && error.data && error.data.errors) {
     errText = "";
     error.data.errors.forEach((e) => {
       errText += `Code: ${e.code}\n`;
@@ -262,20 +262,27 @@ const FatalError = ({ error }) => {
         </table>
       );
     });
-  } else if (error.data) {
+  } else if (error && error.data) {
     errText = JSON.stringify(error.data, null, 4);
     errComponents.push(
       <table>
         <Row label="Data">{errText}</Row>
       </table>
     );
-  } else {
+  } else if (error) {
     errText = `Title: ${error.title}\n${error.details}`;
 
     errComponents.push(
       <table>
         <Row label="Title">{error.title}</Row>
         <Row label="Details">{error.details}</Row>
+      </table>
+    );
+  } else {
+    errText = JSON.stringify(error, null, 4);
+    errComponents.push(
+      <table>
+        <Row label="Data">{errText}</Row>
       </table>
     );
   }

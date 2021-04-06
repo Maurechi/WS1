@@ -1,11 +1,17 @@
 class DataNode:
-    def __init__(self, id, container=None, inputs=None):
+    def __init__(self, id, container=None, inputs=None, details=None):
         self.id = id
         self.container = container
         self.inputs = inputs if inputs is not None else []
+        self.details = details
 
     def info(self):
-        return dict(id=self.id, container=self.container, inputs=self.inputs)
+        return dict(
+            id=self.id,
+            container=self.container,
+            inputs=self.inputs,
+            details=self.details,
+        )
 
 
 class DataNodeDB:

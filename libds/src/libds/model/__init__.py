@@ -216,7 +216,7 @@ class SQLModel(BaseModel):
             sql=sql,
             table_name=config["table_name"],
             schema_name=config["schema_name"],
-            dependencies=config["dependencies"],
+            dependencies=list(set(config["dependencies"])),
         )
 
     def __repr__(self):
