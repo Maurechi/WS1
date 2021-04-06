@@ -252,11 +252,13 @@ const FatalError = ({ error }) => {
       errText += `Details: ${e.details}\n`;
       errText += "\n";
       errComponents.push(
-        <table>
-          <Row label="Code">{e.code}</Row>
-          {e.title && <Row label="Title">{e.title}</Row>}
-          {e.source && <Row label="Source">{e.source}</Row>}
-          {e.details && <Row label="Details">{e.details}</Row>}
+        <table key={errComponents.length}>
+          <tbody>
+            <Row label="Code">{e.code}</Row>
+            {e.title && <Row label="Title">{e.title}</Row>}
+            {e.source && <Row label="Source">{e.source}</Row>}
+            {e.details && <Row label="Details">{e.details}</Row>}
+          </tbody>
         </table>
       );
     });
