@@ -54,7 +54,9 @@ class MySQL(BaseSource):
         }
         for frm, to in mapping.items():
             if frm in self.connect_args:
-                connect_args[to] = self.connect_args[frm]
+                value = self.connect_args[frm]
+                if value is not None:
+                    connect_args[to] = value
 
         return MySQLdb.connect(**connect_args)
 
