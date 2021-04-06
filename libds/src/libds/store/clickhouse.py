@@ -10,19 +10,22 @@ from libds.utils import DSException, Progress
 
 
 class ClickHouseServerException(DSException):
-    def __init__(self, se, source):
+    def __init__(self, se=None, source=None):
         self.se = se
         self.source = source
 
     def as_json(self):
 
-        error_name = ERROR_CODES.get(self.se.code, None)
-        if error_name is None:
-            error = str(self.se.code)
+        if self.se is None:
+            details = "-no se object-"
         else:
-            error = f"{error_name}({self.se.code})"
-
-        details = f"{error}:\n{self.se.message}"
+            se = self.se
+            error_name = ERROR_CODES.get(se.code, None)
+            if error_name is None:
+                error = str(se.code)
+            else:
+                error = f"{error_name}({se.code})"
+            details = f"{error}:\n{se.message}"
 
         return dict(
             code=self.code(),
@@ -30,6 +33,8 @@ class ClickHouseServerException(DSException):
             source=self.source,
         )
 
+    def __str__(self):
+        return "<" + self.__class__.__name__ + " " + " ".join(["=".join(item) for item in self.as_json().items()]) + ">"
 
 class ClickHouseClient:
     def __init__(self, **kwargs):
