@@ -5,6 +5,7 @@ import MySQLdb
 from MySQLdb import _exceptions as exceptions
 from MySQLdb.cursors import SSCursor
 
+from libds.data_node import DataNode
 from libds.source import BaseSource, Record
 
 
@@ -96,16 +97,17 @@ class MySQL(BaseSource):
             )
         )
 
-    def load(self, reload=False):
-        # NOTE sort the table names so we always process things in the same order 20210309:mb
+    def table_spec(self):
         if self.tables == MySQL.ALL_TABLES:
             cur = self.connect().cursor()
-            tables = {name: {} for name in self.select_tables(cur).keys()}
+            return {name: {} for name in self.select_tables(cur).keys()}
         else:
-            tables = self.tables
+            return self.tables
 
+    def load(self, reload=False):
+        tables = self.table_spec()
         # NOTE do this sort so we always process the tables in the
-        # same order, not needed by convenient for the caller
+        # same order, not needed but convenient for the caller
         # 20210310:mb
         for table_name in sorted(tables.keys()):
             self.load_one_table(table_name, tables[table_name], reload)
@@ -160,3 +162,13 @@ class MySQL(BaseSource):
             table_name=table_name,
             records=(as_record(row) for row in _fetchall(cur, query, query_args)),
         )
+
+    def register_data_nodes(self, data_stack):
+        for table_name in self.table_spec().keys():
+            data_stack.register_data_nodes(
+                DataNode(
+                    id=self.target_schema + "." + table_name + "_raw",
+                    container=self.fqid(),
+                    inputs=[],
+                )
+            )

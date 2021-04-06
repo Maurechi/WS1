@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
+from libds.data_node import DataNode
 from libds.utils import ThreadLocalList, ThreadLocalValue
 
 
@@ -96,6 +97,9 @@ class BaseSource:
                 return self.filename.stem
         else:
             return self._id
+
+    def fqid(self):
+        return self.type + ":" + self.id
 
     @property
     def filename(self):
@@ -209,3 +213,8 @@ class BaseSource:
 class StaticSource(BaseSource):
     def load(self, reload=None):
         return super().load(reload=True)
+
+    def register_data_nodes(self, data_stack):
+        data_stack.register_data_nodes(
+            DataNode(id=self.schema_name + "." + self.table_name, container=self.fqid())
+        )

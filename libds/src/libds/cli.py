@@ -282,8 +282,8 @@ def execute(statement):
 
 
 @command
-def jobs_list():
-    return [j.info() for j in COMMAND.ds.jobs]
+def data_nodes():
+    return [node.info() for node in COMMAND.ds.data_nodes]
 
 
 @command

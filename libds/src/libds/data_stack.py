@@ -5,7 +5,6 @@ import pygit2
 from ruamel.yaml import YAML
 
 from libds.model import load_models
-from libds.orchestration import load_jobs
 from libds.source import load_sources
 from libds.store import load_store
 from libds.utils import DoesNotExist, ThreadLocalList
@@ -75,14 +74,27 @@ class DataStack:
             sources=[s.info() for s in self.sources],
             store=self.store.info(),
             models=[model.info() for model in self.models],
+            data_nodes=[node.info() for node in self.data_nodes.values()],
         )
 
     def load(self):
         self.sources = load_sources(self)
         self.models = load_models(self)
         self.store = load_store(self)
-        self.jobs = load_jobs(self)
+
+        self.data_nodes = {}
+        for d in self.sources + self.models:
+            d.register_data_nodes(self)
+
         return self
+
+    def register_data_nodes(self, *nodes):
+        for node in nodes:
+            if node.id in self.data_nodes:
+                raise ValueError(
+                    f"Attempting to add {node} with id {node.id} but {self.data_nodes[node.id]} already has that key."
+                )
+            self.data_nodes[node.id] = node
 
     def get_source(self, id):
         for s in self.sources:

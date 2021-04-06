@@ -7,6 +7,7 @@ from pprint import pformat
 
 from jinja2 import Environment, FileSystemLoader
 
+from libds.data_node import DataNode
 from libds.orchestration import Task
 from libds.utils import ThreadLocalValue
 
@@ -76,6 +77,9 @@ class BaseModel:
             table_name=self.table_name,
             schema_name=self.schema_name,
         )
+
+    def fqid(self):
+        return self.type + ":" + self.id
 
     def last_modified(self):
         if self.filename is None:
@@ -147,6 +151,13 @@ def _pprint_call(func, **args):
     return str
 
 
+def _ensure_schema(table_name):
+    if "." in table_name:
+        return table_name
+    else:
+        return "public." + table_name
+
+
 class SQLModel(BaseModel):
     def __init__(self, sql=None, type=None, **kwargs):
         super().__init__(**kwargs)
@@ -170,7 +181,10 @@ class SQLModel(BaseModel):
         )
 
         def depends_on(model_id, *other_deps):
-            config["dependencies"] += [model_id] + list(other_deps)
+            config["dependencies"] += [
+                _ensure_schema(table_name)
+                for table_name in [model_id] + list(other_deps)
+            ]
             return model_id
 
         def table_name(table, schema=None):
@@ -224,6 +238,15 @@ class SQLQueryModel(SQLModel):
             data_stack=data_stack,
             filename=data_stack.models_dir / f"{id}.sql",
             sql=None,
+        )
+
+    def register_data_nodes(self, data_stack):
+        data_stack.register_data_nodes(
+            DataNode(
+                id=self.schema_name + "." + self.table_name,
+                container=self.fqid(),
+                inputs=self.dependencies,
+            )
         )
 
 

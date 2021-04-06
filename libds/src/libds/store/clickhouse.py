@@ -34,7 +34,14 @@ class ClickHouseServerException(DSException):
         )
 
     def __str__(self):
-        return "<" + self.__class__.__name__ + " " + " ".join(["=".join(item) for item in self.as_json().items()]) + ">"
+        return (
+            "<"
+            + self.__class__.__name__
+            + " "
+            + " ".join(["=".join(item) for item in self.as_json().items()])
+            + ">"
+        )
+
 
 class ClickHouseClient:
     def __init__(self, **kwargs):
