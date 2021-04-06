@@ -191,13 +191,15 @@ export const APP_STATE = new AppStateObject();
 export const AppState = ({ children }) => {
   useEffect(() => {
     const updater = () => {
-      APP_STATE.backend.jobsList().then((list) => {
-        APP_STATE.setJobs({
-          list: list,
-          byId: Object.fromEntries(list.map((j) => [j.id, j])),
-          numActive: _.filter(list, (j) => j.state !== "DONE").length,
+      if (APP_STATE.user) {
+        APP_STATE.backend.jobsList().then((list) => {
+          APP_STATE.setJobs({
+            list: list,
+            byId: Object.fromEntries(list.map((j) => [j.id, j])),
+            numActive: _.filter(list, (j) => j.state !== "DONE").length,
+          });
         });
-      });
+      }
     };
     const timer = setInterval(updater, 3000);
     return () => clearInterval(timer);
