@@ -172,8 +172,9 @@ class MySQL(BaseSource):
 
     def register_data_nodes(self, data_stack):
         fqid = self.fqid()
+        connect_args = self.connect_args_for_mysql()
         details = " ".join(
-            [k + "=" + str(v) for k, v in self.connect_args_for_mysql().items()]
+            [k + "=" + str(connect_args[k]) for k in "host port db".split()]
         )
         data_stack.register_data_nodes(
             DataNode(
