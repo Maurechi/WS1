@@ -1,3 +1,4 @@
+from datetime import timedelta
 from hashlib import sha256
 from pprint import pformat, pprint  # noqa: F401
 
@@ -178,9 +179,7 @@ class MySQL(BaseSource):
         )
         data_stack.register_data_nodes(
             DataNode(
-                id=fqid,
-                inputs=[],
-                details=details,
+                id=fqid, inputs=[], details=details, expires_after=timedelta(hours=6)
             )
         )
         for table_name in self.table_spec().keys():

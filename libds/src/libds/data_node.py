@@ -1,17 +1,30 @@
+from dataclasses import dataclass
+from datetime import timedelta
+from typing import Optional, Sequence
+
+from libds.utils import _timedelta_as_info
+
+
+@dataclass
 class DataNode:
-    def __init__(self, id, container=None, inputs=None, details=None):
-        self.id = id
-        self.container = container
-        self.inputs = inputs if inputs is not None else []
-        self.details = details
+    id: str
+    container: Optional[str] = None
+    inputs: Optional[Sequence[str]] = None
+    details: Optional[dict] = None
+    expires_after: Optional[timedelta] = None
 
     def info(self):
-        return dict(
-            id=self.id,
-            container=self.container,
-            inputs=self.inputs,
-            details=self.details,
-        )
+        i = {"id": self.id}
+        if self.container is not None:
+            i["container"] = self.container
+        if self.inputs:
+            i["inputs"] = self.inputs
+        if self.details:
+            i["details"] = self.details
+        if self.expires_after is not None:
+            i["expires_after"] = _timedelta_as_info(self.expires_after)
+
+        return i
 
 
 class DataNodeDB:
