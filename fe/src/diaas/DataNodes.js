@@ -1,10 +1,38 @@
 import { Box } from "@material-ui/core";
-import { DagreReact } from "dagre-reactjs";
+import DagreGraph from "dagre-d3-react";
 import { observer } from "mobx-react-lite";
-import React from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Route, Switch, useRouteMatch } from "react-router-dom";
 
 import { useAppState } from "diaas/state.js";
+
+const useResize = (ref) => {
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  const updateDimensions = () => {
+    if (ref.current) {
+      setDimensions({
+        width: ref.current.offsetWidth,
+        height: ref.current.offsetHeight,
+      });
+    }
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => updateDimensions(), []);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateDimensions);
+
+    return () => {
+      window.removeEventListener("resize", updateDimensions);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  console.log("dimensions", dimensions);
+  return dimensions;
+};
 
 const DataNodes = observer(() => {
   const { user } = useAppState();
@@ -15,7 +43,7 @@ const DataNodes = observer(() => {
     .map((n) => Object.assign({}, n, { upstream: (n.upstream || []).sort() }));
 
   const nodes = {};
-  const edgeList = [];
+  const linksList = [];
 
   const state_colors = {
     FRESH: "green",
@@ -26,32 +54,10 @@ const DataNodes = observer(() => {
   };
 
   data_nodes.forEach((n, i) => {
-    console.log("state = ", n.state);
-    console.log("adding", n.id);
     nodes[n.id] = {
       id: i,
       label: n.id,
-      styles: {
-        shape: {
-          styles: {
-            strokeWidth: "1.5",
-            stroke: "#868686",
-          },
-        },
-        label: {
-          styles: {
-            fill: state_colors[n.state] || "red",
-          },
-        },
-        node: {
-          padding: {
-            top: 10,
-            bottom: 10,
-            left: 10,
-            right: 10,
-          },
-        },
-      },
+      config: { style: "fill: " + state_colors[n.state] || "blue" },
     };
   });
 
@@ -60,34 +66,34 @@ const DataNodes = observer(() => {
   data_nodes.forEach((n) => {
     if (n.upstream) {
       n.upstream.forEach((i) => {
-        console.log("input", i, "=>", nodes[i]);
-        edgeList.push({ from: nodes[i].id, to: nodes[n.id].id });
+        linksList.push({ source: nodes[i].id, target: nodes[n.id].id });
       });
     }
   });
 
-  console.log("nodes", nodeList);
-  console.log("edges", edgeList);
+  const wrapper = useRef(null);
+  const { width, height } = useResize(wrapper);
 
   return (
     <Box>
-      <Box display="flex" mb={3}>
+      <Box display="flex" mb={3} ref={wrapper}>
         <Box style={{ flexGrow: 1 }}>Data Nodes:</Box>
       </Box>
-      <svg id="data-nodes" width={1800} height={1000}>
-        <DagreReact
+      <Box className="dataNodeGraph" style={{ border: "1px black solid" }}>
+        <DagreGraph
           nodes={nodeList}
-          edges={edgeList}
-          graphOptions={{
+          links={linksList}
+          config={{
             rankdir: "LR",
+            // align: 'UL',
             ranker: "tight-tree",
-            marginx: 15,
-            marginy: 15,
-            ranksep: 55,
-            nodesep: 15,
           }}
+          width={width || 500}
+          height={800}
+          zoomable
+          fitBoundaries
         />
-      </svg>
+      </Box>
     </Box>
   );
 });

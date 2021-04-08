@@ -8,3 +8,15 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
+
+.dataNodeGraph .nodes {
+    fill: darkgray;
+}
+
+.dataNodeGraph .nodes text {
+    fill: white;
+}
+
+.dataNodeGraph path {
+    stroke: black; fill: black; stroke-width: 3px;
+}

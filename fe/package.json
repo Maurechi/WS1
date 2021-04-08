@@ -12,6 +12,7 @@
     "@testing-library/user-event": "^12.1.10",
     "ace-builds": "^1.4.12",
     "axios": "^0.21.0",
+    "dagre-d3-react": "github:segv/dagre-d3-react",
     "dagre-reactjs": "^0.2.0",
     "eslint-config-prettier": "^6.14.0",
     "eslint-plugin-prettier": "^3.1.4",
