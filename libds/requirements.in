@@ -5,4 +5,5 @@ google-auth-oauthlib
 jinja2
 pygit2
 ruamel.yaml
+setproctitle
 sqlalchemy

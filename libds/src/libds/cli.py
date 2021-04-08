@@ -10,7 +10,6 @@ import click
 
 from libds import DataStack, __version__
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
-from libds.orchestration import Orchestrator
 from libds.source import BaseSource
 from libds.utils import DependencyGraph, DoesNotExist, DSException
 
@@ -19,6 +18,8 @@ class OutputEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
+        if isinstance(obj, Path):
+            return str(obj)
         return json.JSONEncoder.default(self, obj)
 
 
@@ -151,14 +152,6 @@ def source_update(if_exists, if_does_not_exist, current_id, id, config):
 
 @command
 @click.argument("source_id")
-@click.option("-r", "--reload", is_flag=True, default=False)
-def source_load(source_id, reload):
-    src = COMMAND.ds.get_source(source_id)
-    return src.load(reload)
-
-
-@command
-@click.argument("source_id")
 def source_inspect(source_id):
     src = COMMAND.ds.get_source(source_id)
     return dict(info=src.info(), inspect=src.inspect())
@@ -233,43 +226,6 @@ def _compute_model_load_order(model_ids):
 
 
 @command
-@click.argument("model_id")
-@click.option("-r", "--reload", is_flag=True, default=False)
-@click.option(
-    "--cascade",
-    default="AFTER",
-    type=click.Choice(["BEFORE", "BOTH", "AFTER"], case_sensitive=False),
-)
-@click.option("--no-cascade", is_flag=True, default=False)
-@click.option("--wait/--no-wait", is_flag=True, default=False)
-def model_load(model_id, reload, cascade, no_cascade, wait):
-    m = COMMAND.ds.get_model(model_id)
-    if m is None:
-        return {"error": {"code": "model-not-found", "id": model_id}}
-
-    if no_cascade:
-        cascade = None
-    load_task = m.load_task(reload=reload, cascade=cascade)
-    o = Orchestrator(tasks=[load_task])
-    o.execute(wait=wait)
-    return {"job": {"id": o.id}}
-    # return COMMAND.ds.get_model(model_id).table().sample()
-
-
-@command
-@click.option("-r", "--reload", is_flag=True, default=False)
-@click.option("--wait/--no-wait", is_flag=True, default=False)
-def model_load_all(reload, wait):
-    o = Orchestrator(
-        tasks=[
-            model.load_task(reload=reload, cascade=True) for model in COMMAND.ds.models
-        ]
-    )
-    o.execute(wait=wait)
-    return {"job": {"id": o.id}}
-
-
-@command
 @click.argument("statement")
 def execute(statement):
     statement = _arg_str(statement)
@@ -290,11 +246,19 @@ def data_nodes():
     return _data_nodes_info()
 
 
+def _data_orchestrator_tick():
+    orchestrator = COMMAND.ds.data_orchestrator
+    return orchestrator.tick()
+
+
 @command
 def data_orchestrator_tick():
-    orchestrator = COMMAND.ds.data_orchestrator
-    orchestrator.tick()
-    return _data_nodes_info()
+    return _data_orchestrator_tick()
+
+
+@command
+def dot():
+    return _data_orchestrator_tick()
 
 
 @command

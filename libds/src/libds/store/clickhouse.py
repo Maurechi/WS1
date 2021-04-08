@@ -150,6 +150,8 @@ class ClickHouse(Store):
             store=self, schema_name=schema_name, table_name=table_name + "_raw"
         )
 
+        progress.show_progress()
+
         return {
             "count": num_rows,
             "rows": table.sample(

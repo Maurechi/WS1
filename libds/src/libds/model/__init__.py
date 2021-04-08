@@ -1,5 +1,4 @@
 import runpy
-import sys
 from datetime import datetime
 from pathlib import Path
 from pprint import pformat
@@ -7,7 +6,6 @@ from pprint import pformat
 from jinja2 import Environment, FileSystemLoader
 
 from libds.data_node import DataNode
-from libds.orchestration import Task
 
 
 class BaseModel:
@@ -87,48 +85,18 @@ class BaseModel:
         self._init_properties(new_filename, id, None, None)
         return self
 
-    def load_task(self, reload=False, cascade="AFTER"):
-        return ModelLoadTask(self, cascade=cascade, reload=reload)
-
     def table(self):
         return self.data_stack.store.get_table(self.schema_name, self.table_name)
 
-
-class ModelLoadTask(Task):
-    def __init__(self, model, cascade, reload):
-        super().__init__(
-            id=model.__class__.__module__
-            + "."
-            + model.__class__.__name__
-            + "."
-            + model.id
+    def register_data_nodes(self, data_stack):
+        data_stack.register_data_node(
+            DataNode(
+                refresher=lambda orchestrator: self.load_data(),
+                id=self.schema_name + "." + self.table_name,
+                container=self.fqid(),
+                inputs=self.dependencies,
+            )
         )
-        self.model = model
-        self.reload = reload
-        self.cascade = cascade
-
-    def pre_requisites(self):
-        if self.cascade in ["BOTH", "BEFORE"]:
-            models = [
-                self.model.data_stack.get_model(id) for id in self.model.dependencies
-            ]
-            return [ModelLoadTask(model, self.cascade, self.reload) for model in models]
-        else:
-            return []
-
-    def post_requisites(self):
-        if self.cascade in ["BOTH", "AFTER"]:
-            models = set()
-            for m in self.model.data_stack.models:
-                if self.model.id in m.dependencies:
-                    models.add(m)
-            return [ModelLoadTask(model, self.cascade, self.reload) for model in models]
-        else:
-            return []
-
-    def execute(self):
-        print(f"Will load data for {self.id} on {self.model}", file=sys.stderr)
-        self.model.load_data(reload=self.reload)
 
 
 def _pprint_call(func, **args):
@@ -216,7 +184,7 @@ class SQLQueryModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "select", **kwargs)
 
-    def load_data(self, reload):
+    def load_data(self):
         self.data_stack.store.create_or_replace_model(
             table_name=self.table_name, schema_name=self.schema_name, select=self.sql
         )
@@ -229,21 +197,12 @@ class SQLQueryModel(SQLModel):
             sql=None,
         )
 
-    def register_data_nodes(self, data_stack):
-        data_stack.register_data_nodes(
-            DataNode(
-                id=self.schema_name + "." + self.table_name,
-                container=self.fqid(),
-                inputs=self.dependencies,
-            )
-        )
-
 
 class SQLCodeModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "sql", **kwargs)
 
-    def load_data(self, reload):
+    def load_data(self):
         self.data_stack.store.execute_sql(select=self.sql)
 
     def info(self):
@@ -268,5 +227,5 @@ class PythonModel(BaseModel):
         else:
             raise ValueError(f"No model function defined in {filename}")
 
-    def load_data(self, reload):
+    def load_data(self):
         self.model(self.data_stack)

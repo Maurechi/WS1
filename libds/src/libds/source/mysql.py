@@ -112,25 +112,13 @@ class MySQL(BaseSource):
         else:
             return self.tables
 
-    def load(self, reload=False):
-        tables = self.table_spec()
-        # NOTE do this sort so we always process the tables in the
-        # same order, not needed but convenient for the caller
-        # 20210310:mb
-        for table_name in sorted(tables.keys()):
-            self.load_one_table(table_name, tables[table_name], reload)
-        return []
-
-    def load_one_table(self, table_name, spec, reload):
+    def load_one_table(self, schema_name, table_name):
         store = self.data_stack.store
-        if spec is None:
-            spec = {}
-        schema_name = self.target_schema
+        spec = self.table_spec().get(table_name, {})
         if self.target_table_name_prefix is not None:
             table_name = self.target_table_name_prefix + table_name
 
-        if reload:
-            store.truncate_raw_table(schema_name, table_name)
+        store.truncate_raw_table(schema_name, table_name)
 
         cur = self.connect().cursor()
         column_names = _fetchall(
@@ -172,20 +160,42 @@ class MySQL(BaseSource):
         )
 
     def register_data_nodes(self, data_stack):
-        fqid = self.fqid()
-        connect_args = self.connect_args_for_mysql()
+        data_stack.register_data_node(
+            MySQLDataNode(
+                mysql=self,
+                expires_after=timedelta(hours=6),
+            )
+        )
+        for table_name, spec in self.table_spec().items():
+            data_stack.register_data_node(
+                MySQLTableDataNode(
+                    mysql=self, schema_name=self.target_schema, table_name=table_name
+                )
+            )
+
+
+class MySQLDataNode(DataNode):
+    def __init__(self, mysql, expires_after):
+        connect_args = mysql.connect_args_for_mysql()
         details = " ".join(
             [k + "=" + str(connect_args[k]) for k in "host port db".split()]
         )
-        data_stack.register_data_nodes(
-            DataNode(
-                id=fqid, inputs=[], details=details, expires_after=timedelta(hours=6)
-            )
+        super().__init__(
+            id=mysql.fqid(), details=details, inputs=[], expires_after=expires_after
         )
-        for table_name in self.table_spec().keys():
-            data_stack.register_data_nodes(
-                DataNode(
-                    id=self.target_schema + "." + table_name + "_raw",
-                    inputs=[fqid],
-                )
-            )
+
+    def refresh(self, orchestrator):
+        return True
+
+
+class MySQLTableDataNode(DataNode):
+    def __init__(self, mysql, schema_name, table_name):
+        super().__init__(
+            id=schema_name + "." + table_name + "_raw", inputs=[mysql.fqid()]
+        )
+        self.schema_name = schema_name
+        self.table_name = table_name
+        self.mysql = mysql
+
+    def refresh(self, orchestrator):
+        self.mysql.load_one_table(self.schema_name, self.table_name)

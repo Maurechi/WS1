@@ -168,9 +168,8 @@ class BaseSource:
     def schema_name(self):
         return self._split_table_name()[0]
 
-    def load(self, reload=False):
-        if reload:
-            self.data_stack.store.truncate_raw_table(self.schema_name, self.table_name)
+    def load(self):
+        self.data_stack.store.truncate_raw_table(self.schema_name, self.table_name)
         return self.data_stack.store.append_raw(
             schema_name=self.schema_name,
             table_name=self.table_name,
@@ -189,14 +188,12 @@ class BaseSource:
 
 
 class StaticSource(BaseSource):
-    def load(self, reload=None):
-        return super().load(reload=True)
-
     def register_data_nodes(self, data_stack):
-        data_stack.register_data_nodes(
+        data_stack.register_data_node(
             DataNode(
                 id=self.schema_name + "." + self.table_name,
                 container=self.fqid(),
                 inputs=[],
+                refresher=lambda o: self.load(),
             )
         )

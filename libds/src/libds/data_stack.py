@@ -83,7 +83,10 @@ class DataStack:
             data_nodes=[node.info() for node in self.data_nodes.values()],
         )
 
-    def register_data_nodes(self, *nodes):
+    def register_data_node(self, node):
+        return self.register_data_nodes([node])
+
+    def register_data_nodes(self, nodes):
         for node in nodes:
             if node.id in self.data_nodes:
                 raise ValueError(
@@ -93,8 +96,8 @@ class DataStack:
 
     def load_data_nodes(self):
         self.data_nodes = {}
-        for d in self.sources + self.models:
-            d.register_data_nodes(self)
+        for data in self.sources + self.models:
+            data.register_data_nodes(data_stack=self)
         # NOTE not the cleanest code, DataOrchestrator depends on the
         # data_nodes having been initilized. but the whole data stack
         # loading logic is weird, needs a long think and

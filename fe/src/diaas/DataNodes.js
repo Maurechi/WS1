@@ -12,20 +12,46 @@ const DataNodes = observer(() => {
   const data_nodes = user.dataStack.data_nodes
     .slice()
     .sort((a, b) => b - a)
-    .map((n) => ({
-      id: n.id,
-      container: n.container,
-      inputs: (n.inputs || []).sort(),
-    }));
+    .map((n) => Object.assign({}, n, { inputs: (n.inputs || []).sort() }));
 
   const nodes = {};
   const edgeList = [];
 
+  const state_colors = {
+    FRESH: "green",
+    STALE: "#666666",
+    REFRESHING: "orange",
+    REFRESHING_STALE: "orange",
+    ORPHAN: "red",
+  };
+
   data_nodes.forEach((n, i) => {
+    console.log("state = ", n.state);
     console.log("adding", n.id);
     nodes[n.id] = {
       id: i,
       label: n.id,
+      styles: {
+        shape: {
+          styles: {
+            strokeWidth: "1.5",
+            stroke: "#868686",
+          },
+        },
+        label: {
+          styles: {
+            fill: state_colors[n.state] || "red",
+          },
+        },
+        node: {
+          padding: {
+            top: 10,
+            bottom: 10,
+            left: 10,
+            right: 10,
+          },
+        },
+      },
     };
   });
 
@@ -52,18 +78,6 @@ const DataNodes = observer(() => {
         <DagreReact
           nodes={nodeList}
           edges={edgeList}
-          defaultNodeConfig={{
-            styles: {
-              node: {
-                padding: {
-                  top: 10,
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                },
-              },
-            },
-          }}
           graphOptions={{
             rankdir: "LR",
             ranker: "tight-tree",

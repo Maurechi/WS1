@@ -57,6 +57,9 @@ class Progress:
             self.step = self.step * 10
         return value
 
+    def show_progress(self):
+        self.progress(self.c, self.last_value)
+
 
 class DependencyGraph:
     def __init__(self):

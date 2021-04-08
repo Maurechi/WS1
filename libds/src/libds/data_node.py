@@ -8,9 +8,10 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from pprint import pformat, pprint  # noqa: F401
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence
 
 import arrow
+import setproctitle
 
 from libds.utils import _timedelta_as_info
 
@@ -22,6 +23,8 @@ class DataNodeState(Enum):
     REFRESHING = "REFRESHING"
     REFRESHING_STALE = "REFRESHING_STALE"
 
+    ORPHAN = "ORPHAN"
+
 
 @dataclass
 class DataNode:
@@ -31,6 +34,7 @@ class DataNode:
     details: Optional[dict] = None
     expires_after: Optional[timedelta] = None
     state: Optional[DataNodeState] = None
+    refresher: Optional[Callable] = None
 
     def info(self):
         i = {"id": self.id, "state": self.state.value}
@@ -46,11 +50,17 @@ class DataNode:
         return i
 
     def refresh(self, orchestrator):
-        print(f"Refreshing {self.id}")
-        import time
+        print(f"Start refresh {self.id}.")
+        self.refresher(orchestrator)
+        print(f"Refresh {self.id} complete.")
 
-        time.sleep(10)
-        print(f"Done {self.id}")
+
+class OrphanDataNode(DataNode):
+    def __init__(self, id):
+        super().__init__(id=id, state=DataNodeState.ORPHAN)
+
+    def refresh(self, orchestrator):
+        print(f"Not refresing orphan node {self.id}.")
 
 
 class DataOrchestrator:
@@ -103,6 +113,10 @@ class DataOrchestrator:
     def load(self):
         self.load_states()
 
+    def check_tasks(self):
+        # TODO need to go and look for tasks whose pid is in the db but they don't exist, these are zombies and should be killed 20210408:mb
+        return
+
     def load_states(self):
         conn = self.connect()
         nodes = self.data_stack.data_nodes
@@ -111,7 +125,10 @@ class DataOrchestrator:
         res = conn.execute("SELECT nid, state FROM data_nodes").fetchall()
 
         for id, state in res:
-            nodes[id].state = DataNodeState(state)
+            if id in nodes:
+                nodes[id].state = DataNodeState(state)
+            else:
+                nodes[id] = OrphanDataNode(id)
 
         for node in self.data_stack.data_nodes.values():
             if node.state is None:
@@ -134,6 +151,8 @@ class DataOrchestrator:
                 ):
                     fork_and_refresh(self, node, log_dir)
 
+        return dict(log_dir=log_dir)
+
 
 def fork():
     try:
@@ -155,34 +174,77 @@ def connection(orchestrator):
     conn.close()
 
 
-def trigger_refresh(orchestrator, node):
+class IsNotStale(Exception):
+    pass
+
+
+def _state_to_refreshing(orchestrator, nid, tid):
     with connection(orchestrator) as cur:
-        state = cur.execute("select state from data_nodes where nid = ?", [node.id])
+        state = cur.execute("select state from data_nodes where nid = ?", [nid])
         state = state.fetchone()[0]
         if state == "STALE":
             tid = str(os.getpid())
             cur.execute("insert into tasks (tid, state) values (?, '{}')", [tid])
             cur.execute(
                 "update data_nodes set state = ?, current_tid = ? where nid = ?",
-                [DataNodeState.REFRESHING.value, tid, node.id],
+                [DataNodeState.REFRESHING.value, tid, nid],
             )
+        else:
+            raise IsNotStale()
+
+
+def _state_to_fresh(orchestrator, nid, tid):
+    with connection(orchestrator) as cur:
+        cur.execute(
+            "update data_nodes set state = ?, current_tid = null where nid = ? and current_tid = ?",
+            [DataNodeState.FRESH.value, nid, tid],
+        )
+        cur.execute("delete from tasks where tid = ?", [tid])
+
+
+def _state_to_stale(orchestrator, nid, tid):
+    with connection(orchestrator) as cur:
+        cur.execute(
+            "update data_nodes set state = ?, current_tid = null where nid = ?",
+            [DataNodeState.STALE.value, nid],
+        )
+        cur.execute("delete from tasks where tid = ?", [tid])
+
+
+def trigger_refresh(orchestrator, node):
+    print(f"Refresh on {node.id} triggered")
+    tid = str(os.getpid())
+
+    while True:
+        try:
+            _state_to_refreshing(orchestrator, node.id, tid)
+            print(f"{node.id} is stale")
+            break
+        except sqlite3.OperationalError:
+            pass
+        except IsNotStale:
+            print(f"{node.id} is not stale. not refreshing.")
+            return
 
     try:
         node.refresh(orchestrator)
-
-        with connection(orchestrator) as cur:
-            cur.execute(
-                "update data_nodes set state = ?, current_tid = null where nid = ? and current_tid = ?",
-                [DataNodeState.FRESH.value, node.id, tid],
-            )
-            cur.execute("delete from tasks where tid = ?", [tid])
+        print(f"{node.id} refresh complete")
+        while True:
+            try:
+                _state_to_fresh(orchestrator, node.id, tid)
+                print(f"{node.id} set to fresh")
+                break
+            except sqlite3.OperationalError:
+                pass
     except Exception as e:
-        with connection(orchestrator) as cur:
-            cur.execute(
-                "update data_nodes set state = ?, current_tid = null where nid = ?",
-                [DataNodeState.STALE.value, node.id],
-            )
-            cur.execute("delete from tasks where tid = ?", [tid])
+        print(f"{node.id} refresh error, setting back to stale")
+        while True:
+            try:
+                _state_to_stale(orchestrator, node.id, tid)
+                print(f"{node.id} set to stale")
+                break
+            except sqlite3.OperationalError:
+                pass
         raise e
 
 
@@ -217,7 +279,7 @@ class TaskOutputStream:
         return getattr(self.stream, attr)
 
 
-def fork_and_refresh(data_stack, node, log_dir):
+def fork_and_refresh(orchestrator, node, log_dir):
     log_dir.mkdir(parents=True, exist_ok=True)
 
     def log_file(suffix):
@@ -237,13 +299,15 @@ def fork_and_refresh(data_stack, node, log_dir):
     if fork() > 0:
         sys.exit()
 
+    setproctitle.setproctitle(sys.argv[0] + " data-node-refresh " + node.id)
+
     sys.stdout = TaskOutputStream(stdout_file)
     sys.stderr = TaskOutputStream(stderr_file)
 
     with pid_file.open("w") as file:
         print(str(os.getpid()), file=file)
 
-    trigger_refresh(data_stack, node)
+    trigger_refresh(orchestrator, node)
 
     if pid_file.exists():
         pid_file.unlink()
