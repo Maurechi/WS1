@@ -1,12 +1,10 @@
 import json
 import re
-import runpy
 from pathlib import Path
 
 from ruamel.yaml import YAML
 
 from libds.data_node import DataNode
-from libds.utils import ThreadLocalList, ThreadLocalValue
 
 
 class Record:
@@ -35,32 +33,6 @@ class Record:
             return None
 
 
-CURRENT_DATA_STACK = ThreadLocalValue()
-LOCAL_SOURCES = ThreadLocalList()
-CURRENT_FILENAME = ThreadLocalValue()
-
-
-def load_sources(data_stack):
-    CURRENT_DATA_STACK.value = data_stack
-    sources = []
-    sources_dir = data_stack.directory / "sources"
-    files = list(sources_dir.glob("*.py"))
-    for source_py in sorted(files, key=lambda p: str(p).lower()):
-        source_py = source_py.resolve()
-        CURRENT_FILENAME.value = source_py
-        LOCAL_SOURCES.reset()
-        runpy.run_path(source_py, run_name=f"sources/{source_py.stem}")
-        sources.extend(LOCAL_SOURCES)
-
-    for file in sources_dir.glob("*.yaml"):
-        sources.append(BaseSource.load_from_config_file(data_stack, file))
-
-    CURRENT_DATA_STACK.value = None
-    CURRENT_FILENAME.value = None
-    LOCAL_SOURCES.reset()
-    return sources
-
-
 class BaseSource:
     def __init__(
         self,
@@ -70,6 +42,12 @@ class BaseSource:
         defined_in="code",
         table_name=None,
     ):
+        from libds.data_stack import (
+            CURRENT_DATA_STACK,
+            CURRENT_FILENAME,
+            LOCAL_SOURCES,
+        )
+
         self._id = id
         self.name = name
         self._table_name = table_name

@@ -1,7 +1,6 @@
 import runpy
 import sys
 from datetime import datetime
-from itertools import chain
 from pathlib import Path
 from pprint import pformat
 
@@ -9,18 +8,6 @@ from jinja2 import Environment, FileSystemLoader
 
 from libds.data_node import DataNode
 from libds.orchestration import Task
-from libds.utils import ThreadLocalValue
-
-CURRENT_DATA_STACK = ThreadLocalValue()
-
-
-def load_models(data_stack):
-    sqls = data_stack.models_dir.glob("**/*.sql")
-    pys = data_stack.models_dir.glob("**/*.py")
-    files = chain(sqls, pys)
-    models = [BaseModel.from_file(data_stack, filename) for filename in files]
-    models = list(filter(None, models))
-    return models
 
 
 class BaseModel:
@@ -34,6 +21,8 @@ class BaseModel:
         dependencies=None,
     ):
         if data_stack is None:
+            from libds.data_stack import CURRENT_DATA_STACK
+
             data_stack = CURRENT_DATA_STACK.value
         self.data_stack = data_stack
 
@@ -272,9 +261,7 @@ class PythonModel(BaseModel):
 
     @classmethod
     def from_file(cls, data_stack, filename):
-        CURRENT_DATA_STACK.value = data_stack
         globals = runpy.run_path(filename)
-        CURRENT_DATA_STACK.value = None
 
         if "model" in globals:
             return cls(data_stack=data_stack, filename=filename, model=globals["model"])
@@ -282,4 +269,4 @@ class PythonModel(BaseModel):
             raise ValueError(f"No model function defined in {filename}")
 
     def load_data(self, reload):
-        self.model(self.data_stack.store)
+        self.model(self.data_stack)
