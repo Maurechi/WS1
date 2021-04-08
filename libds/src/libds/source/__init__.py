@@ -193,7 +193,7 @@ class StaticSource(BaseSource):
             DataNode(
                 id=self.schema_name + "." + self.table_name,
                 container=self.fqid(),
-                inputs=[],
+                upstream=[],
                 refresher=lambda o: self.load(),
             )
         )

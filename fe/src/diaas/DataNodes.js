@@ -12,7 +12,7 @@ const DataNodes = observer(() => {
   const data_nodes = user.dataStack.data_nodes
     .slice()
     .sort((a, b) => b - a)
-    .map((n) => Object.assign({}, n, { inputs: (n.inputs || []).sort() }));
+    .map((n) => Object.assign({}, n, { upstream: (n.upstream || []).sort() }));
 
   const nodes = {};
   const edgeList = [];
@@ -58,8 +58,8 @@ const DataNodes = observer(() => {
   const nodeList = Object.values(nodes).map((n) => n);
 
   data_nodes.forEach((n) => {
-    if (n.inputs) {
-      n.inputs.forEach((i) => {
+    if (n.upstream) {
+      n.upstream.forEach((i) => {
         console.log("input", i, "=>", nodes[i]);
         edgeList.push({ from: nodes[i].id, to: nodes[n.id].id });
       });
@@ -74,7 +74,7 @@ const DataNodes = observer(() => {
       <Box display="flex" mb={3}>
         <Box style={{ flexGrow: 1 }}>Data Nodes:</Box>
       </Box>
-      <svg id="data-nodes" width={1800} height={4000}>
+      <svg id="data-nodes" width={1800} height={1000}>
         <DagreReact
           nodes={nodeList}
           edges={edgeList}

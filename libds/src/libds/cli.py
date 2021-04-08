@@ -8,10 +8,12 @@ from pathlib import Path
 
 import click
 
-from libds import DataStack, __version__
+from libds.__version__ import __version__
+from libds.data_node import DataNodeState
+from libds.data_stack import DataStack
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.source import BaseSource
-from libds.utils import DependencyGraph, DoesNotExist, DSException
+from libds.utils import DoesNotExist, DSException
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -79,7 +81,36 @@ def _arg_json(arg):
 COMMAND = None
 
 
-@click.group()
+class ClickCommand(click.Command):
+    def __init__(self, *args, other_names=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if other_names is None:
+            other_names = []
+        self.other_names = other_names
+
+
+class ClickGroup(click.Group):
+    """This subclass of a group supports looking up aliases in a config
+    file and with a bit of magic.
+    """
+
+    def get_command(self, ctx, cmd_name):
+        # Step one: bulitin commands as normal
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+        else:
+            for name, cmd in self.commands.items():
+                if cmd_name in cmd.other_names:
+                    return self.get_command(ctx, name)
+            else:
+                return None
+
+    def command(self, *args, **kwargs):
+        return super().command(*args, cls=ClickCommand, **kwargs)
+
+
+@click.group(cls=ClickGroup)
 @click.option(
     "-d",
     "--directory",
@@ -99,26 +130,27 @@ def cli(directory, format):
     COMMAND = Command(directory, format)
 
 
-def command(cmd):
-    @cli.command()
-    @functools.wraps(cmd)
-    def wrapped(*args, **kwargs):
-        COMMAND.results(cmd(*args, **kwargs))
+def command(**kwargs):
+    def deco(cmd):
+        @cli.command(**kwargs)
+        @functools.wraps(cmd)
+        def wrapped(*args, **kwargs):
+            COMMAND.results(cmd(*args, **kwargs))
 
-    return wrapped
+    return deco
 
 
-@command
+@command()
 def version():
     return {}
 
 
-@command
+@command()
 def info():
     return COMMAND.ds.info()
 
 
-@command
+@command()
 @click.option(
     "--if-exists",
     type=click.Choice(["error", "update"], case_sensitive=False),
@@ -150,14 +182,14 @@ def source_update(if_exists, if_does_not_exist, current_id, id, config):
     return COMMAND.ds.get_source(id).info()
 
 
-@command
+@command()
 @click.argument("source_id")
 def source_inspect(source_id):
     src = COMMAND.ds.get_source(source_id)
     return dict(info=src.info(), inspect=src.inspect())
 
 
-@command
+@command()
 @click.option("--current-id")
 @click.option(
     "--type",
@@ -204,28 +236,7 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
     return COMMAND.reload_data_stack().get_model(model_id).info()
 
 
-def model_load_one(model_id, reload):
-    if reload:
-        loading = "reloading"
-    else:
-        loading = "loading"
-    print(f"{loading.capitalize()} {model_id}", file=sys.stderr, flush=True)
-    sample = COMMAND.ds.get_model(model_id).load(reload).sample()
-    # print(f"Done {loading} {model_id}", file=sys.stderr, flush=True)
-    return sample
-
-
-def _compute_model_load_order(model_ids):
-    g = DependencyGraph()
-
-    for m in COMMAND.ds.models:
-        for dep in m.dependencies:
-            g.edge(dep, m.id)
-
-    return g.cascade_from_nodes(model_ids)
-
-
-@command
+@command()
 @click.argument("statement")
 def execute(statement):
     statement = _arg_str(statement)
@@ -241,27 +252,36 @@ def _data_nodes_info():
     return [node.info() for node in COMMAND.ds.data_nodes.values()]
 
 
-@command
+@command()
 def data_nodes():
-    return _data_nodes_info()
+    return COMMAND.ds.data_orchestrator.info()
 
 
-def _data_orchestrator_tick():
+@command(other_names=["dot"])
+def data_orchestrator_tick():
     orchestrator = COMMAND.ds.data_orchestrator
     return orchestrator.tick()
 
 
-@command
-def data_orchestrator_tick():
-    return _data_orchestrator_tick()
+@command(other_names=["dnu"])
+@click.option(
+    "--state",
+    "-s",
+    type=click.Choice(DataNodeState.__members__.keys(), case_sensitive=False),
+    default=None,
+)
+@click.argument("node_id")
+def data_node_update(node_id, state):
+    if state is not None:
+        state = DataNodeState[state]
+        orchestrator = COMMAND.ds.data_orchestrator
+        orchestrator.set_node_state(node_id, state)
+        orchestrator.load_states()
+
+    return orchestrator.info()
 
 
-@command
-def dot():
-    return _data_orchestrator_tick()
-
-
-@command
+@command()
 @click.pass_context
 def help(ctx):
     click.echo(ctx.parent.get_help())

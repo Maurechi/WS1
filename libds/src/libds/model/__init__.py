@@ -94,7 +94,7 @@ class BaseModel:
                 refresher=lambda orchestrator: self.load_data(),
                 id=self.schema_name + "." + self.table_name,
                 container=self.fqid(),
-                inputs=self.dependencies,
+                upstream=self.dependencies,
             )
         )
 

@@ -30,7 +30,7 @@ class DataNodeState(Enum):
 class DataNode:
     id: str
     container: Optional[str] = None
-    inputs: Optional[Sequence[str]] = None
+    upstream: Optional[Sequence[str]] = None
     details: Optional[dict] = None
     expires_after: Optional[timedelta] = None
     state: Optional[DataNodeState] = None
@@ -40,8 +40,8 @@ class DataNode:
         i = {"id": self.id, "state": self.state.value}
         if self.container is not None:
             i["container"] = self.container
-        if self.inputs:
-            i["inputs"] = self.inputs
+        if self.upstream:
+            i["upstream"] = self.upstream
         if self.details:
             i["details"] = self.details
         if self.expires_after is not None:
@@ -60,12 +60,10 @@ class OrphanDataNode(DataNode):
         super().__init__(id=id, state=DataNodeState.ORPHAN)
 
     def refresh(self, orchestrator):
-        print(f"Not refresing orphan node {self.id}.")
+        print(f"Not refreshing orphan node {self.id}.")
 
 
 class DataOrchestrator:
-    CONCURRENCY = 4
-
     def __init__(self, data_stack):
         self.data_stack = data_stack
 
@@ -76,6 +74,7 @@ class DataOrchestrator:
         count = res.fetchone()[0]
         if count == 0:
             cur = conn.cursor()
+            cur.execute("begin")
             cur.execute("create table settings (key text, value text);")
             cur.execute("insert into settings (key, value) values ('version', '0')")
             conn.commit()
@@ -89,6 +88,7 @@ class DataOrchestrator:
 
         if version == "0":
             cur = conn.cursor()
+            cur.execute("begin")
             cur.execute("create table tasks (tid text primary key, state text)")
             cur.execute(
                 "create table data_nodes (nid text primary key, state text not null, current_tid text references tasks(tid) default null)"
@@ -144,14 +144,52 @@ class DataOrchestrator:
         nodes = self.data_stack.data_nodes
         for node in nodes.values():
             if node.state == DataNodeState.STALE:
-                if node.inputs is None:
-                    raise Exception(f"no inputs defined for {node.id}")
+                if node.upstream is None:
+                    raise Exception(f"no upstream list for {node.id}")
                 if all(
-                    [nodes[nid].state == DataNodeState.FRESH for nid in node.inputs]
+                    [nodes[nid].state == DataNodeState.FRESH for nid in node.upstream]
                 ):
                     fork_and_refresh(self, node, log_dir)
 
         return dict(log_dir=log_dir)
+
+    def downstream_nodes(self, node):
+        downstream = {}
+        for down in self.data_stack.data_nodes.values():
+            if node.id in down.upstream:
+                downstream[down.id] = down
+
+                for other in self.downstream_nodes(down):
+                    downstream[other.id] = other
+
+        return list(downstream.values())
+
+    def set_node_state(self, node_id, state):
+        nodes = self.data_stack.data_nodes
+        node = nodes[node_id]
+        if node.state == state:
+            return
+
+        if state == DataNodeState.STALE:
+            downstream = [node] + self.downstream_nodes(node)
+            downstream = [n.id for n in downstream]
+            with cursor(self) as cur:
+                cur.execute(
+                    f"update data_nodes set state = 'STALE' where state = 'FRESH' and nid in ({ ','.join(['?'] * len(downstream)) })",
+                    downstream,
+                )
+                cur.execute(
+                    f"update data_nodes set state = 'REFRESHING_STALE' where state = 'REFRESHING' and nid in ({ ','.join(['?'] * len(downstream)) })",
+                    downstream,
+                )
+        else:
+            with cursor(self) as cur:
+                cur.execute(
+                    "update data_nodes set state = ? where nid = ?", [state, node_id]
+                )
+
+    def info(self):
+        return [node.info() for node in self.data_stack.data_nodes.values()]
 
 
 def fork():
@@ -163,7 +201,7 @@ def fork():
 
 
 @contextmanager
-def connection(orchestrator):
+def cursor(orchestrator):
     conn = orchestrator.connect()
     cur = conn.cursor()
     cur.execute("begin;")
@@ -179,7 +217,7 @@ class IsNotStale(Exception):
 
 
 def _state_to_refreshing(orchestrator, nid, tid):
-    with connection(orchestrator) as cur:
+    with cursor(orchestrator) as cur:
         state = cur.execute("select state from data_nodes where nid = ?", [nid])
         state = state.fetchone()[0]
         if state == "STALE":
@@ -194,7 +232,7 @@ def _state_to_refreshing(orchestrator, nid, tid):
 
 
 def _state_to_fresh(orchestrator, nid, tid):
-    with connection(orchestrator) as cur:
+    with cursor(orchestrator) as cur:
         cur.execute(
             "update data_nodes set state = ?, current_tid = null where nid = ? and current_tid = ?",
             [DataNodeState.FRESH.value, nid, tid],
@@ -203,7 +241,7 @@ def _state_to_fresh(orchestrator, nid, tid):
 
 
 def _state_to_stale(orchestrator, nid, tid):
-    with connection(orchestrator) as cur:
+    with cursor(orchestrator) as cur:
         cur.execute(
             "update data_nodes set state = ?, current_tid = null where nid = ?",
             [DataNodeState.STALE.value, nid],

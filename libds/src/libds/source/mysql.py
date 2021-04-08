@@ -181,7 +181,7 @@ class MySQLDataNode(DataNode):
             [k + "=" + str(connect_args[k]) for k in "host port db".split()]
         )
         super().__init__(
-            id=mysql.fqid(), details=details, inputs=[], expires_after=expires_after
+            id=mysql.fqid(), details=details, upstream=[], expires_after=expires_after
         )
 
     def refresh(self, orchestrator):
@@ -191,7 +191,7 @@ class MySQLDataNode(DataNode):
 class MySQLTableDataNode(DataNode):
     def __init__(self, mysql, schema_name, table_name):
         super().__init__(
-            id=schema_name + "." + table_name + "_raw", inputs=[mysql.fqid()]
+            id=schema_name + "." + table_name + "_raw", upstream=[mysql.fqid()]
         )
         self.schema_name = schema_name
         self.table_name = table_name
