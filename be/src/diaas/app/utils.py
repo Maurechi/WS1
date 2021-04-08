@@ -1,5 +1,6 @@
 import decimal
 import math
+import traceback
 from collections.abc import Mapping, Sequence
 from functools import wraps
 from pathlib import Path
@@ -9,6 +10,7 @@ import arrow
 from flask import g, session
 from flask_json import FlaskJSON, json_response, request
 from sentry_sdk import configure_scope
+from werkzeug.exceptions import HTTPException
 
 from diaas.db import db
 from diaas.libds import LibDSException
@@ -52,29 +54,36 @@ class ApiError(Exception):
         )
 
 
-def register_error_handlers(app):
-    def errorhandler(e):
-        return json_response(status_=e.status, data_=dict(errors=[e.as_json()]))
+def ApiError_handler(e):
+    return json_response(status_=e.status, data_=dict(errors=[e.as_json()]))
 
-    app.errorhandler(ApiError)(errorhandler)
 
-    def LibDSException_handler(e):
-        status = 400
-        return json_response(
-            status_=status,
-            data_=dict(
-                errors=[
-                    error_json(
-                        status,
-                        e.code(),
-                        source=e.source(),
-                        details=e.details(),
-                    )
-                ]
-            ),
+def _error_json_response(status, code, **error_json_kwargs):
+    return json_response(
+        status_=status,
+        data_=dict(errors=[error_json(status, code, **error_json_kwargs)]),
+    )
+
+
+def LibDSException_handler(e):
+    return _error_json_response(400, e.code(), source=e.source(), details=e.details())
+
+
+def Exception_handler(e):
+    if isinstance(e, HTTPException):
+        return e
+    else:
+        return _error_json_response(
+            500,
+            e.__class__.__module__ + "." + e.__class__.__name__,
+            details=traceback.format_exc(),
         )
 
+
+def register_error_handlers(app):
+    app.errorhandler(ApiError)(ApiError_handler)
     app.errorhandler(LibDSException)(LibDSException_handler)
+    app.errorhandler(Exception)(Exception_handler)
 
     return app
 
