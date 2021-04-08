@@ -5,6 +5,7 @@ from pathlib import Path
 import pygit2
 from ruamel.yaml import YAML
 
+from libds.data_node import DataOrchestrator
 from libds.model import BaseModel
 from libds.source import BaseSource
 from libds.utils import DoesNotExist, ThreadLocalList, ThreadLocalValue
@@ -94,6 +95,12 @@ class DataStack:
         self.data_nodes = {}
         for d in self.sources + self.models:
             d.register_data_nodes(self)
+        # NOTE not the cleanest code, DataOrchestrator depends on the
+        # data_nodes having been initilized. but the whole data stack
+        # loading logic is weird, needs a long think and
+        # refactoring. 20210408:mb
+        self.data_orchestrator = DataOrchestrator(self)
+        self.data_orchestrator.load()
 
     def load_sources(self):
         CURRENT_DATA_STACK.value = self

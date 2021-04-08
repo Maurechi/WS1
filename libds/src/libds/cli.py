@@ -281,9 +281,20 @@ def execute(statement):
         return {"error": {"code": "error", "details": str(e)}}
 
 
+def _data_nodes_info():
+    return [node.info() for node in COMMAND.ds.data_nodes.values()]
+
+
 @command
 def data_nodes():
-    return [node.info() for node in COMMAND.ds.data_nodes]
+    return _data_nodes_info()
+
+
+@command
+def data_orchestrator_tick():
+    orchestrator = COMMAND.ds.data_orchestrator
+    orchestrator.tick()
+    return _data_nodes_info()
 
 
 @command

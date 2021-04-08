@@ -194,5 +194,9 @@ class StaticSource(BaseSource):
 
     def register_data_nodes(self, data_stack):
         data_stack.register_data_nodes(
-            DataNode(id=self.schema_name + "." + self.table_name, container=self.fqid())
+            DataNode(
+                id=self.schema_name + "." + self.table_name,
+                container=self.fqid(),
+                inputs=[],
+            )
         )
