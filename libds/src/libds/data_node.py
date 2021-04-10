@@ -78,7 +78,7 @@ class DataOrchestrator:
     def _ensure_schema(self, conn):
         count = _fetch_one_value(
             conn.cursor(),
-            "select count(*) from sqlite_schema where type = 'table' and tbl_name = 'settings'",
+            "select count(*) from sqlite_master where type = 'table' and tbl_name = 'settings'",
         )
         if count == 0:
             cur = conn.cursor()
