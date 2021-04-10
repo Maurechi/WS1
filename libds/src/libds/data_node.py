@@ -1,16 +1,20 @@
+import json
 import os
 import sqlite3
 import sys
 import time
+import traceback
 import uuid
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
-from datetime import timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
+from pathlib import Path
 from pprint import pformat, pprint  # noqa: F401
 from typing import Callable, Optional, Sequence
 
 import arrow
+import psutil
 import setproctitle
 
 from libds.utils import _timedelta_as_info
@@ -89,7 +93,9 @@ class DataOrchestrator:
         if version == "0":
             cur = conn.cursor()
             cur.execute("begin")
-            cur.execute("create table tasks (tid text primary key, state text)")
+            cur.execute(
+                "create table tasks (tid text primary key, state text, info text)"
+            )
             cur.execute(
                 "create table data_nodes (nid text primary key, state text not null, current_tid text references tasks(tid) default null)"
             )
@@ -99,16 +105,23 @@ class DataOrchestrator:
 
         raise Exception(f"Version {version} in orchestrator db.")
 
-    def connect(self):
+    def _connect(self):
         db_filename = self.data_stack.directory / "orchestrator.sqlite3"
-        conn = sqlite3.connect(db_filename.resolve(), isolation_level=None)
+        db_filename = db_filename.resolve()
+        # print(f"Connecting to db at {db_filename}")
+        return sqlite3.connect(db_filename, timeout=10)
+
+    def connect(self):
+        conn = self._connect()
         conn.execute("PRAGMA foreign_keys = ON")
         conn.commit()
         foreign_keys = conn.execute("pragma foreign_keys;").fetchone()[0]
         if foreign_keys != 1:
             raise Exception("sqlite3 doesn't support foreign_keys. this is bad.")
         self._ensure_schema(conn)
-        return conn
+        conn.close
+
+        return self._connect()
 
     def load(self):
         self.load_states()
@@ -138,9 +151,11 @@ class DataOrchestrator:
                     [node.id, DataNodeState.STALE.value],
                 )
         conn.commit()
+        conn.close()
 
     def tick(self):
         log_dir = self.data_stack.directory / "logs" / f"{arrow.get()}-{uuid.uuid4()}"
+        fork_and_check_for_zombies(self, log_dir)
         nodes = self.data_stack.data_nodes
         for node in nodes.values():
             if node.state == DataNodeState.STALE:
@@ -194,15 +209,22 @@ class DataOrchestrator:
         cur = conn.cursor()
         cur.execute("begin;")
 
-        yield cur
-
-        conn.commit()
-        conn.close()
+        try:
+            yield cur
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
 
     def tasks(self):
         with self.cursor() as cur:
-            res = cur.execute("select tid, state from tasks")
-            return [Task(id=r[0], state=r[1]) for r in res.fetchall()]
+            res = cur.execute("select tid, state, info from tasks")
+            return [
+                Task(id=r[0], state=r[1], _info=json.loads(r[2]))
+                for r in res.fetchall()
+            ]
 
     def info(self):
         return dict(
@@ -211,13 +233,36 @@ class DataOrchestrator:
         )
 
 
+def _filename_to_log_contents(filename):
+    if filename is not None:
+        path = Path(filename)
+        if path.exists():
+            try:
+                msg = path.open("r").read()
+            except Exception as e:
+                msg = f"_filename_to_log_contents: {e}\n"
+                msg += traceback.format_exc()
+        else:
+            msg = f"_filename_to_log_contents: {path} does not exist"
+    else:
+        msg = "_filename_to_log_contents: argument is None"
+
+    return msg
+
+
 @dataclass
 class Task:
     id: str
-    state: object
+    state: str
+    _info: object
 
     def info(self):
-        return asdict(self)
+        i = dict(id=self.id, state=self.state, info=self._info.copy())
+        for stream in "stdout stderro".split():
+            filename = i["info"].get(stream)
+            if filename is not None:
+                i["info"][stream] = _filename_to_log_contents(filename)
+        return i
 
 
 def fork():
@@ -232,13 +277,18 @@ class IsNotStale(Exception):
     pass
 
 
-def _state_to_refreshing(orchestrator, nid, tid):
+def _state_to_refreshing(orchestrator, nid, tid, info):
     with orchestrator.cursor() as cur:
         state = cur.execute("select state from data_nodes where nid = ?", [nid])
         state = state.fetchone()[0]
         if state == "STALE":
-            tid = str(os.getpid())
-            cur.execute("insert into tasks (tid, state) values (?, '{}')", [tid])
+            cur.execute(
+                "insert into tasks (tid, state, info) values (?, 'RUNNING', ?)",
+                [
+                    tid,
+                    json.dumps(info),
+                ],
+            )
             cur.execute(
                 "update data_nodes set state = ?, current_tid = ? where nid = ?",
                 [DataNodeState.REFRESHING.value, tid, nid],
@@ -247,59 +297,92 @@ def _state_to_refreshing(orchestrator, nid, tid):
             raise IsNotStale()
 
 
-def _state_to_fresh(orchestrator, nid, tid):
+def timestamp():
+    return datetime.utcnow().isoformat()
+
+
+def _task_complete(orchestrator, nid, tid):
     with orchestrator.cursor() as cur:
         cur.execute(
             "update data_nodes set state = ?, current_tid = null where nid = ? and current_tid = ?",
             [DataNodeState.FRESH.value, nid, tid],
         )
-        cur.execute("delete from tasks where tid = ?", [tid])
+        res = cur.execute("select info from tasks where tid = ?", [tid])
+        info = json.loads(list(res)[0][0])
+        info["completed_at"] = timestamp()
+        cur.execute("update tasks set state = 'DONE' where tid = ?", [tid])
 
 
-def _state_to_stale(orchestrator, nid, tid):
+def _task_failed(orchestrator, nid, tid, e, tb):
     with orchestrator.cursor() as cur:
         cur.execute(
             "update data_nodes set state = ?, current_tid = null where nid = ?",
             [DataNodeState.STALE.value, nid],
         )
-        cur.execute("delete from tasks where tid = ?", [tid])
+        res = cur.execute("select info from tasks where tid = ?", [tid])
+        info = json.loads(list(res)[0][0])
+        info["completed_at"] = timestamp()
+        info["error"] = e
+        info["traceback"] = tb
+        cur.execute(
+            "update tasks set state = 'ERRORED', info = ? where tid = ?",
+            [json.dumps(info), tid],
+        )
 
 
-def trigger_refresh(orchestrator, node):
+def trigger_refresh(orchestrator, node, info):
     print(f"Refresh on {node.id} triggered")
-    tid = str(os.getpid())
+    pid = os.getpid()
+    tid = datetime.utcnow().strftime("%Y%m%dT%H:%M:%S") + "-" + str(pid)
+
+    info["pid"] = pid
+    info["started_at"] = timestamp()
 
     while True:
         try:
-            _state_to_refreshing(orchestrator, node.id, tid)
-            print(f"{node.id} is stale")
+            _state_to_refreshing(orchestrator, node.id, tid, info)
+            print("is stale")
             break
-        except sqlite3.OperationalError:
-            pass
+        except sqlite3.OperationalError as oe:
+            print(f"sqllite3.OperationalError: {oe}")
+            time.sleep(1)
         except IsNotStale:
-            print(f"{node.id} is not stale. not refreshing.")
+            print("is not stale. not refreshing.")
             return
 
     try:
         node.refresh(orchestrator)
-        print(f"{node.id} refresh complete")
+        print("refresh complete")
         while True:
+            print("in complete loop")
             try:
-                _state_to_fresh(orchestrator, node.id, tid)
-                print(f"{node.id} set to fresh")
+                print("calling _task_complete")
+                _task_complete(orchestrator, node.id, tid)
+                print("set to fresh")
                 break
-            except sqlite3.OperationalError:
-                pass
+            except sqlite3.OperationalError as oe:
+                print(f"OperationalError: {oe}")
+                time.sleep(1)
     except Exception as e:
-        print(f"{node.id} refresh error, setting back to stale")
+        print(f"{node.id} refresh error {e} setting back to stale")
+        tb = traceback.format_exc()
         while True:
+            print("in error loop")
             try:
-                _state_to_stale(orchestrator, node.id, tid)
-                print(f"{node.id} set to stale")
+                _task_failed(orchestrator, node.id, tid, e, tb)
+                print("set to stale")
                 break
-            except sqlite3.OperationalError:
-                pass
+            except sqlite3.OperationalError as oe:
+                print(f"OperationalError: {oe}")
+                time.sleep(1)
+            except Exception as e:
+                print(f"Exception: this is bad {e}")
+                raise e
+
+        print("Re raising exception")
         raise e
+    finally:
+        print("Exiting trigger_refresh")
 
 
 # NOTE https://stackoverflow.com/questions/107705/disable-output-buffering 20210408:mb
@@ -361,7 +444,62 @@ def fork_and_refresh(orchestrator, node, log_dir):
     with pid_file.open("w") as file:
         print(str(os.getpid()), file=file)
 
-    trigger_refresh(orchestrator, node)
+    info = dict(stdout=str(stdout_file.resolve()), stderr=str(stderr_file.resolve()))
+    trigger_refresh(orchestrator, node, info)
+
+    if pid_file.exists():
+        pid_file.unlink()
+
+    sys.exit(0)
+
+
+def check_for_zombies(orchestrator):
+    with orchestrator.cursor() as cur:
+        res = cur.execute("select tid, info from tasks where state = 'RUNNING'")
+        for row in res.fetchall():
+            tid = row[0]
+            info = json.loads(row[1])
+            if not psutil.pid_exists(info["pid"]):
+                info["zombie_at"] = timestamp()
+                cur.execute(
+                    "update tasks set state = 'ZOMBIE', info = ? where tid = ?",
+                    [json.dumps(info), tid],
+                )
+
+        cur.execute(
+            "update data_nodes set state = 'STALE' where current_tid in (select tid from tasks where state = 'ZOMBIE')"
+        )
+
+
+def fork_and_check_for_zombies(orchestrator, log_dir):
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    def log_file(suffix):
+        return log_dir / ("check_for_zombies." + suffix)
+
+    pid_file = log_file("pid")
+    stdout_file = log_file("stdout")
+    stderr_file = log_file("stderr")
+
+    if fork() > 0:
+        return pid_file
+
+    # NOTE From this point on we're in the child and we never return 20210326:mb
+    os.setsid()
+    os.umask(0)
+
+    if fork() > 0:
+        sys.exit()
+
+    setproctitle.setproctitle(sys.argv[0] + " check-for-zombies")
+
+    sys.stdout = TaskOutputStream(stdout_file)
+    sys.stderr = TaskOutputStream(stderr_file)
+
+    with pid_file.open("w") as file:
+        print(str(os.getpid()), file=file)
+
+    check_for_zombies(orchestrator)
 
     if pid_file.exists():
         pid_file.unlink()

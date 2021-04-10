@@ -86,7 +86,6 @@ const Graph = observer(() => {
 
 const Nodes = observer(() => {
   const { backend } = useAppState();
-  const triggerRefreshFor = (nid) => () => backend.updateDataNodeState(nid, "STALE");
   const columns = [
     { name: "id", header: "ID", defaultWidth: 400 },
     { name: "state", header: "State" },
@@ -94,27 +93,39 @@ const Nodes = observer(() => {
       name: "Action",
       header: "",
       render: ({ data }) => {
-        if (data.state === "FRESH") {
-          return <ActionButton onClick={triggerRefreshFor(data.id)}>Refresh</ActionButton>;
+        if (_.includes(["FRESH", "REFRESHING"], data.state)) {
+          return <ActionButton onClick={() => backend.updateDataNodeState(data.id, "STALE")}>Mark Stale</ActionButton>;
         } else {
           return "";
         }
       },
     },
   ];
-  const dataNodes = useDataNodes();
-  const rows = dataNodes.sort((a, b) => a.id.localeCompare(b.id));
+  const tasks = useDataNodes();
+  const rows = tasks.sort((a, b) => a.id.localeCompare(b.id));
   return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} />;
 });
 
 const Tasks = () => {
   const columns = [
-    { name: "id", header: "ID", defaultWidth: 400 },
-    { name: "state", header: "State" },
+    { defaultFlex: 1, name: "id", header: "ID", defaultWidth: 100 },
+    { defaultFlex: 1, name: "state", header: "State" },
+    { defaultFlex: 4, name: "startedAt", header: "Started At", defaultWidth: 200 },
+    { defaultFlex: 8, name: "info", header: "Other Info", render: ({ value }) => <pre>{value}</pre> },
   ];
   const dataNodes = useDataTasks();
-  const rows = dataNodes.sort((a, b) => a.id.localeCompare(b.id));
-  return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} />;
+  const rows = dataNodes
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((t) => {
+      const { started_at, ...otherInfo } = t.info;
+      return {
+        id: t.id,
+        state: t.state,
+        startedAt: started_at,
+        info: JSON.stringify(otherInfo),
+      };
+    });
+  return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} editable={true} />;
 };
 
 const Content = () => {
