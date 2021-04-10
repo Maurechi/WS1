@@ -2,7 +2,7 @@ FROM debian:buster AS builder
 ENV LANG C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y
-RUN apt-get install -y curl gnupg2
+RUN apt-get install -y curl gnupg2 git
 # RUN apt-get install -y apt-utils
 # RUN apt-get install -y ca-certificates git curl wget jq moreutils
 
