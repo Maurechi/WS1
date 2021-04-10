@@ -148,6 +148,25 @@ const Login = observer(() => {
   );
 });
 
+const SettingsContent = observer(() => {
+  const { user } = useAppState();
+  const ds = user.dataStack;
+  const branchName = ds === null ? "//" : ds.repo.branch || "<missing>";
+  const dataStackName = ds === null ? "//" : ds.config.name || "central";
+  const organisationName = ds === null ? "//" : ds.config.organisation || "central";
+
+  return (
+    <>
+      <p>
+        Version control is <tt>git</tt> on branch <tt>{branchName}</tt>.
+      </p>
+      <p>
+        Stack is <tt>{dataStackName}</tt> in org <tt>{organisationName}</tt>.
+      </p>
+    </>
+  );
+});
+
 const AppContent = () => (
   <div style={{ position: "static" }}>
     <Router>
@@ -171,9 +190,9 @@ const AppContent = () => (
           <Route path="/analytics/">
             <AnalyticsContent />
           </Route>
-          <Route path="/catalog/">Catalog</Route>
-          <Route path="/monitoring/">Monitoring</Route>
-          <Route path="/settings/">Settings</Route>
+          <Route path="/settings/">
+            <SettingsContent />
+          </Route>
           <Route path="/account/profile">
             <AccountProfileContent />
           </Route>
