@@ -21,6 +21,7 @@ COPY ./fe/package-lock.json package-lock.json
 RUN npm ci
 
 COPY ./fe/jsconfig.json jsconfig.json
+COPY ./fe/.eslintrc.js .eslintrc.js
 COPY ./fe/public public
 COPY ./fe/src src
 
