@@ -94,7 +94,7 @@ const Nodes = observer(() => {
       header: "",
       render: ({ data }) => {
         if (_.includes(["FRESH", "REFRESHING"], data.state)) {
-          return <ActionButton onClick={() => backend.updateDataNodeState(data.id, "STALE")}>Mark Stale</ActionButton>;
+          return <ActionButton onClick={() => backend.updateDataNodeState(data.id, "STALE")}>Refresh</ActionButton>;
         } else {
           return "";
         }
@@ -115,7 +115,6 @@ const Tasks = () => {
   ];
   const dataNodes = useDataTasks();
   const rows = dataNodes
-    .sort((a, b) => a.id.localeCompare(b.id))
     .map((t) => {
       const { started_at, ...otherInfo } = t.info;
       return {
@@ -124,7 +123,8 @@ const Tasks = () => {
         startedAt: started_at,
         info: JSON.stringify(otherInfo),
       };
-    });
+    })
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} editable={true} />;
 };
 
