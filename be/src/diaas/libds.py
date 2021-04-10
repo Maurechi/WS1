@@ -133,5 +133,5 @@ class LibDS:
     def execute(self, statement):
         return self.call_ds(cmd=["execute", "-"], input=statement)
 
-    def jobs_list(self):
-        return self.call_ds(cmd=["jobs-list"])
+    def data_node_update(self, nid, state):
+        return self.call_ds(cmd=["data-node-update", "--state", state, nid])

@@ -80,7 +80,7 @@ class DataStack:
             sources=[s.info() for s in self.sources],
             store=self.store.info(),
             models=[model.info() for model in self.models],
-            data_nodes=self.data_orchestrator.info(),
+            data=self.data_orchestrator.info(),
         )
 
     def register_data_node(self, node):

@@ -94,6 +94,10 @@ class Backend {
   execute(payload) {
     return this.post(`/store/execute`, payload).then(dataIfStatusEquals(200));
   }
+
+  updateDataNodeState(nid, state) {
+    return this.post(`/data-nodes/${nid}/update`, { state }).then(dataIfStatusEquals(200));
+  }
 }
 
 class User {

@@ -248,10 +248,6 @@ def execute(statement):
         return {"error": {"code": "error", "details": str(e)}}
 
 
-def _data_nodes_info():
-    return [node.info() for node in COMMAND.ds.data_nodes.values()]
-
-
 @command()
 def data_nodes():
     return COMMAND.ds.data_orchestrator.info()

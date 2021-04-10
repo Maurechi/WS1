@@ -16,7 +16,13 @@ import { ActionButton, useResize } from "diaas/ui.js";
 const useDataNodes = () => {
   const { user } = useAppState();
 
-  return user.dataStack.data_nodes.slice().map((n) => Object.assign({}, n, { upstream: (n.upstream || []).sort() }));
+  return user.dataStack.data.nodes.slice().map((n) => Object.assign({}, n, { upstream: (n.upstream || []).sort() }));
+};
+
+const useDataTasks = () => {
+  const { user } = useAppState();
+
+  return user.dataStack.data.tasks;
 };
 
 const Graph = observer(() => {
@@ -78,32 +84,40 @@ const Graph = observer(() => {
   );
 });
 
-const Tasks = () => {
-  return <p>Tasks</p>;
-};
-
-const Nodes = () => {
+const Nodes = observer(() => {
+  const { backend } = useAppState();
+  const triggerRefreshFor = (nid) => () => backend.updateDataNodeState(nid, "STALE");
   const columns = [
+    { name: "id", header: "ID", defaultWidth: 400 },
+    { name: "state", header: "State" },
     {
       name: "Action",
       header: "",
       render: ({ data }) => {
         if (data.state === "FRESH") {
-          return <ActionButton>Refresh</ActionButton>;
+          return <ActionButton onClick={triggerRefreshFor(data.id)}>Refresh</ActionButton>;
         } else {
-          return <pre>{data.state}</pre>;
+          return "";
         }
       },
     },
-    { name: "id", header: "ID", defaultWidth: 400 },
-    { name: "state", header: "State" },
   ];
   const dataNodes = useDataNodes();
   const rows = dataNodes.sort((a, b) => a.id.localeCompare(b.id));
-  return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 500 }} />;
+  return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} />;
+});
+
+const Tasks = () => {
+  const columns = [
+    { name: "id", header: "ID", defaultWidth: 400 },
+    { name: "state", header: "State" },
+  ];
+  const dataNodes = useDataTasks();
+  const rows = dataNodes.sort((a, b) => a.id.localeCompare(b.id));
+  return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} />;
 };
 
-const DataNodes = () => {
+const Content = () => {
   let { tab } = useParams();
   if (!_.includes(["graph", "nodes", "tasks"], tab)) {
     tab = "graph";
@@ -140,10 +154,10 @@ export const DataNodesContent = () => {
   return (
     <Switch>
       <Route path={`${path}:tab`}>
-        <DataNodes />
+        <Content />
       </Route>
       <Route path={path}>
-        <DataNodes />
+        <Content />
       </Route>
     </Switch>
   );

@@ -4,7 +4,7 @@ import sys
 import time
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import timedelta
 from enum import Enum
 from pprint import pformat, pprint  # noqa: F401
@@ -173,7 +173,7 @@ class DataOrchestrator:
         if state == DataNodeState.STALE:
             downstream = [node] + self.downstream_nodes(node)
             downstream = [n.id for n in downstream]
-            with cursor(self) as cur:
+            with self.cursor() as cur:
                 cur.execute(
                     f"update data_nodes set state = 'STALE' where state = 'FRESH' and nid in ({ ','.join(['?'] * len(downstream)) })",
                     downstream,
@@ -183,13 +183,41 @@ class DataOrchestrator:
                     downstream,
                 )
         else:
-            with cursor(self) as cur:
+            with self.cursor() as cur:
                 cur.execute(
                     "update data_nodes set state = ? where nid = ?", [state, node_id]
                 )
 
+    @contextmanager
+    def cursor(self):
+        conn = self.connect()
+        cur = conn.cursor()
+        cur.execute("begin;")
+
+        yield cur
+
+        conn.commit()
+        conn.close()
+
+    def tasks(self):
+        with self.cursor() as cur:
+            res = cur.execute("select tid, state from tasks")
+            return [Task(id=r[0], state=r[1]) for r in res.fetchall()]
+
     def info(self):
-        return [node.info() for node in self.data_stack.data_nodes.values()]
+        return dict(
+            nodes=[node.info() for node in self.data_stack.data_nodes.values()],
+            tasks=[task.info() for task in self.tasks()],
+        )
+
+
+@dataclass
+class Task:
+    id: str
+    state: object
+
+    def info(self):
+        return asdict(self)
 
 
 def fork():
@@ -200,24 +228,12 @@ def fork():
         raise err
 
 
-@contextmanager
-def cursor(orchestrator):
-    conn = orchestrator.connect()
-    cur = conn.cursor()
-    cur.execute("begin;")
-
-    yield cur
-
-    conn.commit()
-    conn.close()
-
-
 class IsNotStale(Exception):
     pass
 
 
 def _state_to_refreshing(orchestrator, nid, tid):
-    with cursor(orchestrator) as cur:
+    with orchestrator.cursor() as cur:
         state = cur.execute("select state from data_nodes where nid = ?", [nid])
         state = state.fetchone()[0]
         if state == "STALE":
@@ -232,7 +248,7 @@ def _state_to_refreshing(orchestrator, nid, tid):
 
 
 def _state_to_fresh(orchestrator, nid, tid):
-    with cursor(orchestrator) as cur:
+    with orchestrator.cursor() as cur:
         cur.execute(
             "update data_nodes set state = ?, current_tid = null where nid = ? and current_tid = ?",
             [DataNodeState.FRESH.value, nid, tid],
@@ -241,7 +257,7 @@ def _state_to_fresh(orchestrator, nid, tid):
 
 
 def _state_to_stale(orchestrator, nid, tid):
-    with cursor(orchestrator) as cur:
+    with orchestrator.cursor() as cur:
         cur.execute(
             "update data_nodes set state = ?, current_tid = null where nid = ?",
             [DataNodeState.STALE.value, nid],

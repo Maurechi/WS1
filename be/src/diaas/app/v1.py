@@ -120,9 +120,10 @@ def execute():
     )
 
 
-@api_v1.route("/jobs/", methods=["GET"])
+@api_v1.route("/data-nodes/<path:nid>/update", methods=["POST"])
 @login_required
 @as_json
-def jobs_list():
+def data_node_update(nid):
+    req = Request()
     libds = g.user.current_data_stack.libds
-    return libds.jobs_list()
+    return libds.data_node_update(nid=nid, state=req.require("state"))
