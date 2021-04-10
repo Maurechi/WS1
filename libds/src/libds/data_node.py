@@ -173,6 +173,16 @@ class DataOrchestrator:
 
         return dict(log_dir=log_dir)
 
+    def delete_node(self, node_id):
+        nodes = self.data_stack.data_nodes
+        node = nodes[node_id]
+        info = node.info()
+
+        with self.cursor() as cur:
+            cur.execute("delete from data_nodes where nid = ?", [node_id])
+
+        return info
+
     def downstream_nodes(self, node):
         downstream = {}
         for down in self.data_stack.data_nodes.values():
@@ -422,8 +432,6 @@ class TaskOutputStream:
 
 
 def fork_and_refresh(orchestrator, node, log_dir):
-    log_dir.mkdir(parents=True, exist_ok=True)
-
     def log_file(suffix):
         return log_dir / (node.id + "." + suffix)
 
@@ -443,6 +451,7 @@ def fork_and_refresh(orchestrator, node, log_dir):
 
     setproctitle.setproctitle(sys.argv[0] + " data-node-refresh " + node.id)
 
+    log_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
     sys.stdout = TaskOutputStream(stdout_file)
     sys.stderr = TaskOutputStream(stderr_file)
 
@@ -475,21 +484,27 @@ def check_for_zombies(orchestrator):
                     [json.dumps(info), tid],
                 )
 
-        print(f"Found {zombies} zombie tasks out of {count} running")
+        if zombies > 0:
+            print(f"Found {zombies} zombie tasks out of {count} running")
 
-        nodes = _fetch_one_value(
-            cur,
-            "select count(*) from data_nodes where current_tid in (select tid from tasks where state = 'ZOMBIE')",
-        )
-        print(f"{nodes} affected.")
+            nodes = _fetch_one_value(
+                cur,
+                "select count(*) from data_nodes where current_tid in (select tid from tasks where state = 'ZOMBIE')",
+            )
+            print(f"{nodes} affected.")
 
-        cur.execute(
-            "update data_nodes set state = 'STALE' where current_tid in (select tid from tasks where state = 'ZOMBIE')"
-        )
+            cur.execute(
+                "update data_nodes set state = 'STALE', current_tid = null where current_tid in (select tid from tasks where state = 'ZOMBIE')"
+            )
 
 
 def fork_and_check_for_zombies(orchestrator, log_dir):
-    log_dir.mkdir(parents=True, exist_ok=True)
+    with orchestrator.cursor() as cur:
+        running = _fetch_one_value(
+            cur, "select count(*) from tasks where state = 'RUNNING'"
+        )
+        if running == 0:
+            return
 
     def log_file(suffix):
         return log_dir / ("check_for_zombies." + suffix)
@@ -510,6 +525,7 @@ def fork_and_check_for_zombies(orchestrator, log_dir):
 
     setproctitle.setproctitle(sys.argv[0] + " check-for-zombies")
 
+    log_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
     sys.stdout = TaskOutputStream(stdout_file)
     sys.stderr = TaskOutputStream(stderr_file)
 

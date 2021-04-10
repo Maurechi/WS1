@@ -188,12 +188,12 @@ class BaseSource:
 
 
 class StaticSource(BaseSource):
-    def register_data_nodes(self, data_stack):
-        data_stack.register_data_node(
+    def data_nodes(self):
+        return [
             DataNode(
                 id=self.schema_name + "." + self.table_name + "_raw",
                 container=self.fqid(),
                 upstream=[],
                 refresher=lambda o: self.load(),
             )
-        )
+        ]

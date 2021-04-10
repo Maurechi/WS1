@@ -7,9 +7,6 @@ import AceEditor from "diaas/AceEditor";
 import { wrapInBox } from "diaas/ui.js";
 
 export const useCell = (config) => {
-  let [isDirty, setIsDirty] = useState(false);
-  let [isTouched, setIsTouched] = useState(false);
-
   // eslint-disable-next-line unused-imports/no-unused-vars
   const { store, load, onChange = (is, was) => null } = config || {};
 
@@ -20,7 +17,6 @@ export const useCell = (config) => {
     setter(newValue) {
       const value = load();
       if (newValue !== value) {
-        setIsDirty(true);
         onChange(newValue, value);
         store(newValue);
       }
@@ -29,21 +25,11 @@ export const useCell = (config) => {
     toggle() {
       return this.setter(!this.v);
     },
-    touch() {
-      isTouched = true;
-      setIsTouched(true);
-    },
     get v() {
       return this.getter();
     },
     set v(newValue) {
       this.setter(newValue);
-    },
-    get isDirty() {
-      return isDirty;
-    },
-    get isTouched() {
-      return isTouched;
     },
   };
 };
@@ -77,15 +63,29 @@ export const useLocalStorage = (key, initialValue) => {
 export const useFormValue = (initialValue, config) => {
   const { trim = true, transform = (x) => x } = config || {};
 
+  let [isDirty, setIsDirty] = useState(false);
+  let [isTouched, setIsTouched] = useState(false);
+
   let [value, setValue] = useState(initialValue);
 
   return useCell({
     store: (newValue) => {
       newValue = transform(newValue);
       value = trim ? v.trim(newValue) : newValue;
+      setIsDirty(true);
       setValue(value);
     },
     load: () => value,
+    touch() {
+      isTouched = true;
+      setIsTouched(true);
+    },
+    get isDirty() {
+      return isDirty;
+    },
+    get isTouched() {
+      return isTouched;
+    },
   });
 };
 

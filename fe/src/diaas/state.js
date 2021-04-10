@@ -98,6 +98,10 @@ class Backend {
   updateDataNodeState(nid, state) {
     return this.post(`/data-nodes/${nid}/update`, { state }).then(dataIfStatusEquals(200));
   }
+
+  deleteDataNode(nid, state) {
+    return this.delete(`/data-nodes/${nid}`, { state }).then(dataIfStatusEquals(200));
+  }
 }
 
 class User {

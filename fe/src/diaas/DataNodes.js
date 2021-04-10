@@ -95,6 +95,8 @@ const Nodes = observer(() => {
       render: ({ data }) => {
         if (_.includes(["FRESH", "REFRESHING"], data.state)) {
           return <ActionButton onClick={() => backend.updateDataNodeState(data.id, "STALE")}>Refresh</ActionButton>;
+        } else if (_.includes(["ORPHAN"], data.state)) {
+          return <ActionButton onClick={() => backend.deleteDataNode(data.id)}>Delete</ActionButton>;
         } else {
           return "";
         }

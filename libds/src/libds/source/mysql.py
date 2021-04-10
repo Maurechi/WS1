@@ -159,19 +159,20 @@ class MySQL(BaseSource):
             records=(as_record(row) for row in _fetchall(cur, query, query_args)),
         )
 
-    def register_data_nodes(self, data_stack):
-        data_stack.register_data_node(
+    def data_nodes(self):
+        nodes = [
             MySQLDataNode(
                 mysql=self,
                 expires_after=timedelta(hours=6),
             )
-        )
+        ]
         for table_name, spec in self.table_spec().items():
-            data_stack.register_data_node(
+            nodes.append(
                 MySQLTableDataNode(
                     mysql=self, schema_name=self.target_schema, table_name=table_name
                 )
             )
+        return nodes
 
 
 class MySQLDataNode(DataNode):

@@ -229,9 +229,20 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
             cls = PythonModel
         model = cls.create(data_stack=COMMAND.ds, id=current_id)
 
+    # NOTE this code, and the simliar logic in sources-update, belongs
+    # in the data stack class. We need to make that class smarter and
+    # this cli simpler. 20210410:mb
+
     if model_id != current_id:
         model = model.update_id(model_id)
     model.update_source(_arg_str(source))
+
+    ds = COMMAND.reload_data_stack()
+    orchestrator = ds.data_orchestrator
+    model = ds.get_model(model_id)
+    nodes = model.data_nodes()
+    for n in nodes:
+        orchestrator.set_node_state(n.id, DataNodeState.STALE)
 
     return COMMAND.reload_data_stack().get_model(model_id).info()
 
@@ -273,6 +284,16 @@ def data_node_update(node_id, state):
         orchestrator = COMMAND.ds.data_orchestrator
         orchestrator.set_node_state(node_id, state)
         orchestrator.load_states()
+
+    return orchestrator.info()
+
+
+@command()
+@click.argument("node_id")
+def data_node_delete(node_id):
+    orchestrator = COMMAND.ds.data_orchestrator
+    orchestrator.delete_node(node_id)
+    orchestrator.load_states()
 
     return orchestrator.info()
 

@@ -1,19 +1,17 @@
 import { Box, Divider, Grid, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
-import React, { useCallback, useEffect } from "react";
+import React from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
 import { CodeEditor, TextField, useFormValue } from "diaas/form.js";
 import { Notebook } from "diaas/Notebook.js";
 import { useAppState } from "diaas/state.js";
-import { ButtonLink, NotFound, StandardButton, VCenter } from "diaas/ui.js";
+import { ActionButton, ButtonLink, NotFound, VCenter } from "diaas/ui.js";
 
 export const Editor = observer(() => {
-  const saveButtonLabel = useFormValue("INITIAL");
-  const saveButtonEnabled = useFormValue(true);
-  const { user, backend, jobs = {} } = useAppState();
+  const { user, backend } = useAppState();
 
   if (user.dataStack === null) {
     return <NotFound>No Data stacks for user</NotFound>;
@@ -35,57 +33,12 @@ export const Editor = observer(() => {
   const codeValue = useFormValue(model.source, { trim: false });
   const idValue = useFormValue(model.id);
 
-  const saveButtonState = useFormValue("IDLE");
-
-  const loadingJobId = useFormValue(null);
-  const loadingTicker = useFormValue(0, { trim: false, transform: (v) => v % 4 });
-
-  const updater = useCallback(() => {
-    if (saveButtonState.v === "IDLE") {
-      saveButtonLabel.v = "Save & Run.";
-      saveButtonEnabled.v = true;
-    } else if (saveButtonState.v === "SAVING") {
-      saveButtonLabel.v = "Saving";
-      saveButtonEnabled.v = false;
-    } else if (saveButtonState.v === "RUNNING") {
-      const isDone = jobs.byId && loadingJobId.v in jobs.byId && jobs.byId[loadingJobId.v].state === "DONE";
-      if (isDone) {
-        saveButtonState.v = "IDLE";
-      } else {
-        saveButtonEnabled.v = false;
-        loadingTicker.v = loadingTicker.v + 1;
-        saveButtonLabel.v = "Loading:" + ".".repeat(loadingTicker.v);
-      }
-    } else {
-      console.log("Unknown save button state", saveButtonState.v);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(updater, 500);
-    return () => clearInterval(timer);
-  }, [updater]);
-
-  const saveAndRun = () => {
-    saveButtonState.v = "SAVING";
-    updater();
-    backend.postModel(creating ? "" : modelId, { type: "select", id: idValue.v, source: codeValue.v }).then((data) => {
-      saveButtonState.v = "RUNNING";
-      backend.loadModel(data.id).then(({ job: { id } }) => {
-        loadingJobId.v = id;
-      });
-    });
+  const save = () => {
+    backend.postModel(creating ? "" : modelId, { type: "select", id: idValue.v, source: codeValue.v });
   };
 
-  const SaveAndRunButton = () => (
-    <StandardButton onClick={saveAndRun} disabled={!saveButtonEnabled.v}>
-      {saveButtonLabel.v}
-    </StandardButton>
-  );
-
   return (
-    <form onSubmit={saveAndRun}>
+    <form onSubmit={save}>
       <Box>
         <Box display="flex" mb={3}>
           <Box style={{ flexGrow: 1 }}>
@@ -100,10 +53,7 @@ export const Editor = observer(() => {
           <Box>
             <Box display="flex">
               <Box mx={1}>
-                <SaveAndRunButton />
-              </Box>
-              <Box mx={1}>
-                <StandardButton disabled={true}>Commit</StandardButton>
+                <ActionButton onClick={save}>Save</ActionButton>
               </Box>
             </Box>
           </Box>

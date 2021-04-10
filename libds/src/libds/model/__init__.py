@@ -88,15 +88,15 @@ class BaseModel:
     def table(self):
         return self.data_stack.store.get_table(self.schema_name, self.table_name)
 
-    def register_data_nodes(self, data_stack):
-        data_stack.register_data_node(
+    def data_nodes(self):
+        return [
             DataNode(
                 refresher=lambda orchestrator: self.load_data(),
                 id=self.schema_name + "." + self.table_name,
                 container=self.fqid(),
                 upstream=self.dependencies,
             )
-        )
+        ]
 
 
 def _pprint_call(func, **args):

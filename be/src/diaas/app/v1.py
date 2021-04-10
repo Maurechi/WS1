@@ -66,14 +66,6 @@ def source_create():
     return libds.source_update(current_id=None, id=config.pop("id"), config=config)
 
 
-@api_v1.route("/sources/<path:id>/load", methods=["POST"])
-@login_required
-@as_json
-def source_load(id):
-    libds = g.user.current_data_stack.libds
-    return libds.source_load(id)
-
-
 @api_v1.route("/model/<path:id>", methods=["POST"])
 @login_required
 @as_json
@@ -101,14 +93,6 @@ def model_create():
     )
 
 
-@api_v1.route("/model/<path:id>/load", methods=["POST"])
-@login_required
-@as_json
-def model_load(id):
-    libds = g.user.current_data_stack.libds
-    return libds.model_load(id)
-
-
 @api_v1.route("/store/execute", methods=["POST"])
 @login_required
 @as_json
@@ -127,3 +111,11 @@ def data_node_update(nid):
     req = Request()
     libds = g.user.current_data_stack.libds
     return libds.data_node_update(nid=nid, state=req.require("state"))
+
+
+@api_v1.route("/data-nodes/<path:nid>", methods=["DELETE"])
+@login_required
+@as_json
+def data_node_delete(nid):
+    libds = g.user.current_data_stack.libds
+    return libds.data_node_delete(nid=nid)
