@@ -126,11 +126,6 @@ class AppStateObject {
   user = null;
   initialized = false;
   fatalError = null;
-  jobs = {
-    list: [],
-    byId: {},
-    numActive: 0,
-  };
 
   constructor() {
     makeAutoObservable(this);
@@ -161,10 +156,6 @@ class AppStateObject {
 
   setFatalError(err) {
     this.fatalError = err;
-  }
-
-  setJobs(jobs) {
-    this.jobs = jobs;
   }
 
   initialize() {

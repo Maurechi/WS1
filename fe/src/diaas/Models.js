@@ -13,7 +13,7 @@ import { ButtonLink, NotFound, StandardButton, VCenter } from "diaas/ui.js";
 export const Editor = observer(() => {
   const saveButtonLabel = useFormValue("INITIAL");
   const saveButtonEnabled = useFormValue(true);
-  const { user, backend, jobs } = useAppState();
+  const { user, backend, jobs = {} } = useAppState();
 
   if (user.dataStack === null) {
     return <NotFound>No Data stacks for user</NotFound>;
