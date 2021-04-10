@@ -273,7 +273,7 @@ class Task:
 
     def info(self):
         i = dict(id=self.id, state=self.state, info=self._info.copy())
-        for stream in "stdout stderro".split():
+        for stream in "stdout stderr".split():
             filename = i["info"].get(stream)
             if filename is not None:
                 i["info"][stream] = _filename_to_log_contents(filename)
