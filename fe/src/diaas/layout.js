@@ -17,11 +17,8 @@ import { makeStyles, useTheme } from "@material-ui/core/styles";
 import AccountCircleIcon from "@material-ui/icons/AccountCircle";
 import ArrowDropDownIcon from "@material-ui/icons/ArrowDropDown";
 import BuildIcon from "@material-ui/icons/Build";
-import CollectionsBookmarkIcon from "@material-ui/icons/CollectionsBookmark";
 import DoubleArrowIcon from "@material-ui/icons/DoubleArrow";
 import GetAppIcon from "@material-ui/icons/GetApp";
-import InfoIcon from "@material-ui/icons/Info";
-import MenuBookIcon from "@material-ui/icons/MenuBook";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import StorageIcon from "@material-ui/icons/Storage";
@@ -246,10 +243,6 @@ export const AppNavigation = observer(({ children }) => {
         </List>
         <Divider />
         <List>
-          <SectionMenuItem location="/modules" text="Modules" Icon={CollectionsBookmarkIcon} />
-        </List>
-        <Divider />
-        <List>
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
           <SectionMenuItem location="/store" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
@@ -263,8 +256,6 @@ export const AppNavigation = observer(({ children }) => {
         </List>
         <Divider />
         <List>
-          <SectionMenuItem location="/catalog" text="Catalog" Icon={MenuBookIcon} />
-          <SectionMenuItem location="/monitoring" text="Monitoring" Icon={InfoIcon} />
           <SectionMenuItem location="/settings" text="Settings" Icon={SettingsIcon} />
         </List>
       </Drawer>
