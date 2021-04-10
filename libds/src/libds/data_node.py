@@ -67,15 +67,19 @@ class OrphanDataNode(DataNode):
         print(f"Not refreshing orphan node {self.id}.")
 
 
+def _fetch_one_value(cursor, query, *args):
+    return cursor.execute(query, *args).fetchone()[0]
+
+
 class DataOrchestrator:
     def __init__(self, data_stack):
         self.data_stack = data_stack
 
     def _ensure_schema(self, conn):
-        res = conn.execute(
-            "select count(*) from sqlite_schema where type = 'table' and tbl_name = 'settings'"
+        count = _fetch_one_value(
+            conn.cursor(),
+            "select count(*) from sqlite_schema where type = 'table' and tbl_name = 'settings'",
         )
-        count = res.fetchone()[0]
         if count == 0:
             cur = conn.cursor()
             cur.execute("begin")
@@ -84,8 +88,9 @@ class DataOrchestrator:
             conn.commit()
 
         cur = conn.cursor()
-        version = cur.execute("select value from settings where key = 'version'")
-        version = version.fetchone()[0]
+        version = _fetch_one_value(
+            cur, "select value from settings where key = 'version'"
+        )
 
         if version == "1":
             return
@@ -279,8 +284,9 @@ class IsNotStale(Exception):
 
 def _state_to_refreshing(orchestrator, nid, tid, info):
     with orchestrator.cursor() as cur:
-        state = cur.execute("select state from data_nodes where nid = ?", [nid])
-        state = state.fetchone()[0]
+        state = _fetch_one_value(
+            cur, "select state from data_nodes where nid = ?", [nid]
+        )
         if state == "STALE":
             cur.execute(
                 "insert into tasks (tid, state, info) values (?, 'RUNNING', ?)",
@@ -308,7 +314,7 @@ def _task_complete(orchestrator, nid, tid):
             [DataNodeState.FRESH.value, nid, tid],
         )
         res = cur.execute("select info from tasks where tid = ?", [tid])
-        info = json.loads(list(res)[0][0])
+        info = json.loads(res.fetchone()[0])
         info["completed_at"] = timestamp()
         cur.execute("update tasks set state = 'DONE' where tid = ?", [tid])
 
@@ -319,8 +325,7 @@ def _task_failed(orchestrator, nid, tid, e, tb):
             "update data_nodes set state = ?, current_tid = null where nid = ?",
             [DataNodeState.STALE.value, nid],
         )
-        res = cur.execute("select info from tasks where tid = ?", [tid])
-        info = json.loads(list(res)[0][0])
+        info = _fetch_one_value(cur, "select info from tasks where tid = ?", [tid])
         info["completed_at"] = timestamp()
         info["error"] = e
         info["traceback"] = tb
@@ -455,16 +460,28 @@ def fork_and_refresh(orchestrator, node, log_dir):
 
 def check_for_zombies(orchestrator):
     with orchestrator.cursor() as cur:
+        count = 0
+        zombies = 0
         res = cur.execute("select tid, info from tasks where state = 'RUNNING'")
         for row in res.fetchall():
+            count += 1
             tid = row[0]
             info = json.loads(row[1])
             if not psutil.pid_exists(info["pid"]):
+                zombies += 1
                 info["zombie_at"] = timestamp()
                 cur.execute(
                     "update tasks set state = 'ZOMBIE', info = ? where tid = ?",
                     [json.dumps(info), tid],
                 )
+
+        print(f"Found {zombies} zombie tasks out of {count} running")
+
+        nodes = _fetch_one_value(
+            cur,
+            "select count(*) from data_nodes where current_tid in (select tid from tasks where state = 'ZOMBIE')",
+        )
+        print(f"{nodes} affected.")
 
         cur.execute(
             "update data_nodes set state = 'STALE' where current_tid in (select tid from tasks where state = 'ZOMBIE')"
