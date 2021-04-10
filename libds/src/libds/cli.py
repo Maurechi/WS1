@@ -8,17 +8,20 @@ from pathlib import Path
 
 import click
 
-from libds import DataStack, __version__
+from libds.__version__ import __version__
+from libds.data_node import DataNodeState
+from libds.data_stack import DataStack
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
-from libds.orchestration import Orchestrator
 from libds.source import BaseSource
-from libds.utils import DependencyGraph, DoesNotExist, DSException
+from libds.utils import DoesNotExist, DSException
 
 
 class OutputEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
+        if isinstance(obj, Path):
+            return str(obj)
         return json.JSONEncoder.default(self, obj)
 
 
@@ -32,9 +35,15 @@ class Command:
         directory = Path(directory)
         self.directory = directory
         self.format = format
+        self.ds = None
         if directory is not None:
             self.ds = DataStack.from_dir(directory)
             self.ds.load()
+
+    def reload_data_stack(self):
+        self.ds = DataStack.from_dir(self.ds.directory)
+        self.ds.load()
+        return self.ds
 
     def results(self, data):
         result = dict(meta=dict(version=__version__))
@@ -72,7 +81,36 @@ def _arg_json(arg):
 COMMAND = None
 
 
-@click.group()
+class ClickCommand(click.Command):
+    def __init__(self, *args, other_names=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if other_names is None:
+            other_names = []
+        self.other_names = other_names
+
+
+class ClickGroup(click.Group):
+    """This subclass of a group supports looking up aliases in a config
+    file and with a bit of magic.
+    """
+
+    def get_command(self, ctx, cmd_name):
+        # Step one: bulitin commands as normal
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+        else:
+            for name, cmd in self.commands.items():
+                if cmd_name in cmd.other_names:
+                    return self.get_command(ctx, name)
+            else:
+                return None
+
+    def command(self, *args, **kwargs):
+        return super().command(*args, cls=ClickCommand, **kwargs)
+
+
+@click.group(cls=ClickGroup)
 @click.option(
     "-d",
     "--directory",
@@ -92,26 +130,27 @@ def cli(directory, format):
     COMMAND = Command(directory, format)
 
 
-def command(cmd):
-    @cli.command()
-    @functools.wraps(cmd)
-    def wrapped(*args, **kwargs):
-        COMMAND.results(cmd(*args, **kwargs))
+def command(**kwargs):
+    def deco(cmd):
+        @cli.command(**kwargs)
+        @functools.wraps(cmd)
+        def wrapped(*args, **kwargs):
+            COMMAND.results(cmd(*args, **kwargs))
 
-    return wrapped
+    return deco
 
 
-@command
+@command()
 def version():
     return {}
 
 
-@command
+@command()
 def info():
     return COMMAND.ds.info()
 
 
-@command
+@command()
 @click.option(
     "--if-exists",
     type=click.Choice(["error", "update"], case_sensitive=False),
@@ -143,22 +182,14 @@ def source_update(if_exists, if_does_not_exist, current_id, id, config):
     return COMMAND.ds.get_source(id).info()
 
 
-@command
-@click.argument("source_id")
-@click.option("-r", "--reload", is_flag=True, default=False)
-def source_load(source_id, reload):
-    src = COMMAND.ds.get_source(source_id)
-    return src.load(reload)
-
-
-@command
+@command()
 @click.argument("source_id")
 def source_inspect(source_id):
     src = COMMAND.ds.get_source(source_id)
     return dict(info=src.info(), inspect=src.inspect())
 
 
-@command
+@command()
 @click.option("--current-id")
 @click.option(
     "--type",
@@ -198,72 +229,25 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
             cls = PythonModel
         model = cls.create(data_stack=COMMAND.ds, id=current_id)
 
+    # NOTE this code, and the simliar logic in sources-update, belongs
+    # in the data stack class. We need to make that class smarter and
+    # this cli simpler. 20210410:mb
+
     if model_id != current_id:
         model = model.update_id(model_id)
     model.update_source(_arg_str(source))
 
-    return COMMAND.ds.get_model(model_id).info()
+    ds = COMMAND.reload_data_stack()
+    orchestrator = ds.data_orchestrator
+    model = ds.get_model(model_id)
+    nodes = model.data_nodes()
+    for n in nodes:
+        orchestrator.set_node_state(n.id, DataNodeState.STALE)
+
+    return COMMAND.reload_data_stack().get_model(model_id).info()
 
 
-def model_load_one(model_id, reload):
-    if reload:
-        loading = "reloading"
-    else:
-        loading = "loading"
-    print(f"{loading.capitalize()} {model_id}", file=sys.stderr, flush=True)
-    sample = COMMAND.ds.get_model(model_id).load(reload).sample()
-    # print(f"Done {loading} {model_id}", file=sys.stderr, flush=True)
-    return sample
-
-
-def _compute_model_load_order(model_ids):
-    g = DependencyGraph()
-
-    for m in COMMAND.ds.models:
-        for dep in m.dependencies:
-            g.edge(dep, m.id)
-
-    return g.cascade_from_nodes(model_ids)
-
-
-@command
-@click.argument("model_id")
-@click.option("-r", "--reload", is_flag=True, default=False)
-@click.option(
-    "--cascade",
-    default="AFTER",
-    type=click.Choice(["BEFORE", "BOTH", "AFTER"], case_sensitive=False),
-)
-@click.option("--no-cascade", is_flag=True, default=False)
-@click.option("--wait/--no-wait", is_flag=True, default=False)
-def model_load(model_id, reload, cascade, no_cascade, wait):
-    m = COMMAND.ds.get_model(model_id)
-    if m is None:
-        return {"error": {"code": "model-not-found", "id": model_id}}
-
-    if no_cascade:
-        cascade = None
-    load_task = m.load_task(reload=reload, cascade=cascade)
-    o = Orchestrator(tasks=[load_task])
-    o.execute(wait=wait)
-    return {"job": {"id": o.id}}
-    # return COMMAND.ds.get_model(model_id).table().sample()
-
-
-@command
-@click.option("-r", "--reload", is_flag=True, default=False)
-@click.option("--wait/--no-wait", is_flag=True, default=False)
-def model_load_all(reload, wait):
-    o = Orchestrator(
-        tasks=[
-            model.load_task(reload=reload, cascade=True) for model in COMMAND.ds.models
-        ]
-    )
-    o.execute(wait=wait)
-    return {"job": {"id": o.id}}
-
-
-@command
+@command()
 @click.argument("statement")
 def execute(statement):
     statement = _arg_str(statement)
@@ -275,12 +259,46 @@ def execute(statement):
         return {"error": {"code": "error", "details": str(e)}}
 
 
-@command
-def jobs_list():
-    return [j.info() for j in COMMAND.ds.jobs]
+@command()
+def data_nodes():
+    return COMMAND.ds.data_orchestrator.info()
 
 
-@command
+@command(other_names=["dot"])
+def data_orchestrator_tick():
+    orchestrator = COMMAND.ds.data_orchestrator
+    return orchestrator.tick()
+
+
+@command(other_names=["dnu"])
+@click.option(
+    "--state",
+    "-s",
+    type=click.Choice(DataNodeState.__members__.keys(), case_sensitive=False),
+    default=None,
+)
+@click.argument("node_id")
+def data_node_update(node_id, state):
+    if state is not None:
+        state = DataNodeState[state]
+        orchestrator = COMMAND.ds.data_orchestrator
+        orchestrator.set_node_state(node_id, state)
+        orchestrator.load_states()
+
+    return orchestrator.info()
+
+
+@command()
+@click.argument("node_id")
+def data_node_delete(node_id):
+    orchestrator = COMMAND.ds.data_orchestrator
+    orchestrator.delete_node(node_id)
+    orchestrator.load_states()
+
+    return orchestrator.info()
+
+
+@command()
 @click.pass_context
 def help(ctx):
     click.echo(ctx.parent.get_help())

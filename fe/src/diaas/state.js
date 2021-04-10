@@ -1,7 +1,7 @@
 import axios from "axios";
 import _ from "lodash";
 import { makeAutoObservable } from "mobx";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext } from "react";
 
 const dataIf = (condition) => {
   return (response) => {
@@ -95,8 +95,12 @@ class Backend {
     return this.post(`/store/execute`, payload).then(dataIfStatusEquals(200));
   }
 
-  jobsList() {
-    return this.get(`/jobs/`).then(dataIfStatusEquals(200));
+  updateDataNodeState(nid, state) {
+    return this.post(`/data-nodes/${nid}/update`, { state }).then(dataIfStatusEquals(200));
+  }
+
+  deleteDataNode(nid, state) {
+    return this.delete(`/data-nodes/${nid}`, { state }).then(dataIfStatusEquals(200));
   }
 }
 
@@ -126,11 +130,6 @@ class AppStateObject {
   user = null;
   initialized = false;
   fatalError = null;
-  jobs = {
-    list: [],
-    byId: {},
-    numActive: 0,
-  };
 
   constructor() {
     makeAutoObservable(this);
@@ -163,10 +162,6 @@ class AppStateObject {
     this.fatalError = err;
   }
 
-  setJobs(jobs) {
-    this.jobs = jobs;
-  }
-
   initialize() {
     this.backend.getCurrentUser().then((user) => this.setCurrentUser(user));
   }
@@ -189,18 +184,5 @@ export const useAppState = () => {
 export const APP_STATE = new AppStateObject();
 
 export const AppState = ({ children }) => {
-  useEffect(() => {
-    const updater = () => {
-      APP_STATE.backend.jobsList().then((list) => {
-        APP_STATE.setJobs({
-          list: list,
-          byId: Object.fromEntries(list.map((j) => [j.id, j])),
-          numActive: _.filter(list, (j) => j.state !== "DONE").length,
-        });
-      });
-    };
-    const timer = setInterval(updater, 3000);
-    return () => clearInterval(timer);
-  }, []);
   return <AppStateContext.Provider value={APP_STATE}>{children}</AppStateContext.Provider>;
 };

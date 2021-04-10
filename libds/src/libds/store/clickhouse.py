@@ -34,7 +34,14 @@ class ClickHouseServerException(DSException):
         )
 
     def __str__(self):
-        return "<" + self.__class__.__name__ + " " + " ".join(["=".join(item) for item in self.as_json().items()]) + ">"
+        return (
+            "<"
+            + self.__class__.__name__
+            + " "
+            + " ".join(["=".join(item) for item in self.as_json().items()])
+            + ">"
+        )
+
 
 class ClickHouseClient:
     def __init__(self, **kwargs):
@@ -88,13 +95,6 @@ class ClickHouse(Store):
                 ENGINE MergeTree()
                 ORDER BY (primary_key, inserted_at);"""
         )
-        client.execute(
-            f"""CREATE TABLE IF NOT EXISTS {full_name}_del (
-                    deleted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'),
-                    primary_key String)
-                ENGINE MergeTree()
-                ORDER BY (primary_key, deleted_at);"""
-        )
         return client, full_name
 
     def most_recent_raw_timestamp(self, schema_name, table_name):
@@ -112,7 +112,6 @@ class ClickHouse(Store):
     def truncate_raw_table(self, schema_name, table_name):
         client, full_name = self._ensure_raw_table(schema_name, table_name)
         client.execute(f"TRUNCATE TABLE {full_name}_raw")
-        client.execute(f"TRUNCATE TABLE {full_name}_del")
 
     def append_raw(self, schema_name, table_name, records):
         client, full_name = self._ensure_raw_table(schema_name, table_name)
@@ -150,6 +149,8 @@ class ClickHouse(Store):
         table = Table(
             store=self, schema_name=schema_name, table_name=table_name + "_raw"
         )
+
+        progress.show_progress()
 
         return {
             "count": num_rows,

@@ -57,6 +57,9 @@ class Progress:
             self.step = self.step * 10
         return value
 
+    def show_progress(self):
+        self.progress(self.c, self.last_value)
+
 
 class DependencyGraph:
     def __init__(self):
@@ -102,3 +105,29 @@ class DSException(Exception):
 
     def as_json(self):
         return dict(code=self.code(), details=str(self))
+
+
+def _timedelta_as_info(td):
+    info = {}
+    days = td.days
+
+    if days > 7:
+        info["weeks"] = int(days / 7)
+        days = days % 7
+
+    if days > 0:
+        info["days"] = days
+
+    secs = td.seconds
+    if secs > 3600:
+        info["hours"] = int(secs / 3600)
+        secs = secs % 3600
+
+    if secs > 60:
+        info["minutes"] = int(secs / 60)
+        secs = secs % 60
+
+    if secs > 0:
+        info["seconds"] = secs
+
+    return info

@@ -1,25 +1,11 @@
 import runpy
-import sys
 from datetime import datetime
-from itertools import chain
 from pathlib import Path
 from pprint import pformat
 
 from jinja2 import Environment, FileSystemLoader
 
-from libds.orchestration import Task
-from libds.utils import ThreadLocalValue
-
-CURRENT_DATA_STACK = ThreadLocalValue()
-
-
-def load_models(data_stack):
-    sqls = data_stack.models_dir.glob("**/*.sql")
-    pys = data_stack.models_dir.glob("**/*.py")
-    files = chain(sqls, pys)
-    models = [BaseModel.from_file(data_stack, filename) for filename in files]
-    models = list(filter(None, models))
-    return models
+from libds.data_node import DataNode
 
 
 class BaseModel:
@@ -33,6 +19,8 @@ class BaseModel:
         dependencies=None,
     ):
         if data_stack is None:
+            from libds.data_stack import CURRENT_DATA_STACK
+
             data_stack = CURRENT_DATA_STACK.value
         self.data_stack = data_stack
 
@@ -77,6 +65,9 @@ class BaseModel:
             schema_name=self.schema_name,
         )
 
+    def fqid(self):
+        return self.type + ":" + self.id
+
     def last_modified(self):
         if self.filename is None:
             return None
@@ -94,48 +85,18 @@ class BaseModel:
         self._init_properties(new_filename, id, None, None)
         return self
 
-    def load_task(self, reload=False, cascade="AFTER"):
-        return ModelLoadTask(self, cascade=cascade, reload=reload)
-
     def table(self):
         return self.data_stack.store.get_table(self.schema_name, self.table_name)
 
-
-class ModelLoadTask(Task):
-    def __init__(self, model, cascade, reload):
-        super().__init__(
-            id=model.__class__.__module__
-            + "."
-            + model.__class__.__name__
-            + "."
-            + model.id
-        )
-        self.model = model
-        self.reload = reload
-        self.cascade = cascade
-
-    def pre_requisites(self):
-        if self.cascade in ["BOTH", "BEFORE"]:
-            models = [
-                self.model.data_stack.get_model(id) for id in self.model.dependencies
-            ]
-            return [ModelLoadTask(model, self.cascade, self.reload) for model in models]
-        else:
-            return []
-
-    def post_requisites(self):
-        if self.cascade in ["BOTH", "AFTER"]:
-            models = set()
-            for m in self.model.data_stack.models:
-                if self.model.id in m.dependencies:
-                    models.add(m)
-            return [ModelLoadTask(model, self.cascade, self.reload) for model in models]
-        else:
-            return []
-
-    def execute(self):
-        print(f"Will load data for {self.id} on {self.model}", file=sys.stderr)
-        self.model.load_data(reload=self.reload)
+    def data_nodes(self):
+        return [
+            DataNode(
+                refresher=lambda orchestrator: self.load_data(),
+                id=self.schema_name + "." + self.table_name,
+                container=self.fqid(),
+                upstream=self.dependencies,
+            )
+        ]
 
 
 def _pprint_call(func, **args):
@@ -145,6 +106,13 @@ def _pprint_call(func, **args):
     str = str.replace("\n", "")
     str = "/* " + str + " */"
     return str
+
+
+def _ensure_schema(table_name):
+    if "." in table_name:
+        return table_name
+    else:
+        return "public." + table_name
 
 
 class SQLModel(BaseModel):
@@ -170,7 +138,10 @@ class SQLModel(BaseModel):
         )
 
         def depends_on(model_id, *other_deps):
-            config["dependencies"] += [model_id] + list(other_deps)
+            config["dependencies"] += [
+                _ensure_schema(table_name)
+                for table_name in [model_id] + list(other_deps)
+            ]
             return model_id
 
         def table_name(table, schema=None):
@@ -202,7 +173,7 @@ class SQLModel(BaseModel):
             sql=sql,
             table_name=config["table_name"],
             schema_name=config["schema_name"],
-            dependencies=config["dependencies"],
+            dependencies=list(set(config["dependencies"])),
         )
 
     def __repr__(self):
@@ -213,7 +184,7 @@ class SQLQueryModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "select", **kwargs)
 
-    def load_data(self, reload):
+    def load_data(self):
         self.data_stack.store.create_or_replace_model(
             table_name=self.table_name, schema_name=self.schema_name, select=self.sql
         )
@@ -231,7 +202,7 @@ class SQLCodeModel(SQLModel):
     def __init__(self, sql, **kwargs):
         super().__init__(sql, "sql", **kwargs)
 
-    def load_data(self, reload):
+    def load_data(self):
         self.data_stack.store.execute_sql(select=self.sql)
 
     def info(self):
@@ -249,14 +220,12 @@ class PythonModel(BaseModel):
 
     @classmethod
     def from_file(cls, data_stack, filename):
-        CURRENT_DATA_STACK.value = data_stack
         globals = runpy.run_path(filename)
-        CURRENT_DATA_STACK.value = None
 
         if "model" in globals:
             return cls(data_stack=data_stack, filename=filename, model=globals["model"])
         else:
             raise ValueError(f"No model function defined in {filename}")
 
-    def load_data(self, reload):
-        self.model(self.data_stack.store)
+    def load_data(self):
+        self.model(self.data_stack)

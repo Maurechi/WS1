@@ -2,7 +2,7 @@ FROM debian:buster AS builder
 ENV LANG C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y
-RUN apt-get install -y curl gnupg2
+RUN apt-get install -y curl gnupg2 git
 # RUN apt-get install -y apt-utils
 # RUN apt-get install -y ca-certificates git curl wget jq moreutils
 
@@ -21,6 +21,7 @@ COPY ./fe/package-lock.json package-lock.json
 RUN npm ci
 
 COPY ./fe/jsconfig.json jsconfig.json
+COPY ./fe/.eslintrc.js .eslintrc.js
 COPY ./fe/public public
 COPY ./fe/src src
 

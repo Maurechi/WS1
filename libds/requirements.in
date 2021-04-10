@@ -3,6 +3,8 @@ click
 google-api-python-client   
 google-auth-oauthlib       
 jinja2
+psutil
 pygit2
 ruamel.yaml
+setproctitle
 sqlalchemy

@@ -1,13 +1,10 @@
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 
-import { CodeEditor, useFormValue } from "diaas/form.js";
+import { CodeEditor, useLocalStorage } from "diaas/form.js";
 import { SampleDataTable } from "diaas/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { StandardButton as Button } from "diaas/ui.js";
-import { ignore, useLocalStorage } from "diaas/utils.js";
-
-ignore(useLocalStorage, useFormValue);
 
 export const Cell = observer(({ value }) => {
   const {

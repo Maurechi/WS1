@@ -1,3 +1,4 @@
+from datetime import timedelta
 from hashlib import sha256
 from pprint import pformat, pprint  # noqa: F401
 
@@ -5,6 +6,7 @@ import MySQLdb
 from MySQLdb import _exceptions as exceptions
 from MySQLdb.cursors import SSCursor
 
+from libds.data_node import DataNode
 from libds.source import BaseSource, Record
 
 
@@ -28,6 +30,8 @@ class MySQL(BaseSource):
     def __init__(self, **kwargs):
         self.connect_args = kwargs.pop("connect_args", {})
         self.tables = kwargs.pop("tables", None)
+        if isinstance(self.tables, list):
+            self.tables = {table_name: {} for table_name in self.tables}
         self.target_schema = kwargs.pop("target_schema", "public")
         self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
         super().__init__(**kwargs)
@@ -40,7 +44,7 @@ class MySQL(BaseSource):
             tables=self.tables,
         )
 
-    def connect(self):
+    def connect_args_for_mysql(self):
         connect_args = dict(use_unicode=True, charset="utf8", cursorclass=SSCursor)
 
         if "port" in self.connect_args:
@@ -53,9 +57,14 @@ class MySQL(BaseSource):
         }
         for frm, to in mapping.items():
             if frm in self.connect_args:
-                connect_args[to] = self.connect_args[frm]
+                value = self.connect_args[frm]
+                if value is not None:
+                    connect_args[to] = value
 
-        return MySQLdb.connect(**connect_args)
+        return connect_args
+
+    def connect(self):
+        return MySQLdb.connect(**self.connect_args_for_mysql())
 
     def select_tables(self, cur):
         tables = {}
@@ -96,31 +105,20 @@ class MySQL(BaseSource):
             )
         )
 
-    def load(self, reload=False):
-        # NOTE sort the table names so we always process things in the same order 20210309:mb
+    def table_spec(self):
         if self.tables == MySQL.ALL_TABLES:
             cur = self.connect().cursor()
-            tables = {name: {} for name in self.select_tables(cur).keys()}
+            return {name: {} for name in self.select_tables(cur).keys()}
         else:
-            tables = self.tables
+            return self.tables
 
-        # NOTE do this sort so we always process the tables in the
-        # same order, not needed by convenient for the caller
-        # 20210310:mb
-        for table_name in sorted(tables.keys()):
-            self.load_one_table(table_name, tables[table_name], reload)
-        return []
-
-    def load_one_table(self, table_name, spec, reload):
+    def load_one_table(self, schema_name, table_name):
         store = self.data_stack.store
-        if spec is None:
-            spec = {}
-        schema_name = self.target_schema
+        spec = self.table_spec().get(table_name, {})
         if self.target_table_name_prefix is not None:
             table_name = self.target_table_name_prefix + table_name
 
-        if reload:
-            store.truncate_raw_table(schema_name, table_name)
+        store.truncate_raw_table(schema_name, table_name)
 
         cur = self.connect().cursor()
         column_names = _fetchall(
@@ -160,3 +158,45 @@ class MySQL(BaseSource):
             table_name=table_name,
             records=(as_record(row) for row in _fetchall(cur, query, query_args)),
         )
+
+    def data_nodes(self):
+        nodes = [
+            MySQLDataNode(
+                mysql=self,
+                expires_after=timedelta(hours=6),
+            )
+        ]
+        for table_name, spec in self.table_spec().items():
+            nodes.append(
+                MySQLTableDataNode(
+                    mysql=self, schema_name=self.target_schema, table_name=table_name
+                )
+            )
+        return nodes
+
+
+class MySQLDataNode(DataNode):
+    def __init__(self, mysql, expires_after):
+        connect_args = mysql.connect_args_for_mysql()
+        details = " ".join(
+            [k + "=" + str(connect_args[k]) for k in "host port db".split()]
+        )
+        super().__init__(
+            id=mysql.fqid(), details=details, upstream=[], expires_after=expires_after
+        )
+
+    def refresh(self, orchestrator):
+        return True
+
+
+class MySQLTableDataNode(DataNode):
+    def __init__(self, mysql, schema_name, table_name):
+        super().__init__(
+            id=schema_name + "." + table_name + "_raw", upstream=[mysql.fqid()]
+        )
+        self.schema_name = schema_name
+        self.table_name = table_name
+        self.mysql = mysql
+
+    def refresh(self, orchestrator):
+        self.mysql.load_one_table(self.schema_name, self.table_name)

@@ -34,7 +34,13 @@ class LibDSRuntimeError(LibDSException):
 
 
 class LibDSOutputParseError(LibDSException):
-    pass
+    def __init__(self, cmd, out, err):
+        self.cmd = cmd
+        self.out = out
+        self.err = err
+
+    def details(self):
+        return f"{self.err} while parsing ds response json: {self.cmd} => {self.out}"
 
 
 class LibDSVersionMismatch(LibDSException):
@@ -92,9 +98,7 @@ class LibDS:
         try:
             response = json.loads(out)
         except Exception as e:
-            raise LibDSOutputParseError(
-                f"{e} while parsing ds response json: {cmd} => {out}"
-            )
+            raise LibDSOutputParseError(cmd=cmd, out=out, err=e)
         meta = response.get("meta", {})
         meta_version = meta.get("version", "0.0.0")
         if self.MIN_VERSION > meta_version:
@@ -125,7 +129,9 @@ class LibDS:
         if current_id is not None:
             cmd += ["--current-id", current_id]
         cmd += [id, "-"]
-        return self.call_ds(cmd=cmd, input=source)
+        update_res = self.call_ds(cmd=cmd, input=source)
+        self.call_ds(cmd=["data-orchestrator-tick"])
+        return update_res
 
     def model_load(self, id):
         return self.call_ds(cmd=["model-load", id])
@@ -133,5 +139,8 @@ class LibDS:
     def execute(self, statement):
         return self.call_ds(cmd=["execute", "-"], input=statement)
 
-    def jobs_list(self):
-        return self.call_ds(cmd=["jobs-list"])
+    def data_node_update(self, nid, state):
+        return self.call_ds(cmd=["data-node-update", "--state", state, nid])
+
+    def data_node_delete(self, nid):
+        return self.call_ds(cmd=["data-node-delete", nid])

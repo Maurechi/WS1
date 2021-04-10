@@ -10,8 +10,8 @@ import logo from "./App.logo.png";
 import sorry_gif from "./sorry.gif";
 import { AccountProfileContent } from "diaas/Account.js";
 import { AnalyticsContent } from "diaas/Analytics";
+import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
-import { JobsContent } from "diaas/Jobs";
 import { AppNavigation, AppSplash } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
 import { ModulesContent } from "diaas/Modules";
@@ -20,7 +20,6 @@ import { AppState, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
 import { ThemeProvider } from "diaas/Theme.js";
 import { HCenter } from "diaas/ui.js";
-import { ignore } from "diaas/utils.js";
 
 const Loading = () => {
   const [tick, setTick] = useState(0);
@@ -166,8 +165,8 @@ const AppContent = () => (
           <Route path="/store/">
             <StoreContent />
           </Route>
-          <Route path="/jobs/">
-            <JobsContent />
+          <Route path="/data-nodes/">
+            <DataNodesContent />
           </Route>
           <Route path="/analytics/">
             <AnalyticsContent />
@@ -197,9 +196,9 @@ class ErrorBoundary extends React.Component {
     return { hasError: true, details: { title: "Error", message: "" + error } };
   }
 
+  // eslint-disable-next-line unused-imports/no-unused-vars
   componentDidCatch(error, errorInfo) {
     // NOTE send to sentry 20210305:mb
-    ignore(error, errorInfo);
   }
 
   render() {
@@ -243,7 +242,7 @@ const FatalError = ({ error }) => {
     );
   };
 
-  if (error.data.errors) {
+  if (error && error.data && error.data.errors) {
     errText = "";
     error.data.errors.forEach((e) => {
       errText += `Code: ${e.code}\n`;
@@ -252,28 +251,37 @@ const FatalError = ({ error }) => {
       errText += `Details: ${e.details}\n`;
       errText += "\n";
       errComponents.push(
-        <table>
-          <Row label="Code">{e.code}</Row>
-          {e.title && <Row label="Title">{e.title}</Row>}
-          {e.source && <Row label="Source">{e.source}</Row>}
-          {e.details && <Row label="Details">{e.details}</Row>}
+        <table key={errComponents.length}>
+          <tbody>
+            <Row label="Code">{e.code}</Row>
+            {e.title && <Row label="Title">{e.title}</Row>}
+            {e.source && <Row label="Source">{e.source}</Row>}
+            {e.details && <Row label="Details">{e.details}</Row>}
+          </tbody>
         </table>
       );
     });
-  } else if (error.data) {
+  } else if (error && error.data) {
     errText = JSON.stringify(error.data, null, 4);
     errComponents.push(
       <table>
         <Row label="Data">{errText}</Row>
       </table>
     );
-  } else {
+  } else if (error) {
     errText = `Title: ${error.title}\n${error.details}`;
 
     errComponents.push(
       <table>
         <Row label="Title">{error.title}</Row>
         <Row label="Details">{error.details}</Row>
+      </table>
+    );
+  } else {
+    errText = JSON.stringify(error, null, 4);
+    errComponents.push(
+      <table>
+        <Row label="Data">{errText}</Row>
       </table>
     );
   }

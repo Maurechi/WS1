@@ -9,6 +9,7 @@ import {
   ListItemIcon,
   ListItemText,
   Menu,
+  SvgIcon,
   Toolbar,
   Typography,
 } from "@material-ui/core";
@@ -21,7 +22,6 @@ import DoubleArrowIcon from "@material-ui/icons/DoubleArrow";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import InfoIcon from "@material-ui/icons/Info";
 import MenuBookIcon from "@material-ui/icons/MenuBook";
-import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
 import SettingsIcon from "@material-ui/icons/Settings";
 import StorageIcon from "@material-ui/icons/Storage";
@@ -32,10 +32,10 @@ import { Link, useLocation } from "react-router-dom";
 import v from "voca";
 
 import appBarGraphic from "./AppBarGraphic.png";
+import { ReactComponent as DataNodesIconSvg } from "./DataNodesIcon.svg";
+import { useLocalStorage } from "diaas/form.js";
 import { useAppState } from "diaas/state";
 import { HCenter } from "diaas/ui.js";
-import { useLocalStorage } from "diaas/utils.js";
-
 const drawerWidth = 240;
 
 const useStyles = makeStyles((theme) => ({
@@ -197,10 +197,10 @@ const AppNavigationToolbar = observer(() => {
   );
 });
 
+const DataNodesIcon = () => <SvgIcon component={DataNodesIconSvg} viewBox="0 0 100 100" />;
 export const AppNavigation = observer(({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
-  const { jobs } = useAppState();
   const drawerState = useLocalStorage("diaas:layout.navBarDrawerState", false);
 
   const loc = useLocation();
@@ -215,16 +215,6 @@ export const AppNavigation = observer(({ children }) => {
         </ListItemIcon>
         <ListItemText primary={text} primaryTypographyProps={{ style: style }} />
       </ListItem>
-    );
-  };
-
-  const JobsMenuItem = () => {
-    return (
-      <SectionMenuItem
-        location="/jobs"
-        text={jobs.numActive === 0 ? "Jobs" : `Jobs (${jobs.numActive})`}
-        Icon={PlayArrowIcon}
-      />
     );
   };
 
@@ -263,7 +253,7 @@ export const AppNavigation = observer(({ children }) => {
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
           <SectionMenuItem location="/store" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
-          <JobsMenuItem />
+          <SectionMenuItem location="/data-nodes" text="Data Nodes" Icon={DataNodesIcon} />
           <SectionMenuItem
             location="/analytics"
             onClick={() => window.open("/analytics", "caravel-analytics")}

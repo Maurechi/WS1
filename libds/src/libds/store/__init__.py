@@ -1,33 +1,15 @@
 import datetime
-import runpy
 from decimal import Decimal
-
-from libds.utils import ThreadLocalList, ThreadLocalValue
-
-CURRENT_DATA_STACK = ThreadLocalValue()
-LOCAL_STORES = ThreadLocalList()
-CURRENT_FILENAME = ThreadLocalValue()
-
-
-def load_store(data_stack):
-    LOCAL_STORES.reset()
-    CURRENT_DATA_STACK.value = data_stack
-    for store_py in (data_stack.directory / "stores").glob("**/*.py"):
-        store_py = store_py.resolve()
-        CURRENT_FILENAME.value = store_py
-        runpy.run_path(store_py)
-    if len(LOCAL_STORES) == 0:
-        # raise Exception(f"No stores defined in {data_stack.directory}")
-        return None
-    if len(LOCAL_STORES) > 1:
-        raise Exception(f"Multiple Stores defined in {data_stack.directory}")
-    CURRENT_FILENAME.value = None
-    CURRENT_DATA_STACK.value = None
-    return LOCAL_STORES[0]
 
 
 class Store:
     def __init__(self, data_stack=None, id=None, filename=None):
+        from libds.data_stack import (
+            CURRENT_DATA_STACK,
+            CURRENT_FILENAME,
+            LOCAL_STORES,
+        )
+
         self.data_stack = data_stack or CURRENT_DATA_STACK.value
         self.filename = None
         self._id = id
