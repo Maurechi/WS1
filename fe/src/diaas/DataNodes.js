@@ -1,38 +1,11 @@
 import { Box } from "@material-ui/core";
 import DagreGraph from "dagre-d3-react";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { Route, Switch, useRouteMatch } from "react-router-dom";
 
 import { useAppState } from "diaas/state.js";
-
-const useResize = (ref) => {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
-  const updateDimensions = () => {
-    if (ref.current) {
-      setDimensions({
-        width: ref.current.offsetWidth,
-        height: ref.current.offsetHeight,
-      });
-    }
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useLayoutEffect(() => updateDimensions(), []);
-
-  useEffect(() => {
-    window.addEventListener("resize", updateDimensions);
-
-    return () => {
-      window.removeEventListener("resize", updateDimensions);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  console.log("dimensions", dimensions);
-  return dimensions;
-};
+import { useResize } from "diaas/ui.js";
 
 const DataNodes = observer(() => {
   const { user } = useAppState();
@@ -72,7 +45,7 @@ const DataNodes = observer(() => {
   });
 
   const wrapper = useRef(null);
-  const { width, height } = useResize(wrapper);
+  const { width } = useResize(wrapper);
 
   return (
     <Box>

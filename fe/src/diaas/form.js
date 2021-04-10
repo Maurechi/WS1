@@ -5,7 +5,74 @@ import v from "voca";
 
 import AceEditor from "diaas/AceEditor";
 import { wrapInBox } from "diaas/ui.js";
-import { useCell } from "diaas/utils.js";
+
+export const useCell = (config) => {
+  let [isDirty, setIsDirty] = useState(false);
+  let [isTouched, setIsTouched] = useState(false);
+
+  // eslint-disable-next-line unused-imports/no-unused-vars
+  const { store, load, onChange = (is, was) => null } = config || {};
+
+  return {
+    getter() {
+      return load();
+    },
+    setter(newValue) {
+      const value = load();
+      if (newValue !== value) {
+        setIsDirty(true);
+        onChange(newValue, value);
+        store(newValue);
+      }
+      return newValue;
+    },
+    toggle() {
+      return this.setter(!this.v);
+    },
+    touch() {
+      isTouched = true;
+      setIsTouched(true);
+    },
+    get v() {
+      return this.getter();
+    },
+    set v(newValue) {
+      this.setter(newValue);
+    },
+    get isDirty() {
+      return isDirty;
+    },
+    get isTouched() {
+      return isTouched;
+    },
+  };
+};
+
+export const useLocalStorage = (key, initialValue) => {
+  if (!window.localStorage.getItem(key)) {
+    window.localStorage.setItem(key, JSON.stringify(initialValue));
+  }
+
+  let [value, setValue] = useState(JSON.parse(window.localStorage.getItem(key)));
+
+  let [timer, setTimer] = useState(null);
+
+  return useCell({
+    store: (newValue) => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => window.localStorage.setItem(key, JSON.stringify(value)), 500);
+      setTimer(timer);
+
+      value = newValue;
+      setValue(newValue);
+    },
+    load: () => {
+      return value;
+    },
+  });
+};
 
 export const useFormValue = (initialValue, config) => {
   const { trim = true, transform = (x) => x } = config || {};

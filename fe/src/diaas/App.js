@@ -20,7 +20,6 @@ import { AppState, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
 import { ThemeProvider } from "diaas/Theme.js";
 import { HCenter } from "diaas/ui.js";
-import { ignore } from "diaas/utils.js";
 
 const Loading = () => {
   const [tick, setTick] = useState(0);
@@ -197,9 +196,9 @@ class ErrorBoundary extends React.Component {
     return { hasError: true, details: { title: "Error", message: "" + error } };
   }
 
+  // eslint-disable-next-line unused-imports/no-unused-vars
   componentDidCatch(error, errorInfo) {
     // NOTE send to sentry 20210305:mb
-    ignore(error, errorInfo);
   }
 
   render() {

@@ -1,6 +1,6 @@
 import { Box, Button } from "@material-ui/core";
 import _ from "lodash";
-import React, { useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 
 export const StandardButton = ({ variant = "contained", color = "secondary", style, children, ...buttonProps }) => {
@@ -97,3 +97,31 @@ export const NotFound = ({ children }) => (
     <Box>{children}</Box>
   </Box>
 );
+
+export const useResize = (ref) => {
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  const updateDimensions = () => {
+    if (ref.current) {
+      setDimensions({
+        width: ref.current.offsetWidth,
+        height: ref.current.offsetHeight,
+      });
+    }
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => updateDimensions(), []);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateDimensions);
+
+    return () => {
+      window.removeEventListener("resize", updateDimensions);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  console.log("dimensions", dimensions);
+  return dimensions;
+};

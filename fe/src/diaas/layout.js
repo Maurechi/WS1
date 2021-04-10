@@ -32,9 +32,9 @@ import { Link, useLocation } from "react-router-dom";
 import v from "voca";
 
 import appBarGraphic from "./AppBarGraphic.png";
+import { useLocalStorage } from "diaas/form.js";
 import { useAppState } from "diaas/state";
 import { HCenter } from "diaas/ui.js";
-import { useLocalStorage } from "diaas/utils.js";
 
 const drawerWidth = 240;
 
