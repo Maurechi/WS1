@@ -64,7 +64,8 @@ class BaseSource:
 
     @property
     def type(self):
-        return self.__class__.__module__ + "." + self.__class__.__name__
+        t = self.__class__.__module__ + "." + self.__class__.__name__
+        return t.replace("/", "_")
 
     @property
     def id(self):

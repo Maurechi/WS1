@@ -109,7 +109,7 @@ class DataStack:
             source_py = source_py.resolve()
             CURRENT_FILENAME.value = source_py
             LOCAL_SOURCES.reset()
-            runpy.run_path(source_py, run_name=f"sources/{source_py.stem}")
+            runpy.run_path(source_py, run_name="local")
             self.sources.extend(LOCAL_SOURCES)
 
         for file in sources_dir.glob("*.yaml"):
