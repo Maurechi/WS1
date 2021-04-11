@@ -11,6 +11,7 @@ def _user_as_json(user):
     return {
         "uid": user.code,
         "display_name": user.display_name,
+        "email": user.email,
         "data_stacks": {ds.id: ds.libds.info() for ds in user.data_stacks.values()},
     }
 
