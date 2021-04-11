@@ -1,4 +1,4 @@
-import { Box } from "@material-ui/core";
+import { Box, Dialog, DialogTitle } from "@material-ui/core";
 import Tab from "@material-ui/core/Tab";
 import TabContext from "@material-ui/lab/TabContext";
 import TabList from "@material-ui/lab/TabList";
@@ -10,8 +10,9 @@ import React, { useRef, useState } from "react";
 import { Route, Switch, useParams, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
+import { useStateV } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { ActionButton, useResize } from "diaas/ui.js";
+import { ActionButton, DefinitionTable, Literal, useResize } from "diaas/ui.js";
 
 const useDataNodes = () => {
   const { user } = useAppState();
@@ -113,8 +114,14 @@ const Tasks = () => {
     { defaultFlex: 1, name: "id", header: "ID", defaultWidth: 100 },
     { defaultFlex: 1, name: "state", header: "State" },
     { defaultFlex: 4, name: "startedAt", header: "Started At", defaultWidth: 200 },
-    { defaultFlex: 8, name: "info", header: "Other Info", render: ({ value }) => <pre>{value}</pre> },
+    {
+      defaultFlex: 8,
+      name: "info",
+      header: "Other Info",
+      render: ({ value }) => <pre>{JSON.stringify(value).substring(0, 50)}</pre>,
+    },
   ];
+
   const dataNodes = useDataTasks();
   const rows = dataNodes
     .map((t) => {
@@ -123,11 +130,70 @@ const Tasks = () => {
         id: t.id,
         state: t.state,
         startedAt: started_at,
-        info: JSON.stringify(otherInfo),
+        info: otherInfo,
       };
     })
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} editable={true} />;
+
+  const open = useStateV(false);
+
+  const tid = useStateV(null);
+  const state = useStateV(null);
+  const startedAt = useStateV(null);
+  const pid = useStateV(null);
+  const stdout = useStateV(null);
+  const stderr = useStateV(null);
+  const otherInfo = useStateV(null);
+
+  const select = ({ data }) => {
+    tid.v = data.id;
+    startedAt.v = data.startedAt;
+    state.v = data.state;
+
+    const { pid: pid_, stdout: stdout_, stderr: stderr_, ...otherInfo_ } = data.info;
+    pid.v = pid_;
+    stdout.v = stdout_;
+    stderr.v = stderr_;
+    otherInfo.v = JSON.stringify(otherInfo_, null, 4).trim();
+    open.v = true;
+  };
+
+  console.log("open", open.v);
+
+  const Table = DefinitionTable;
+
+  return (
+    <>
+      <Dialog maxWidth="lg" onClose={() => open.toggle()} aria-labelledby="task-details-dialog-title" open={open.v}>
+        <DialogTitle id="simple-dialog-title">Task {tid.v}</DialogTitle>
+        <Box p={2}>
+          <Table>
+            <Table.Term label="PID">{pid.v}</Table.Term>
+            <Table.Term label="Started At">{startedAt.v}</Table.Term>
+            <Table.Term label="stdout">
+              <Literal>{stdout.v}</Literal>
+            </Table.Term>
+            <Table.Term label="stderr">
+              <Literal>{stderr.v}</Literal>
+            </Table.Term>
+            {otherInfo.v !== "" && (
+              <Table.Term label="Other">
+                <Literal>{otherInfo.v}</Literal>
+              </Table.Term>
+            )}
+          </Table>
+        </Box>
+      </Dialog>
+      <DataGrid
+        idProperty="id"
+        columns={columns}
+        dataSource={rows}
+        style={{ minHeight: 1000 }}
+        enableSelection
+        onSelectionChange={(selected) => select(selected)}
+      />
+    </>
+  );
 };
 
 const Content = () => {

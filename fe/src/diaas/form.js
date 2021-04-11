@@ -60,6 +60,17 @@ export const useLocalStorage = (key, initialValue) => {
   });
 };
 
+export const useStateV = (initialValue) => {
+  let [value, setValue] = useState(initialValue);
+  return useCell({
+    store: (newValue) => {
+      setValue(newValue);
+      value = newValue;
+    },
+    load: () => value,
+  });
+};
+
 export const useFormValue = (initialValue, config) => {
   const { trim = true, transform = (x) => x } = config || {};
 
@@ -71,9 +82,9 @@ export const useFormValue = (initialValue, config) => {
   return useCell({
     store: (newValue) => {
       newValue = transform(newValue);
-      value = trim ? v.trim(newValue) : newValue;
+      newValue = trim ? v.trim(newValue) : newValue;
       setIsDirty(true);
-      setValue(value);
+      setValue(newValue);
     },
     load: () => value,
     touch() {

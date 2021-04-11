@@ -125,3 +125,23 @@ export const useResize = (ref) => {
   console.log("dimensions", dimensions);
   return dimensions;
 };
+
+export const Literal = ({ children }) => <pre style={{ whiteSpace: "pre-wrap" }}>{children}</pre>;
+
+export const DefinitionTable = ({ children }) => {
+  return (
+    <table>
+      {" "}
+      <tbody>{children}</tbody>
+    </table>
+  );
+};
+
+DefinitionTable.Term = ({ label, children }) => (
+  <tr>
+    <td style={{ verticalAlign: "top", whiteSpace: "nowrap" }}>
+      <Box px={1}>{label}</Box>
+    </td>
+    <td style={{ verticalAlign: "top" }}>{children}</td>
+  </tr>
+);
