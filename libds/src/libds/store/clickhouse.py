@@ -162,11 +162,11 @@ class ClickHouse(Store):
         }
 
     def load_raw_from_records(self, schema_name, table_name, records):
-        self.truncate_raw_table(self.schema_name, self.table_name)
+        self.truncate_raw_table(schema_name, table_name)
         return self.update_raw_with_records(
-            schema_name=self.schema_name,
-            table_name=self.table_name,
-            records=self.collect_new_records(None),
+            schema_name=schema_name,
+            table_name=table_name,
+            records=records,
         )
 
     def create_or_replace_model(self, table_name, schema_name, select):
