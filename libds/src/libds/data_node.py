@@ -336,6 +336,7 @@ def _task_failed(orchestrator, nid, tid, e, tb):
             [DataNodeState.STALE.value, nid],
         )
         info = _fetch_one_value(cur, "select info from tasks where tid = ?", [tid])
+        info = json.loads(info)
         info["completed_at"] = timestamp()
         info["error"] = e
         info["traceback"] = tb
@@ -384,7 +385,7 @@ def trigger_refresh(orchestrator, node, info):
         while True:
             print("in error loop")
             try:
-                _task_failed(orchestrator, node.id, tid, e, tb)
+                _task_failed(orchestrator, node.id, tid, str(e), tb)
                 print("set to stale")
                 break
             except sqlite3.OperationalError as oe:
