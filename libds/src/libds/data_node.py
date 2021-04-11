@@ -403,12 +403,16 @@ def trigger_refresh(orchestrator, node, info):
 # NOTE https://stackoverflow.com/questions/107705/disable-output-buffering 20210408:mb
 class TaskOutputStream:
     def __init__(self, path):
-        self.stream = path.open("w")
+        self.path = Path(path)
+        self.stream = None
         self.start_at = time.time()
         self.last_char = "\n"
         self.pid = f"{os.getpid():08}"
 
     def write(self, data):
+        if self.stream is None:
+            self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o775)
+            self.stream = self.path.open("w")
         e = self.elapsed()
         for c in data:
             if self.last_char == "\n":
@@ -451,10 +455,10 @@ def fork_and_refresh(orchestrator, node, log_dir):
 
     setproctitle.setproctitle(sys.argv[0] + " data-node-refresh " + node.id)
 
-    log_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
     sys.stdout = TaskOutputStream(stdout_file)
     sys.stderr = TaskOutputStream(stderr_file)
 
+    pid_file.parent.mkdir(parents=True, exist_ok=True, mode=0o775)
     with pid_file.open("w") as file:
         print(str(os.getpid()), file=file)
 
@@ -525,10 +529,10 @@ def fork_and_check_for_zombies(orchestrator, log_dir):
 
     setproctitle.setproctitle(sys.argv[0] + " check-for-zombies")
 
-    log_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
     sys.stdout = TaskOutputStream(stdout_file)
     sys.stderr = TaskOutputStream(stderr_file)
 
+    pid_file.parent.mkdir(parents=True, exist_ok=True, mode=0o775)
     with pid_file.open("w") as file:
         print(str(os.getpid()), file=file)
 
