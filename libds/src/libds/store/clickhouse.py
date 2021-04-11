@@ -113,7 +113,7 @@ class ClickHouse(Store):
         client, full_name = self._ensure_raw_table(schema_name, table_name)
         client.execute(f"TRUNCATE TABLE {full_name}_raw")
 
-    def append_raw(self, schema_name, table_name, records):
+    def update_raw_with_records(self, schema_name, table_name, records):
         client, full_name = self._ensure_raw_table(schema_name, table_name)
         raw_name = full_name + "_raw"
 
@@ -160,6 +160,14 @@ class ClickHouse(Store):
                 where=f"inserted_at = (select max(inserted_at) FROM {raw_name})",
             ),
         }
+
+    def load_raw_from_records(self, schema_name, table_name, records):
+        self.truncate_raw_table(self.schema_name, self.table_name)
+        return self.update_raw_with_records(
+            schema_name=self.schema_name,
+            table_name=self.table_name,
+            records=self.collect_new_records(None),
+        )
 
     def create_or_replace_model(self, table_name, schema_name, select):
         client = self.client()

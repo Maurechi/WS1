@@ -169,8 +169,7 @@ class BaseSource:
         return self._split_table_name()[0]
 
     def load(self):
-        self.data_stack.store.truncate_raw_table(self.schema_name, self.table_name)
-        return self.data_stack.store.append_raw(
+        self.data_stack.store.load_raw_from_records(
             schema_name=self.schema_name,
             table_name=self.table_name,
             records=self.collect_new_records(None),

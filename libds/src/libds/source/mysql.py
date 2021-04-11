@@ -118,8 +118,6 @@ class MySQL(BaseSource):
         if self.target_table_name_prefix is not None:
             table_name = self.target_table_name_prefix + table_name
 
-        store.truncate_raw_table(schema_name, table_name)
-
         cur = self.connect().cursor()
         column_names = _fetchall(
             cur,
@@ -153,7 +151,7 @@ class MySQL(BaseSource):
         def as_record(row):
             return Record(data_str=row[0], primary_key=row[1], valid_at=row[2])
 
-        return self.data_stack.store.append_raw(
+        return self.data_stack.store.load_raw_from_records(
             schema_name=schema_name,
             table_name=table_name,
             records=(as_record(row) for row in _fetchall(cur, query, query_args)),

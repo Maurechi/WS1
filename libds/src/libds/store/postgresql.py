@@ -27,7 +27,7 @@ class PostgreSQL(SQLAlchemyStore):
         with self.engine.connect() as conn:
             conn.execute(sa.text(f"""DROP TABLE IF EXISTS {table_name}_raw"""))
 
-    def append_raw(self, schema_name, table_name, records):
+    def update_raw_with_records(self, schema_name, table_name, records):
         table_name = self.make_table_name(schema_name, table_name)
         with self.engine.connect() as conn:
             conn.execute(sa.text(f"""CREATE SCHEMA IF NOT EXISTS {schema_name}"""))
