@@ -425,6 +425,11 @@ class TaskOutputStream:
     def writelines(self, lines):
         self.write("".join(lines))
 
+    def flush(self):
+        # flush can be called before `write`, so we need to handle the case where we haven't opened the stream yet.
+        if self.stream is not None:
+            self.stream.flush()
+
     def elapsed(self):
         e = int(time.time() - self.start_at)
         h = int(e / 3600)
