@@ -121,17 +121,16 @@ class Configuration(BaseConfiguration):
             otherwise="https://7e144b9b33bb467ba432cacd5ef608ab@o469059.ingest.sentry.io/5497814",
         )
 
-        if self.with_be:
-            diaas_enable_sentry = self._set(
-                "DIAAS_ENABLE_SENTRY", default=self.is_prd, type=bool
+        diaas_enable_sentry = self._set(
+            "DIAAS_ENABLE_SENTRY", default=self.is_prd, type=bool
+        )
+        if diaas_enable_sentry:
+            self._set_all(
+                DIAAS_SENTRY_DSN=dsn,
+                DIAAS_SENTRY_ENVIRONMENT=self.environment,
+                DIAAS_SENTRY_RELEASE="diaas@"
+                + self.values["DIAAS_DEPLOYMENT_COMMIT_SHA"],
             )
-            if diaas_enable_sentry:
-                self._set_all(
-                    DIAAS_SENTRY_DSN=dsn,
-                    DIAAS_SENTRY_ENVIRONMENT=self.environment,
-                    DIAAS_SENTRY_RELEASE="diaas@"
-                    + self.values["DIAAS_DEPLOYMENT_COMMIT_SHA"],
-                )
 
         if self.with_fe:
             self._set("DIAAS_ENABLE_WEB_VITALS", default=self.is_prd, type=bool)
