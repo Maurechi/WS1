@@ -57,6 +57,9 @@ class DataNode:
         self.refresher(orchestrator)
         print(f"Refresh {self.id} complete.")
 
+    def is_fresh(self):
+        return self.state == DataNodeState.FRESH
+
 
 class OrphanDataNode(DataNode):
     def __init__(self, id):
@@ -73,6 +76,7 @@ def _fetch_one_value(cursor, query, *args):
 class DataOrchestrator:
     def __init__(self, data_stack):
         self.data_stack = data_stack
+        self.data_nodes = {}
 
     def _ensure_schema(self, conn):
         count = _fetch_one_value(
@@ -127,8 +131,13 @@ class DataOrchestrator:
 
         return self._connect()
 
-    def load(self):
-        self.load_states()
+    def collect_nodes(self, nodes):
+        for node in nodes:
+            if node.id in self.data_nodes:
+                raise ValueError(
+                    f"Attempting to add {node} with id {node.id} but {self.data_nodes[node.id]} already has that key."
+                )
+            self.data_nodes[node.id] = node
 
     def check_tasks(self):
         # TODO need to go and look for tasks whose pid is in the db but they don't exist, these are zombies and should be killed 20210408:mb
@@ -136,7 +145,7 @@ class DataOrchestrator:
 
     def load_states(self):
         conn = self.connect()
-        nodes = self.data_stack.data_nodes
+        nodes = self.data_nodes
 
         conn.execute("begin;")
         res = conn.execute("SELECT nid, state FROM data_nodes").fetchall()
@@ -147,7 +156,7 @@ class DataOrchestrator:
             else:
                 nodes[id] = OrphanDataNode(id)
 
-        for node in self.data_stack.data_nodes.values():
+        for node in nodes.values():
             if node.state is None:
                 node.state = DataNodeState.STALE
                 conn.execute(
@@ -161,21 +170,23 @@ class DataOrchestrator:
         ts = datetime.utcnow().isoformat()
         log_dir = self.data_stack.directory / "logs" / f"{ts}-{uuid.uuid4()}"
         fork_and_check_for_zombies(self, log_dir)
-        nodes = self.data_stack.data_nodes
-        for node in nodes.values():
+        for node in self.data_nodes.values():
             if node.state == DataNodeState.STALE:
                 if node.upstream is None:
                     raise Exception(f"no upstream list for {node.id}")
-                if all(
-                    [nodes[nid].state == DataNodeState.FRESH for nid in node.upstream]
-                ):
+
+                fresh = [
+                    nid in self.data_nodes and self.data_nodes[nid].is_fresh()
+                    for nid in node.upstream
+                ]
+
+                if all(fresh):
                     fork_and_refresh(self, node, log_dir)
 
         return dict(log_dir=log_dir)
 
     def delete_node(self, node_id):
-        nodes = self.data_stack.data_nodes
-        node = nodes[node_id]
+        node = self.data_nodes[node_id]
         info = node.info()
 
         with self.cursor() as cur:
@@ -195,8 +206,7 @@ class DataOrchestrator:
         return list(downstream.values())
 
     def set_node_state(self, node_id, state):
-        nodes = self.data_stack.data_nodes
-        node = nodes[node_id]
+        node = self.data_nodes[node_id]
         if node.state == state:
             return
 
@@ -243,7 +253,7 @@ class DataOrchestrator:
 
     def info(self):
         return dict(
-            nodes=[node.info() for node in self.data_stack.data_nodes.values()],
+            nodes=[node.info() for node in self.data_nodes.values()],
             tasks=[task.info() for task in self.tasks()],
         )
 

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import sha256
 from pprint import pformat, pprint  # noqa: F401
 
@@ -113,7 +113,6 @@ class MySQL(BaseSource):
             return self.tables
 
     def load_one_table(self, schema_name, table_name):
-        store = self.data_stack.store
         spec = self.table_spec().get(table_name, {})
         if self.target_table_name_prefix is not None:
             table_name = self.target_table_name_prefix + table_name
@@ -137,24 +136,18 @@ class MySQL(BaseSource):
             json_obj.append(_quote_with(name, "`"))
 
         primary_key_expr = spec.get("primary_key", "NULL")
-        valid_at_expr = spec.get("valid_at", "NULL")
 
-        most_recent_raw_timestamp = store.most_recent_raw_timestamp(
-            schema_name, table_name
-        )
-        query = f"SELECT json_object({', '.join(json_obj)}), cast({primary_key_expr} as char), {valid_at_expr} FROM {table_name}"
-        query_args = []
-        if most_recent_raw_timestamp is not None:
-            query += " WHERE {valid_at_expr} > %s"
-            query_args = [most_recent_raw_timestamp]
+        query = f"SELECT json_object({', '.join(json_obj)}), cast({primary_key_expr} as char) FROM {table_name}"
 
         def as_record(row):
-            return Record(data_str=row[0], primary_key=row[1], valid_at=row[2])
+            return Record(
+                data_str=row[0], primary_key=row[1], valid_at=datetime.utcnow()
+            )
 
         return self.data_stack.store.load_raw_from_records(
             schema_name=schema_name,
             table_name=table_name,
-            records=(as_record(row) for row in _fetchall(cur, query, query_args)),
+            records=(as_record(row) for row in _fetchall(cur, query)),
         )
 
     def data_nodes(self):
