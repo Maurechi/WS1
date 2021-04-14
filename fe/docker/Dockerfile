@@ -36,4 +36,4 @@ RUN rm -f /usr/share/nginx/html/diaas.js
 COPY ./fe/docker /diaas/fe/docker
 RUN mkdir /diaas/ops/
 COPY ./ops/fe-build-diaas-js /diaas/ops/fe-build-diaas-js
-CMD ["/diaas/fe/docker/up", "/usr/share/nginx/html/diaas.js"]
+CMD ["/diaas/fe/docker/up"]
