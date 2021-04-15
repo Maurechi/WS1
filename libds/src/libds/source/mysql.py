@@ -146,7 +146,7 @@ class MySQL(BaseSource):
 
         return self.data_stack.store.load_raw_from_records(
             schema_name=schema_name,
-            table_name=table_name,
+            table_name=table_name + "_raw",
             records=(as_record(row) for row in _fetchall(cur, query)),
         )
 

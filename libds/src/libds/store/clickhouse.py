@@ -75,6 +75,13 @@ class ClickHouseClient:
             # source += ",".join([pformat(k) + "=" + pformat(v) for k, v in kwargs.items()])
             raise ClickHouseServerException(se=se, source=source)
 
+    def table_exists(self, schema_name, table_name):
+        res = self.execute(
+            "select count(*) as c from system.tables where database = %(schema_name)s and name = %(table_name)s",
+            dict(schema_name=schema_name, table_name=table_name),
+        )
+        return res[0][0] > 0
+
 
 class ClickHouse(Store):
     def __init__(self, port=None, host=None, **store_kwargs):
@@ -100,11 +107,13 @@ class ClickHouse(Store):
         default.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
 
     def load_raw_from_records(self, schema_name, table_name, records):
-        basename = schema_name + "." + table_name
+        final = schema_name + "." + table_name
+        working = _with_random_suffix(final, "working")
+        tombstone = _with_random_suffix(final, "tombstone")
         self._ensure_schema(schema_name)
 
         client = self.client()
-        with self.progress(basename) as p:
+        with self.progress(final) as p:
 
             def record_for_clickhouse(record):
 
@@ -122,10 +131,6 @@ class ClickHouse(Store):
                 p.tick(values)
                 return values
 
-            working = _with_random_suffix(basename, "raw_working")
-            tombstone = _with_random_suffix(basename, "raw_tombstone")
-            final = basename + "_raw"
-
             client.execute(
                 f"""CREATE TABLE IF NOT EXISTS {working} (
                         has_primary_key UInt8,
@@ -141,43 +146,41 @@ class ClickHouse(Store):
                 insert, (record_for_clickhouse(row) for row in records)
             )
 
-            exists = client.execute(
-                "select count(*) as c from system.tables where database = %(schema_name)s and name = %(table_name)s || '_raw'",
-                dict(schema_name=schema_name, table_name=table_name),
-            )
-            count = exists[0][0]
-
-            if count > 0:
+            if client.table_exists(schema_name, table_name):
                 client.execute(f"RENAME TABLE {final} to {tombstone};")
                 client.execute(f"RENAME TABLE {working} to {final};")
                 client.execute(f"DROP TABLE {tombstone};")
             else:
                 client.execute(f"RENAME TABLE {working} to {final};")
 
-        table = Table(
-            store=self, schema_name=schema_name, table_name=table_name + "_raw"
-        )
+        table = Table(store=self, schema_name=schema_name, table_name=table_name)
 
         return {
             "count": num_rows,
             "rows": table.sample(
                 limit=max(23, num_rows),
                 order_by="rand()",
-                where=f"inserted_at = (select max(inserted_at) FROM {basename}_raw)",
+                where=f"inserted_at = (select max(inserted_at) FROM {final})",
             ),
         }
 
     def create_or_replace_model(self, table_name, schema_name, select):
+        final = schema_name + "." + table_name
+        working = _with_random_suffix(final, "working")
+        tombstone = _with_random_suffix(final, "tombstone")
+
         client = self.client()
         self._ensure_schema(schema_name)
-        working = schema_name + "." + _with_random_suffix(table_name, "working")
-        final = schema_name + "." + table_name
-
         client.execute(
             f"CREATE TABLE {working} ENGINE = MergeTree() ORDER BY order_by AS {select};"
         )
-        client.execute(f"DROP TABLE IF EXISTS {final};")
-        client.execute(f"RENAME TABLE {working} TO {final};")
+
+        if client.table_exists(schema_name, table_name):
+            client.execute(f"RENAME TABLE {final} to {tombstone};")
+            client.execute(f"RENAME TABLE {working} to {final};")
+            client.execute(f"DROP TABLE {tombstone};")
+        else:
+            client.execute(f"RENAME TABLE {working} to {final};")
 
     def get_table(self, schema_name, table_name):
         return Table(store=self, schema_name=schema_name, table_name=table_name)
