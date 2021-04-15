@@ -48,35 +48,42 @@ class InsertProgress:
         self.step = 1
         self.make_message = make_message
         self.last_values = None
+        self.last_display_at = None
+        self.interval = 30
 
     def update(self, *values):
         self.last_values = values
         self.c += 1
-        if self.c % self.step == 0:
+        if (self.c % self.step == 0) or (
+            self.last_display_at < (time.time() - self.interval)
+        ):
             self.display()
+
         if self.c >= 10 * self.step:
             self.step = self.step * 10
+
         return values
 
     def display(self, message=None):
         if message is None:
             message = self.make_message(self.c, *self.last_values)
         print(message, flush=True)
+        self.last_display_at = time.time()
 
 
 class GaugeProgress:
     def __init__(self, make_message=None):
         self.make_message = make_message
-        self.last_display = None
+        self.last_display_at = None
         self.interval = 1
 
     def update(self, *values):
         self.last_values = values
         now = time.time()
-        if self.last_display is None:
+        if self.last_display_at is None:
             self.display()
 
-        elif self.last_display < (now - self.interval):
+        elif self.last_display_at < (now - self.interval):
             self.display()
             self.interval = min(30, self.interval * 1.5)
 
@@ -84,7 +91,7 @@ class GaugeProgress:
         if message is None:
             message = self.make_message(*self.last_values)
         print(message, flush=True)
-        self.last_display = time.time()
+        self.last_display_at = time.time()
 
 
 class DependencyGraph:
