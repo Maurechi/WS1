@@ -1,12 +1,24 @@
-import sys
+import secrets
+from datetime import datetime
+from pprint import pformat
 
-import arrow
 import clickhouse_driver.errors
 from clickhouse_driver import Client
 
 from libds.store import BaseTable, Store, to_sample_value
 from libds.store.clickhouse_error_codes import ERROR_CODES
-from libds.utils import DSException, Progress
+from libds.utils import DSException, GaugeProgress, InsertProgress
+
+
+def _with_random_suffix(table_name, tag=""):
+    return "_".join(
+        [
+            table_name,
+            tag,
+            datetime.utcnow().strftime("%Y%m%dT%H%M%S"),
+            secrets.token_hex(4),
+        ]
+    )
 
 
 class ClickHouseServerException(DSException):
@@ -43,23 +55,44 @@ class ClickHouseServerException(DSException):
         )
 
 
+def _clickhouse_server_exception(se, query, params):
+    source = query
+    if params:
+        source += "(" + pformat(params) + ")"
+    else:
+        source = query
+    return ClickHouseServerException(se=se, source=source)
+
+
 class ClickHouseClient:
     def __init__(self, **kwargs):
         self.client = Client(**kwargs)
 
-    def execute(self, stmt, *args, **kwargs):
+    def execute(self, query, params=None, **kwargs):
         # print(f"Executing `{stmt}`")
         try:
-            return self.client.execute(stmt, *args, **kwargs)
+            return self.client.execute(query, params=params, **kwargs)
         except clickhouse_driver.errors.ServerException as se:
-            source = stmt
-            if args:
-                source += "("
-                source += ",".join(args)
-                source += ")"
-            # NOTE kwargs are only ever with_column_types, which we don't care about in the error messages. 20210403:mb
-            # source += ",".join([pformat(k) + "=" + pformat(v) for k, v in kwargs.items()])
-            raise ClickHouseServerException(se=se, source=source)
+            raise _clickhouse_server_exception(se, query, params)
+
+    def execute_with_progress(self, query, params=None, **kwargs):
+        try:
+            return self.client.execute_with_progress(query, params=params, **kwargs)
+        except clickhouse_driver.errors.ServerException as se:
+            raise _clickhouse_server_exception(se, query, params)
+
+    def execute_iter(self, query, params=None, *args, **kwargs):
+        try:
+            return self.client.execute_iter(query, params=params, **kwargs)
+        except clickhouse_driver.errors.ServerException as se:
+            raise _clickhouse_server_exception(se, query, params)
+
+    def table_exists(self, schema_name, table_name):
+        res = self.execute(
+            "select count(*) as c from system.tables where database = %(schema_name)s and name = %(table_name)s",
+            dict(schema_name=schema_name, table_name=table_name),
+        )
+        return res[0][0] > 0
 
 
 class ClickHouse(Store):
@@ -74,55 +107,27 @@ class ClickHouse(Store):
     def info(self):
         return self._info(parameters=self.parameters)
 
-    def client(self):
+    def client(self, schema_name="public"):
         return ClickHouseClient(
             host=self.parameters["host"],
             port=self.parameters["port"],
-            database="public",
+            database=schema_name,
         )
 
-    def _ensure_raw_table(self, schema_name, table_name):
+    def _ensure_schema(self, schema_name):
+        default = self.client(schema_name="default")
+        default.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
+
+    def load_raw_from_records(self, schema_name, table_name, records):
+        final = schema_name + "." + table_name
+        working = _with_random_suffix(final, "working")
+        tombstone = _with_random_suffix(final, "tombstone")
+        self._ensure_schema(schema_name)
+
         client = self.client()
-        client.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
-        full_name = schema_name + "." + table_name
-        client.execute(
-            f"""CREATE TABLE IF NOT EXISTS {full_name}_raw (
-                    has_primary_key UInt8,
-                    primary_key String,
-                    data String,
-                    valid_at String,
-                    inserted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
-                ENGINE MergeTree()
-                ORDER BY (primary_key, inserted_at);"""
-        )
-        return client, full_name
 
-    def most_recent_raw_timestamp(self, schema_name, table_name):
-        client, full_name = self._ensure_raw_table(schema_name, table_name)
-        rows = list(client.execute(f"SELECT max(valid_at) FROM {full_name}_raw"))
-        if len(rows) == 1 and len(rows[0]) == 1:
-            val = rows[0][0]
-            if val == "":
-                return None
-            else:
-                return arrow.get(rows[0][0])
-        else:
-            return None
-
-    def truncate_raw_table(self, schema_name, table_name):
-        client, full_name = self._ensure_raw_table(schema_name, table_name)
-        client.execute(f"TRUNCATE TABLE {full_name}_raw")
-
-    def update_raw_with_records(self, schema_name, table_name, records):
-        client, full_name = self._ensure_raw_table(schema_name, table_name)
-        raw_name = full_name + "_raw"
-
-        progress = Progress(
-            lambda c, rec: print(
-                f"Processed {c} records to {full_name}, last was {rec}",
-                flush=True,
-                file=sys.stderr,
-            )
+        p = InsertProgress(
+            make_message=lambda count, last_row: f"Processed {count} records to {working}, last was {last_row}"
         )
 
         def record_for_clickhouse(record):
@@ -137,45 +142,78 @@ class ClickHouse(Store):
                 valid_at = ""
             else:
                 valid_at = record.valid_at.isoformat()
-            values = [has_primary_key, primary_key, record.data_str, valid_at]
-            progress.tick(values)
-            return values
+            row = [has_primary_key, primary_key, record.data_str, valid_at]
+            p.update(row)
+            return row
 
-        insert = f"""INSERT INTO {raw_name} (has_primary_key, primary_key, data, valid_at) VALUES"""
+        client.execute(
+            f"""CREATE TABLE IF NOT EXISTS {working} (
+                    has_primary_key UInt8,
+                    primary_key String,
+                    data String,
+                    valid_at String,
+                    inserted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
+                ENGINE MergeTree()
+                ORDER BY (primary_key, inserted_at);"""
+        )
+        insert = f"""INSERT INTO {working} (has_primary_key, primary_key, data, valid_at) VALUES"""
         num_rows = client.execute(
             insert, (record_for_clickhouse(row) for row in records)
         )
 
-        table = Table(
-            store=self, schema_name=schema_name, table_name=table_name + "_raw"
-        )
+        p.display()
 
-        progress.show_progress()
+        if client.table_exists(schema_name, table_name):
+            client.execute(f"RENAME TABLE {final} to {tombstone};")
+            client.execute(f"RENAME TABLE {working} to {final};")
+            client.execute(f"DROP TABLE {tombstone};")
+        else:
+            client.execute(f"RENAME TABLE {working} to {final};")
+
+        table = Table(store=self, schema_name=schema_name, table_name=table_name)
 
         return {
             "count": num_rows,
             "rows": table.sample(
                 limit=max(23, num_rows),
                 order_by="rand()",
-                where=f"inserted_at = (select max(inserted_at) FROM {raw_name})",
+                where=f"inserted_at = (select max(inserted_at) FROM {final})",
             ),
         }
 
-    def load_raw_from_records(self, schema_name, table_name, records):
-        self.truncate_raw_table(schema_name, table_name)
-        return self.update_raw_with_records(
-            schema_name=schema_name,
-            table_name=table_name,
-            records=records,
-        )
-
     def create_or_replace_model(self, table_name, schema_name, select):
+        final = schema_name + "." + table_name
+        working = _with_random_suffix(final, "working")
+        tombstone = _with_random_suffix(final, "tombstone")
+
         client = self.client()
-        client.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
-        client.execute(f"DROP TABLE IF EXISTS {schema_name}.{table_name};")
-        client.execute(
-            f"CREATE TABLE {schema_name}.{table_name} ENGINE = MergeTree() ORDER BY order_by AS {select};"
+
+        def make_message(num_rows, total_rows):
+            if total_rows != 0:
+                return f"Processed {int(100 * (float(num_rows) / total_rows)) : 02d}% ({num_rows} / {total_rows}) to {working}"
+            else:
+                return f"Processed {num_rows} to {working}"
+
+        p = GaugeProgress(make_message=make_message)
+
+        self._ensure_schema(schema_name)
+        p.display(f"Schema {schema_name} exists.")
+
+        query = client.execute_with_progress(
+            f"CREATE TABLE {working} ENGINE = MergeTree() ORDER BY order_by AS {select};"
         )
+        for num_rows, total_rows in query:
+            p.update(num_rows, total_rows)
+
+        res = query.get_result()
+        p.display(f"Table {working} created: {res}")
+
+        if client.table_exists(schema_name, table_name):
+            client.execute(f"RENAME TABLE {final} to {tombstone};")
+            client.execute(f"RENAME TABLE {working} to {final};")
+            client.execute(f"DROP TABLE {tombstone};")
+        else:
+            client.execute(f"RENAME TABLE {working} to {final};")
 
     def get_table(self, schema_name, table_name):
         return Table(store=self, schema_name=schema_name, table_name=table_name)
@@ -185,16 +223,14 @@ class ClickHouse(Store):
 
 
 def _execute(client, statement):
-    iter, cols = client.execute(statement, with_column_types=True)
+    res = client.execute_iter(statement, with_column_types=True)
+    cols = next(res)
 
-    rows = []
-    for data in iter:
+    for data in res:
         row = {}
         for value, col in zip(data, cols):
             row[col[0]] = to_sample_value(value)
-        rows.append(row)
-
-    return rows
+        yield row
 
 
 class Table(BaseTable):

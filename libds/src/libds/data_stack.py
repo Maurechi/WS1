@@ -84,21 +84,16 @@ class DataStack:
         )
 
     def load_data_orchestrator(self):
-        self.data_nodes = {}
-        for data in self.sources + self.models:
-            for node in data.data_nodes():
-                if node.id in self.data_nodes:
-                    raise ValueError(
-                        f"Attempting to add {node} with id {node.id} but {self.data_nodes[node.id]} already has that key."
-                    )
-                self.data_nodes[node.id] = node
-
         # NOTE not the cleanest code, DataOrchestrator depends on the
         # data_nodes having been initilized. but the whole data stack
         # loading logic is weird, needs a long think and
         # refactoring. 20210408:mb
         self.data_orchestrator = DataOrchestrator(self)
-        self.data_orchestrator.load()
+
+        for data in self.sources + self.models:
+            self.data_orchestrator.collect_nodes(data.data_nodes())
+
+        self.data_orchestrator.load_states()
 
     def load_sources(self):
         CURRENT_DATA_STACK.value = self

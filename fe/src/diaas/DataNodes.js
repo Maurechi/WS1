@@ -4,6 +4,7 @@ import TabContext from "@material-ui/lab/TabContext";
 import TabList from "@material-ui/lab/TabList";
 import TabPanel from "@material-ui/lab/TabPanel";
 import DagreGraph from "dagre-d3-react";
+import { formatDistance, formatDistanceToNow, parseISO } from "date-fns";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React, { useRef, useState } from "react";
@@ -38,6 +39,8 @@ const Graph = observer(() => {
     REFRESHING: "orange",
     REFRESHING_STALE: "orange",
     ORPHAN: "red",
+
+    MISSING: "black",
   };
 
   dataNodes.forEach((n, i) => {
@@ -53,6 +56,14 @@ const Graph = observer(() => {
   dataNodes.forEach((n) => {
     if (n.upstream) {
       n.upstream.forEach((i) => {
+        if (!(i in nodes)) {
+          nodes[i] = {
+            id: i,
+            label: i,
+            config: { style: "fill: " + state_colors["MISSING"] },
+          };
+          nodeList.push(nodes[i]);
+        }
         linksList.push({ source: nodes[i].id, target: nodes[n.id].id });
       });
     }
@@ -111,26 +122,36 @@ const Nodes = observer(() => {
 
 const Tasks = () => {
   const columns = [
-    { defaultFlex: 1, name: "id", header: "ID", defaultWidth: 100 },
+    { defaultFlex: 1, name: "nid", header: "Node ID", defaultWidth: 100 },
     { defaultFlex: 1, name: "state", header: "State" },
-    { defaultFlex: 4, name: "startedAt", header: "Started At", defaultWidth: 200 },
+    { defaultFlex: 1, name: "startedAt", header: "Started At", defaultWidth: 200 },
+    { defaultFlex: 1, name: "completedAfter", header: "Completed After", defaultWidth: 200 },
     {
-      defaultFlex: 8,
-      name: "info",
+      defaultFlex: 3,
+      name: "otherInfo",
       header: "Other Info",
-      render: ({ value }) => <pre>{JSON.stringify(value).substring(0, 50)}</pre>,
+      render: ({ value }) => <pre>{JSON.stringify(value).substring(0, 100)}</pre>,
     },
   ];
 
   const dataNodes = useDataTasks();
   const rows = dataNodes
     .map((t) => {
-      const { started_at, ...otherInfo } = t.info;
+      const { nid, started_at, completed_at, pid, stdout, stderr, ...otherInfo } = t.info;
       return {
+        nid: nid || `[${t.id}]`,
         id: t.id,
         state: t.state,
         startedAt: started_at,
-        info: otherInfo,
+        completedAfter: completed_at
+          ? formatDistance(parseISO(started_at), parseISO(completed_at))
+          : t.state === "RUNNING"
+          ? `running for ${formatDistanceToNow(parseISO(started_at))}`
+          : "",
+        otherInfo: otherInfo,
+        pid: pid,
+        stdout: stdout,
+        stderr: stderr,
       };
     })
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
@@ -150,11 +171,10 @@ const Tasks = () => {
     startedAt.v = data.startedAt;
     state.v = data.state;
 
-    const { pid: pid_, stdout: stdout_, stderr: stderr_, ...otherInfo_ } = data.info;
-    pid.v = pid_;
-    stdout.v = stdout_;
-    stderr.v = stderr_;
-    otherInfo.v = JSON.stringify(otherInfo_, null, 4).trim();
+    pid.v = data.pid;
+    stdout.v = data.stdout;
+    stderr.v = data.stderr;
+    otherInfo.v = _.isEmpty(data.otherInfo) ? null : JSON.stringify(data.otherInfo, null, 4).trim();
     open.v = true;
   };
 
@@ -164,19 +184,31 @@ const Tasks = () => {
 
   return (
     <>
-      <Dialog maxWidth="lg" onClose={() => open.toggle()} aria-labelledby="task-details-dialog-title" open={open.v}>
+      <Dialog
+        fullWidth={true}
+        maxWidth="lg"
+        onClose={() => open.toggle()}
+        aria-labelledby="task-details-dialog-title"
+        open={open.v}
+      >
         <DialogTitle id="simple-dialog-title">Task {tid.v}</DialogTitle>
         <Box p={2}>
           <Table>
             <Table.Term label="PID">{pid.v}</Table.Term>
             <Table.Term label="Started At">{startedAt.v}</Table.Term>
-            <Table.Term label="stdout">
-              <Literal>{stdout.v}</Literal>
-            </Table.Term>
-            <Table.Term label="stderr">
-              <Literal>{stderr.v}</Literal>
-            </Table.Term>
-            {otherInfo.v !== "" && (
+            {stdout.v && (
+              <Table.Term label="stdout">
+                {" "}
+                <Literal>{stdout.v}</Literal>{" "}
+              </Table.Term>
+            )}
+            {stderr.v && (
+              <Table.Term label="stderr">
+                {" "}
+                <Literal>{stderr.v}</Literal>{" "}
+              </Table.Term>
+            )}
+            {otherInfo.v !== null && (
               <Table.Term label="Other">
                 <Literal>{otherInfo.v}</Literal>
               </Table.Term>

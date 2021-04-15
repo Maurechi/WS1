@@ -13,7 +13,6 @@ from pathlib import Path
 from pprint import pformat, pprint  # noqa: F401
 from typing import Callable, Optional, Sequence
 
-import arrow
 import psutil
 import setproctitle
 
@@ -54,9 +53,10 @@ class DataNode:
         return i
 
     def refresh(self, orchestrator):
-        print(f"Start refresh {self.id}.")
         self.refresher(orchestrator)
-        print(f"Refresh {self.id} complete.")
+
+    def is_fresh(self):
+        return self.state == DataNodeState.FRESH
 
 
 class OrphanDataNode(DataNode):
@@ -74,6 +74,7 @@ def _fetch_one_value(cursor, query, *args):
 class DataOrchestrator:
     def __init__(self, data_stack):
         self.data_stack = data_stack
+        self.data_nodes = {}
 
     def _ensure_schema(self, conn):
         count = _fetch_one_value(
@@ -128,8 +129,13 @@ class DataOrchestrator:
 
         return self._connect()
 
-    def load(self):
-        self.load_states()
+    def collect_nodes(self, nodes):
+        for node in nodes:
+            if node.id in self.data_nodes:
+                raise ValueError(
+                    f"Attempting to add {node} with id {node.id} but {self.data_nodes[node.id]} already has that key."
+                )
+            self.data_nodes[node.id] = node
 
     def check_tasks(self):
         # TODO need to go and look for tasks whose pid is in the db but they don't exist, these are zombies and should be killed 20210408:mb
@@ -137,7 +143,7 @@ class DataOrchestrator:
 
     def load_states(self):
         conn = self.connect()
-        nodes = self.data_stack.data_nodes
+        nodes = self.data_nodes
 
         conn.execute("begin;")
         res = conn.execute("SELECT nid, state FROM data_nodes").fetchall()
@@ -148,7 +154,7 @@ class DataOrchestrator:
             else:
                 nodes[id] = OrphanDataNode(id)
 
-        for node in self.data_stack.data_nodes.values():
+        for node in nodes.values():
             if node.state is None:
                 node.state = DataNodeState.STALE
                 conn.execute(
@@ -159,23 +165,26 @@ class DataOrchestrator:
         conn.close()
 
     def tick(self):
-        log_dir = self.data_stack.directory / "logs" / f"{arrow.get()}-{uuid.uuid4()}"
+        ts = datetime.utcnow().isoformat() + "Z"
+        log_dir = self.data_stack.directory / "logs" / f"{ts}-{uuid.uuid4()}"
         fork_and_check_for_zombies(self, log_dir)
-        nodes = self.data_stack.data_nodes
-        for node in nodes.values():
+        for node in self.data_nodes.values():
             if node.state == DataNodeState.STALE:
                 if node.upstream is None:
                     raise Exception(f"no upstream list for {node.id}")
-                if all(
-                    [nodes[nid].state == DataNodeState.FRESH for nid in node.upstream]
-                ):
+
+                fresh = [
+                    nid in self.data_nodes and self.data_nodes[nid].is_fresh()
+                    for nid in node.upstream
+                ]
+
+                if all(fresh):
                     fork_and_refresh(self, node, log_dir)
 
         return dict(log_dir=log_dir)
 
     def delete_node(self, node_id):
-        nodes = self.data_stack.data_nodes
-        node = nodes[node_id]
+        node = self.data_nodes[node_id]
         info = node.info()
 
         with self.cursor() as cur:
@@ -185,7 +194,7 @@ class DataOrchestrator:
 
     def downstream_nodes(self, node):
         downstream = {}
-        for down in self.data_stack.data_nodes.values():
+        for down in self.data_nodes.values():
             if node.id in down.upstream:
                 downstream[down.id] = down
 
@@ -195,8 +204,7 @@ class DataOrchestrator:
         return list(downstream.values())
 
     def set_node_state(self, node_id, state):
-        nodes = self.data_stack.data_nodes
-        node = nodes[node_id]
+        node = self.data_nodes[node_id]
         if node.state == state:
             return
 
@@ -243,26 +251,9 @@ class DataOrchestrator:
 
     def info(self):
         return dict(
-            nodes=[node.info() for node in self.data_stack.data_nodes.values()],
+            nodes=[node.info() for node in self.data_nodes.values()],
             tasks=[task.info() for task in self.tasks()],
         )
-
-
-def _filename_to_log_contents(filename):
-    if filename is not None:
-        path = Path(filename)
-        if path.exists():
-            try:
-                msg = path.open("r").read()
-            except Exception as e:
-                msg = f"_filename_to_log_contents: {e}\n"
-                msg += traceback.format_exc()
-        else:
-            msg = f"_filename_to_log_contents: {path} does not exist"
-    else:
-        msg = "_filename_to_log_contents: argument is None"
-
-    return msg
 
 
 @dataclass
@@ -273,10 +264,22 @@ class Task:
 
     def info(self):
         i = dict(id=self.id, state=self.state, info=self._info.copy())
-        for stream in "stdout stderr".split():
+        for stream in ["stdout", "stderr"]:
             filename = i["info"].get(stream)
+            contents = None
             if filename is not None:
-                i["info"][stream] = _filename_to_log_contents(filename)
+                path = Path(filename)
+                if path.exists():
+                    try:
+                        contents = path.open("r").read()
+                    except Exception as e:
+                        contents = f"_filename_to_log_contents: {e}\n"
+                        contents += traceback.format_exc()
+            if contents is None:
+                i["info"].pop(stream)
+            else:
+                i["info"][stream] = contents
+
         return i
 
 
@@ -314,7 +317,7 @@ def _state_to_refreshing(orchestrator, nid, tid, info):
 
 
 def timestamp():
-    return datetime.utcnow().isoformat()
+    return datetime.utcnow().isoformat() + "Z"
 
 
 def _task_complete(orchestrator, nid, tid):
@@ -326,7 +329,10 @@ def _task_complete(orchestrator, nid, tid):
         res = cur.execute("select info from tasks where tid = ?", [tid])
         info = json.loads(res.fetchone()[0])
         info["completed_at"] = timestamp()
-        cur.execute("update tasks set state = 'DONE' where tid = ?", [tid])
+        cur.execute(
+            "update tasks set state = 'DONE', info = ? where tid = ?",
+            [json.dumps(info), tid],
+        )
 
 
 def _task_failed(orchestrator, nid, tid, e, tb):
@@ -353,11 +359,11 @@ def trigger_refresh(orchestrator, node, info):
 
     info["pid"] = pid
     info["started_at"] = timestamp()
+    info["nid"] = node.id
 
     while True:
         try:
             _state_to_refreshing(orchestrator, node.id, tid, info)
-            print("is stale")
             break
         except sqlite3.OperationalError as oe:
             print(f"sqllite3.OperationalError: {oe}")
@@ -368,13 +374,9 @@ def trigger_refresh(orchestrator, node, info):
 
     try:
         node.refresh(orchestrator)
-        print("refresh complete")
         while True:
-            print("in complete loop")
             try:
-                print("calling _task_complete")
                 _task_complete(orchestrator, node.id, tid)
-                print("set to fresh")
                 break
             except sqlite3.OperationalError as oe:
                 print(f"OperationalError: {oe}")
@@ -383,10 +385,8 @@ def trigger_refresh(orchestrator, node, info):
         print(f"{node.id} refresh error {e} setting back to stale")
         tb = traceback.format_exc()
         while True:
-            print("in error loop")
             try:
                 _task_failed(orchestrator, node.id, tid, str(e), tb)
-                print("set to stale")
                 break
             except sqlite3.OperationalError as oe:
                 print(f"OperationalError: {oe}")
@@ -406,14 +406,15 @@ class TaskOutputStream:
     def __init__(self, path):
         self.path = Path(path)
         self.stream = None
-        self.start_at = time.time()
+        self.start_at = None
         self.last_char = "\n"
         self.pid = f"{os.getpid():08}"
 
     def write(self, data):
         if self.stream is None:
             self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o775)
-            self.stream = self.path.open("w")
+            self.stream = self.path.open("w", buffering=1)
+            self.start_at = time.time()
         e = self.elapsed()
         for c in data:
             if self.last_char == "\n":

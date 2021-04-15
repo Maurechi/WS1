@@ -172,7 +172,7 @@ class BaseSource:
     def load(self):
         self.data_stack.store.load_raw_from_records(
             schema_name=self.schema_name,
-            table_name=self.table_name,
+            table_name=self.table_name + "_raw",
             records=self.collect_new_records(None),
         )
 
