@@ -38,6 +38,8 @@ const Graph = observer(() => {
     REFRESHING: "orange",
     REFRESHING_STALE: "orange",
     ORPHAN: "red",
+
+    MISSING: "black",
   };
 
   dataNodes.forEach((n, i) => {
@@ -53,6 +55,14 @@ const Graph = observer(() => {
   dataNodes.forEach((n) => {
     if (n.upstream) {
       n.upstream.forEach((i) => {
+        if (!(i in nodes)) {
+          nodes[i] = {
+            id: i,
+            label: i,
+            config: { style: "fill: " + state_colors["MISSING"] },
+          };
+          nodeList.push(nodes[i]);
+        }
         linksList.push({ source: nodes[i].id, target: nodes[n.id].id });
       });
     }
