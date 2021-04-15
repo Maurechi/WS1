@@ -36,10 +36,10 @@ if [[ ! -e ./run ]]; then
 # ${commit_tag}
 set -euo pipefail
 
-dir="\$(dirname "\${BASH_SOURCE[0]}")"
-source "\${dir}"/.venv/bin/activate
-if [[ -e "\${dir}"/.envrc ]]; then
-  source "\${dir}"/.envrc
+cd "\$(dirname "\${BASH_SOURCE[0]}")"
+source .venv/bin/activate
+if [[ -e .envrc ]]; then
+  source .envrc
 fi
 
 exec "\$@"
