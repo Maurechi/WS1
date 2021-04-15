@@ -13,7 +13,6 @@ from pathlib import Path
 from pprint import pformat, pprint  # noqa: F401
 from typing import Callable, Optional, Sequence
 
-import arrow
 import psutil
 import setproctitle
 
@@ -159,7 +158,8 @@ class DataOrchestrator:
         conn.close()
 
     def tick(self):
-        log_dir = self.data_stack.directory / "logs" / f"{arrow.get()}-{uuid.uuid4()}"
+        ts = datetime.utcnow().isoformat()
+        log_dir = self.data_stack.directory / "logs" / f"{ts}-{uuid.uuid4()}"
         fork_and_check_for_zombies(self, log_dir)
         nodes = self.data_stack.data_nodes
         for node in nodes.values():

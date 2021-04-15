@@ -1,6 +1,6 @@
 import sys
+from datetime import datetime
 
-import arrow
 import clickhouse_driver.errors
 from clickhouse_driver import Client
 
@@ -105,7 +105,7 @@ class ClickHouse(Store):
             if val == "":
                 return None
             else:
-                return arrow.get(rows[0][0])
+                return rows[0][0]
         else:
             return None
 
