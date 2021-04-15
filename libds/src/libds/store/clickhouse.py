@@ -57,23 +57,37 @@ class ClickHouseServerException(DSException):
         )
 
 
+def _clickhouse_server_exception(se, query, params):
+    source = query
+    if params:
+        source += "(" + pformat(params) + ")"
+    else:
+        source = query
+    return ClickHouseServerException(se=se, source=source)
+
+
 class ClickHouseClient:
     def __init__(self, **kwargs):
         self.client = Client(**kwargs)
 
-    def execute(self, stmt, *args, **kwargs):
+    def execute(self, query, params=None, **kwargs):
         # print(f"Executing `{stmt}`")
         try:
-            return self.client.execute(stmt, *args, **kwargs)
+            return self.client.execute(query, params=params, **kwargs)
         except clickhouse_driver.errors.ServerException as se:
-            source = stmt
-            if args:
-                source += "("
-                source += ",".join([pformat(a) for a in args])
-                source += ")"
-            # NOTE kwargs are only ever with_column_types, which we don't care about in the error messages. 20210403:mb
-            # source += ",".join([pformat(k) + "=" + pformat(v) for k, v in kwargs.items()])
-            raise ClickHouseServerException(se=se, source=source)
+            raise _clickhouse_server_exception(se, query, params)
+
+    def execute_with_progress(self, query, params=None, **kwargs):
+        try:
+            return self.client.execute_with_progress(query, params=params, **kwargs)
+        except clickhouse_driver.errors.ServerException as se:
+            raise _clickhouse_server_exception(se, query, params)
+
+    def execute_iter(self, query, params=None, *args, **kwargs):
+        try:
+            return self.client.execute_iter(query, params=params, **kwargs)
+        except clickhouse_driver.errors.ServerException as se:
+            raise _clickhouse_server_exception(se, query, params)
 
     def table_exists(self, schema_name, table_name):
         res = self.execute(
@@ -204,16 +218,14 @@ class ClickHouse(Store):
 
 
 def _execute(client, statement):
-    iter, cols = client.execute(statement, with_column_types=True)
+    res = client.execute_iter(statement, with_column_types=True)
+    cols = next(res)
 
-    rows = []
-    for data in iter:
+    for data in res:
         row = {}
         for value, col in zip(data, cols):
             row[col[0]] = to_sample_value(value)
-        rows.append(row)
-
-    return rows
+        yield row
 
 
 class Table(BaseTable):

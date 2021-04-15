@@ -252,7 +252,7 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
 def execute(statement):
     statement = _arg_str(statement)
     try:
-        return COMMAND.ds.store.execute(statement)
+        return list(COMMAND.ds.store.execute(statement))
     except DSException as e:
         return {"error": e.as_json()}
     except Exception as e:
