@@ -53,9 +53,7 @@ class DataNode:
         return i
 
     def refresh(self, orchestrator):
-        print(f"Start refresh {self.id}.")
         self.refresher(orchestrator)
-        print(f"Refresh {self.id} complete.")
 
     def is_fresh(self):
         return self.state == DataNodeState.FRESH
@@ -167,7 +165,7 @@ class DataOrchestrator:
         conn.close()
 
     def tick(self):
-        ts = datetime.utcnow().isoformat()
+        ts = datetime.utcnow().isoformat() + "Z"
         log_dir = self.data_stack.directory / "logs" / f"{ts}-{uuid.uuid4()}"
         fork_and_check_for_zombies(self, log_dir)
         for node in self.data_nodes.values():
@@ -196,7 +194,7 @@ class DataOrchestrator:
 
     def downstream_nodes(self, node):
         downstream = {}
-        for down in self.data_stack.data_nodes.values():
+        for down in self.data_nodes.values():
             if node.id in down.upstream:
                 downstream[down.id] = down
 
@@ -258,23 +256,6 @@ class DataOrchestrator:
         )
 
 
-def _filename_to_log_contents(filename):
-    if filename is not None:
-        path = Path(filename)
-        if path.exists():
-            try:
-                msg = path.open("r").read()
-            except Exception as e:
-                msg = f"_filename_to_log_contents: {e}\n"
-                msg += traceback.format_exc()
-        else:
-            msg = f"_filename_to_log_contents: {path} does not exist"
-    else:
-        msg = "_filename_to_log_contents: argument is None"
-
-    return msg
-
-
 @dataclass
 class Task:
     id: str
@@ -283,10 +264,22 @@ class Task:
 
     def info(self):
         i = dict(id=self.id, state=self.state, info=self._info.copy())
-        for stream in "stdout stderr".split():
+        for stream in ["stdout", "stderr"]:
             filename = i["info"].get(stream)
+            contents = None
             if filename is not None:
-                i["info"][stream] = _filename_to_log_contents(filename)
+                path = Path(filename)
+                if path.exists():
+                    try:
+                        contents = path.open("r").read()
+                    except Exception as e:
+                        contents = f"_filename_to_log_contents: {e}\n"
+                        contents += traceback.format_exc()
+            if contents is None:
+                i["info"].pop(stream)
+            else:
+                i["info"][stream] = contents
+
         return i
 
 
@@ -324,7 +317,7 @@ def _state_to_refreshing(orchestrator, nid, tid, info):
 
 
 def timestamp():
-    return datetime.utcnow().isoformat()
+    return datetime.utcnow().isoformat() + "Z"
 
 
 def _task_complete(orchestrator, nid, tid):
@@ -336,7 +329,10 @@ def _task_complete(orchestrator, nid, tid):
         res = cur.execute("select info from tasks where tid = ?", [tid])
         info = json.loads(res.fetchone()[0])
         info["completed_at"] = timestamp()
-        cur.execute("update tasks set state = 'DONE' where tid = ?", [tid])
+        cur.execute(
+            "update tasks set state = 'DONE', info = ? where tid = ?",
+            [json.dumps(info), tid],
+        )
 
 
 def _task_failed(orchestrator, nid, tid, e, tb):
@@ -363,11 +359,11 @@ def trigger_refresh(orchestrator, node, info):
 
     info["pid"] = pid
     info["started_at"] = timestamp()
+    info["nid"] = node.id
 
     while True:
         try:
             _state_to_refreshing(orchestrator, node.id, tid, info)
-            print("is stale")
             break
         except sqlite3.OperationalError as oe:
             print(f"sqllite3.OperationalError: {oe}")
@@ -378,13 +374,9 @@ def trigger_refresh(orchestrator, node, info):
 
     try:
         node.refresh(orchestrator)
-        print("refresh complete")
         while True:
-            print("in complete loop")
             try:
-                print("calling _task_complete")
                 _task_complete(orchestrator, node.id, tid)
-                print("set to fresh")
                 break
             except sqlite3.OperationalError as oe:
                 print(f"OperationalError: {oe}")
@@ -393,10 +385,8 @@ def trigger_refresh(orchestrator, node, info):
         print(f"{node.id} refresh error {e} setting back to stale")
         tb = traceback.format_exc()
         while True:
-            print("in error loop")
             try:
                 _task_failed(orchestrator, node.id, tid, str(e), tb)
-                print("set to stale")
                 break
             except sqlite3.OperationalError as oe:
                 print(f"OperationalError: {oe}")
@@ -416,14 +406,15 @@ class TaskOutputStream:
     def __init__(self, path):
         self.path = Path(path)
         self.stream = None
-        self.start_at = time.time()
+        self.start_at = None
         self.last_char = "\n"
         self.pid = f"{os.getpid():08}"
 
     def write(self, data):
         if self.stream is None:
             self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o775)
-            self.stream = self.path.open("w")
+            self.stream = self.path.open("w", buffering=1)
+            self.start_at = time.time()
         e = self.elapsed()
         for c in data:
             if self.last_char == "\n":

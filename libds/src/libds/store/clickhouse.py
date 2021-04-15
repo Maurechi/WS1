@@ -1,6 +1,4 @@
 import secrets
-import sys
-from contextlib import contextmanager
 from datetime import datetime
 from pprint import pformat
 
@@ -9,7 +7,7 @@ from clickhouse_driver import Client
 
 from libds.store import BaseTable, Store, to_sample_value
 from libds.store.clickhouse_error_codes import ERROR_CODES
-from libds.utils import DSException, Progress
+from libds.utils import DSException, GaugeProgress, InsertProgress
 
 
 def _with_random_suffix(table_name, tag=""):
@@ -127,45 +125,50 @@ class ClickHouse(Store):
         self._ensure_schema(schema_name)
 
         client = self.client()
-        with self.progress(final) as p:
 
-            def record_for_clickhouse(record):
+        p = InsertProgress(
+            make_message=lambda count, last_row: f"Processed {count} records to {working}, last was {last_row}"
+        )
 
-                if record.primary_key is None:
-                    has_primary_key = 0
-                    primary_key = ""
-                else:
-                    has_primary_key = 1
-                    primary_key = record.primary_key
-                if record.valid_at is None:
-                    valid_at = ""
-                else:
-                    valid_at = record.valid_at.isoformat()
-                values = [has_primary_key, primary_key, record.data_str, valid_at]
-                p.tick(values)
-                return values
+        def record_for_clickhouse(record):
 
-            client.execute(
-                f"""CREATE TABLE IF NOT EXISTS {working} (
-                        has_primary_key UInt8,
-                        primary_key String,
-                        data String,
-                        valid_at String,
-                        inserted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
-                    ENGINE MergeTree()
-                    ORDER BY (primary_key, inserted_at);"""
-            )
-            insert = f"""INSERT INTO {working} (has_primary_key, primary_key, data, valid_at) VALUES"""
-            num_rows = client.execute(
-                insert, (record_for_clickhouse(row) for row in records)
-            )
-
-            if client.table_exists(schema_name, table_name):
-                client.execute(f"RENAME TABLE {final} to {tombstone};")
-                client.execute(f"RENAME TABLE {working} to {final};")
-                client.execute(f"DROP TABLE {tombstone};")
+            if record.primary_key is None:
+                has_primary_key = 0
+                primary_key = ""
             else:
-                client.execute(f"RENAME TABLE {working} to {final};")
+                has_primary_key = 1
+                primary_key = record.primary_key
+            if record.valid_at is None:
+                valid_at = ""
+            else:
+                valid_at = record.valid_at.isoformat()
+            row = [has_primary_key, primary_key, record.data_str, valid_at]
+            p.update(row)
+            return row
+
+        client.execute(
+            f"""CREATE TABLE IF NOT EXISTS {working} (
+                    has_primary_key UInt8,
+                    primary_key String,
+                    data String,
+                    valid_at String,
+                    inserted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
+                ENGINE MergeTree()
+                ORDER BY (primary_key, inserted_at);"""
+        )
+        insert = f"""INSERT INTO {working} (has_primary_key, primary_key, data, valid_at) VALUES"""
+        num_rows = client.execute(
+            insert, (record_for_clickhouse(row) for row in records)
+        )
+
+        p.display()
+
+        if client.table_exists(schema_name, table_name):
+            client.execute(f"RENAME TABLE {final} to {tombstone};")
+            client.execute(f"RENAME TABLE {working} to {final};")
+            client.execute(f"DROP TABLE {tombstone};")
+        else:
+            client.execute(f"RENAME TABLE {working} to {final};")
 
         table = Table(store=self, schema_name=schema_name, table_name=table_name)
 
@@ -184,10 +187,26 @@ class ClickHouse(Store):
         tombstone = _with_random_suffix(final, "tombstone")
 
         client = self.client()
+
+        def make_message(num_rows, total_rows):
+            if total_rows != 0:
+                return f"Processed {int(100 * (float(num_rows) / total_rows)) : 02d}% ({num_rows} / {total_rows}) to {working}"
+            else:
+                return f"Processed {num_rows} to {working}"
+
+        p = GaugeProgress(make_message=make_message)
+
         self._ensure_schema(schema_name)
-        client.execute(
+        p.display(f"Schema {schema_name} exists.")
+
+        query = client.execute_with_progress(
             f"CREATE TABLE {working} ENGINE = MergeTree() ORDER BY order_by AS {select};"
         )
+        for num_rows, total_rows in query:
+            p.update(num_rows, total_rows)
+
+        res = query.get_result()
+        p.display(f"Table {working} created: {res}")
 
         if client.table_exists(schema_name, table_name):
             client.execute(f"RENAME TABLE {final} to {tombstone};")
@@ -201,20 +220,6 @@ class ClickHouse(Store):
 
     def execute(self, statement):
         return _execute(self.client(), statement)
-
-    @contextmanager
-    def progress(self, full_name):
-        progress = Progress(
-            lambda c, rec: print(
-                f"Processed {c} records to {full_name}, last was {rec}",
-                flush=True,
-                file=sys.stderr,
-            )
-        )
-
-        yield progress
-
-        progress.show_progress()
 
 
 def _execute(client, statement):

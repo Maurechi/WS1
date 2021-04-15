@@ -15,6 +15,7 @@
     "axios": "^0.21.0",
     "dagre-d3-react": "github:segv/dagre-d3-react",
     "dagre-reactjs": "^0.2.0",
+    "date-fns": "^2.21.1",
     "eslint-config-prettier": "^6.14.0",
     "eslint-plugin-prettier": "^3.1.4",
     "eslint-plugin-simple-import-sort": "^5.0.3",
