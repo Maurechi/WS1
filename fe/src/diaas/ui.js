@@ -122,7 +122,6 @@ export const useResize = (ref) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  console.log("dimensions", dimensions);
   return dimensions;
 };
 
