@@ -125,7 +125,21 @@ const Tasks = () => {
     { defaultFlex: 1, name: "nid", header: "Node ID", defaultWidth: 100 },
     { defaultFlex: 1, name: "state", header: "State" },
     { defaultFlex: 1, name: "startedAt", header: "Started At", defaultWidth: 200 },
-    { defaultFlex: 1, name: "completedAfter", header: "Completed After", defaultWidth: 200 },
+    {
+      defaultFlex: 1,
+      name: "completedAt",
+      header: "Completed After",
+      defaultWidth: 200,
+      render: ({ data: { state, startedAt, completedAt } }) => {
+        if (completedAt) {
+          return formatDistance(parseISO(startedAt), parseISO(completedAt));
+        } else if (state === "RUNNING") {
+          return <i>running for {formatDistanceToNow(parseISO(startedAt))}</i>;
+        } else {
+          return "";
+        }
+      },
+    },
     {
       defaultFlex: 3,
       name: "otherInfo",
@@ -142,13 +156,9 @@ const Tasks = () => {
         nid: nid || `[${t.id}]`,
         id: t.id,
         state: t.state,
-        startedAt: started_at,
-        completedAfter: completed_at
-          ? formatDistance(parseISO(started_at), parseISO(completed_at))
-          : t.state === "RUNNING"
-          ? `running for ${formatDistanceToNow(parseISO(started_at))}`
-          : "",
         otherInfo: otherInfo,
+        startedAt: started_at,
+        completedAt: completed_at,
         pid: pid,
         stdout: stdout,
         stderr: stderr,
