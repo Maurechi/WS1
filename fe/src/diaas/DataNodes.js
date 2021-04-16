@@ -149,6 +149,7 @@ const Tasks = () => {
   ];
 
   const dataNodes = useDataTasks();
+
   const rows = dataNodes
     .map((t) => {
       const { nid, started_at, completed_at, pid, stdout, stderr, ...otherInfo } = t.info;
@@ -164,7 +165,8 @@ const Tasks = () => {
         stderr: stderr,
       };
     })
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .slice(0, 100);
 
   const open = useStateV(false);
 
