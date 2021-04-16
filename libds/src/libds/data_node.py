@@ -489,7 +489,7 @@ def check_for_zombies(orchestrator):
             info = json.loads(row[1])
             if not psutil.pid_exists(info["pid"]):
                 zombies += 1
-                info["zombie_at"] = timestamp()
+                info["completed_at"] = timestamp()
                 cur.execute(
                     "update tasks set state = 'ZOMBIE', info = ? where tid = ?",
                     [json.dumps(info), tid],
