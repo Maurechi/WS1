@@ -39,6 +39,13 @@ class DataNode:
     state: Optional[DataNodeState] = None
     refresher: Optional[Callable] = None
 
+    def __post_init__(self):
+        if self.upstream is None:
+            self.upstream = []
+        if isinstance(self.upstream, DataNode):
+            self.upstream = [self.upstream]
+        self.upstream = [u.id if isinstance(u, DataNode) else u for u in self.upstream]
+
     def info(self):
         i = {"id": self.id, "state": self.state.value}
         if self.container is not None:
@@ -57,6 +64,11 @@ class DataNode:
 
     def is_fresh(self):
         return self.state == DataNodeState.FRESH
+
+
+class NoopDataNode(DataNode):
+    def refresh(self, orchestrator):
+        return None
 
 
 class OrphanDataNode(DataNode):
