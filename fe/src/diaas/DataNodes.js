@@ -8,7 +8,7 @@ import { formatDistance, formatDistanceToNow, parseISO } from "date-fns";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React, { useRef, useState } from "react";
-import { Route, Switch, useParams, useRouteMatch } from "react-router-dom";
+import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
 import { useStateV } from "diaas/form.js";
@@ -239,19 +239,22 @@ const Tasks = () => {
 };
 
 const Content = () => {
-  let { tab } = useParams();
-  if (!_.includes(["graph", "nodes", "tasks"], tab)) {
-    tab = "graph";
+  let { tab: tabParam } = useParams();
+  if (!_.includes(["graph", "nodes", "tasks"], tabParam)) {
+    tabParam = "graph";
   }
 
-  const [value, setValue] = useState(tab);
+  const [tab, setTab] = useState(tabParam);
+
+  const history = useHistory();
 
   const onChange = (event, newValue) => {
-    setValue(newValue);
+    setTab(newValue);
+    history.push("./" + newValue);
   };
 
   return (
-    <TabContext value={value}>
+    <TabContext value={tab}>
       <TabList onChange={onChange}>
         <Tab value="graph" label="Graph" />
         <Tab value="nodes" label="Nodes" />
