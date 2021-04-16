@@ -446,6 +446,7 @@ class TaskOutputStream:
     def elapsed(self):
         e = int(time.time() - self.start_at)
         h = int(e / 3600)
+        e = e % 3600
         m = int(e / 60)
         s = e % 60
         return f"{h:02}:{m:02}:{s:02}"
