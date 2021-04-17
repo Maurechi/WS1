@@ -298,6 +298,23 @@ def data_node_delete(node_id):
     return orchestrator.info()
 
 
+@command(other_names=["dnr"])
+@click.argument("node_id")
+def data_node_refresh(node_id):
+    orchestrator = COMMAND.ds.data_orchestrator
+    node, task = orchestrator.refresh_node(
+        node_id,
+        info=dict(
+            triggered_from_cli_at=datetime.utcnow().isoformat() + "Z",
+            stdout=None,
+            stderr=None,
+        ),
+        force=True,
+    )
+
+    return dict(node=node.info(), task=task.info())
+
+
 @command()
 @click.pass_context
 def help(ctx):

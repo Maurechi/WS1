@@ -204,6 +204,13 @@ class DataOrchestrator:
 
         return info
 
+    def refresh_node(self, node_id, info=None, force=True):
+        if info is None:
+            info = {}
+        node = self.data_nodes[node_id]
+        tid = trigger_refresh(self, node, info, force=force)
+        return (node, self.load_task(tid))
+
     def downstream_nodes(self, node):
         downstream = {}
         for down in self.data_nodes.values():
@@ -252,6 +259,12 @@ class DataOrchestrator:
             raise e
         finally:
             conn.close()
+
+    def load_task(self, tid):
+        with self.cursor() as cur:
+            res = cur.execute("select tid, state, info from tasks")
+            (tid, state, info_json) = res.fetchone()
+            return Task(id=tid, state=state, _info=json.loads(info_json))
 
     def tasks(self):
         with self.cursor() as cur:
@@ -307,25 +320,30 @@ class IsNotStale(Exception):
     pass
 
 
+def _state_to_running(orchestrator, nid, tid, info):
+    with orchestrator.cursor() as cur:
+        cur.execute(
+            "insert into tasks (tid, state, info) values (?, 'RUNNING', ?)",
+            [
+                tid,
+                json.dumps(info),
+            ],
+        )
+        cur.execute(
+            "update data_nodes set state = ?, current_tid = ? where nid = ?",
+            [DataNodeState.REFRESHING.value, tid, nid],
+        )
+
+
 def _state_to_refreshing(orchestrator, nid, tid, info):
     with orchestrator.cursor() as cur:
         state = _fetch_one_value(
             cur, "select state from data_nodes where nid = ?", [nid]
         )
-        if state == "STALE":
-            cur.execute(
-                "insert into tasks (tid, state, info) values (?, 'RUNNING', ?)",
-                [
-                    tid,
-                    json.dumps(info),
-                ],
-            )
-            cur.execute(
-                "update data_nodes set state = ?, current_tid = ? where nid = ?",
-                [DataNodeState.REFRESHING.value, tid, nid],
-            )
-        else:
-            raise IsNotStale()
+    if state == "STALE":
+        _state_to_running(orchestrator, nid, tid, info)
+    else:
+        raise IsNotStale()
 
 
 def timestamp():
@@ -364,7 +382,7 @@ def _task_failed(orchestrator, nid, tid, e, tb):
         )
 
 
-def trigger_refresh(orchestrator, node, info):
+def trigger_refresh(orchestrator, node, info, force=False):
     print(f"Refresh on {node.id} triggered")
     pid = os.getpid()
     tid = datetime.utcnow().strftime("%Y%m%dT%H:%M:%S") + "-" + str(pid)
@@ -381,8 +399,12 @@ def trigger_refresh(orchestrator, node, info):
             print(f"sqllite3.OperationalError: {oe}")
             time.sleep(1)
         except IsNotStale:
-            print("is not stale. not refreshing.")
-            return
+            if force:
+                _state_to_running(orchestrator, node.id, tid, info)
+                break
+            else:
+                print("is not stale. not refreshing.")
+                return
 
     try:
         node.refresh(orchestrator)
@@ -411,6 +433,8 @@ def trigger_refresh(orchestrator, node, info):
         raise e
     finally:
         print("Exiting trigger_refresh")
+
+    return tid
 
 
 # NOTE https://stackoverflow.com/questions/107705/disable-output-buffering 20210408:mb
