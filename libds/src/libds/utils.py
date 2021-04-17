@@ -140,7 +140,7 @@ class DSException(Exception):
         return dict(code=self.code(), details=str(self))
 
 
-def _timedelta_as_info(td):
+def timedelta_as_info(td):
     info = {}
     days = td.days
 
@@ -164,3 +164,11 @@ def _timedelta_as_info(td):
         info["seconds"] = secs
 
     return info
+
+
+def is_iterable(thing):
+    try:
+        _ = (e for e in thing)
+        return True
+    except TypeError:
+        return False
