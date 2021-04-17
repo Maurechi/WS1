@@ -85,7 +85,7 @@ class GaugeProgress:
 
         elif self.last_display_at < (now - self.interval):
             self.display()
-            self.interval = min(30, self.interval * 1.5)
+            self.interval = min(120, self.interval * 1.2)
 
     def display(self, message=None):
         if message is None:

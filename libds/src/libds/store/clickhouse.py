@@ -169,6 +169,7 @@ class ClickHouse(Store):
             client.execute(f"DROP TABLE {tombstone};")
         else:
             client.execute(f"RENAME TABLE {working} to {final};")
+        p.display(f"Renamed {working} to {final}")
 
         table = Table(store=self, schema_name=schema_name, table_name=table_name)
 
