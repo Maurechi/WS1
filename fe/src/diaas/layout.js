@@ -184,7 +184,7 @@ const AppNavigationToolbar = observer(() => {
       </Box>
       <Box pl={2}>
         <Button variant="text" color="inherit" endIcon={<ArrowDropDownIcon />} className={classes.toolbarButton}>
-          {branchName} on {dataStackName}
+          stack: {branchName} - project: {dataStackName}
         </Button>
       </Box>
       <Box pl={2}>
