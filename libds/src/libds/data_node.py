@@ -16,7 +16,7 @@ from typing import Callable, Optional, Sequence
 import psutil
 import setproctitle
 
-from libds.utils import _timedelta_as_info
+from libds.utils import is_iterable, timedelta_as_info
 
 
 class DataNodeState(Enum):
@@ -27,56 +27,6 @@ class DataNodeState(Enum):
     REFRESHING_STALE = "REFRESHING_STALE"
 
     ORPHAN = "ORPHAN"
-
-
-@dataclass
-class DataNode:
-    id: str
-    container: Optional[str] = None
-    upstream: Optional[Sequence[str]] = None
-    details: Optional[dict] = None
-    expires_after: Optional[timedelta] = None
-    state: Optional[DataNodeState] = None
-    refresher: Optional[Callable] = None
-
-    def __post_init__(self):
-        if self.upstream is None:
-            self.upstream = []
-        if isinstance(self.upstream, DataNode):
-            self.upstream = [self.upstream]
-        self.upstream = [u.id if isinstance(u, DataNode) else u for u in self.upstream]
-
-    def info(self):
-        i = {"id": self.id, "state": self.state.value}
-        if self.container is not None:
-            i["container"] = self.container
-        if self.upstream:
-            i["upstream"] = self.upstream
-        if self.details:
-            i["details"] = self.details
-        if self.expires_after is not None:
-            i["expires_after"] = _timedelta_as_info(self.expires_after)
-
-        return i
-
-    def refresh(self, orchestrator):
-        self.refresher(orchestrator)
-
-    def is_fresh(self):
-        return self.state == DataNodeState.FRESH
-
-
-class NoopDataNode(DataNode):
-    def refresh(self, orchestrator):
-        return None
-
-
-class OrphanDataNode(DataNode):
-    def __init__(self, id):
-        super().__init__(id=id, state=DataNodeState.ORPHAN)
-
-    def refresh(self, orchestrator):
-        print(f"Not refreshing orphan node {self.id}.")
 
 
 def _fetch_one_value(cursor, query, *args):
@@ -147,6 +97,7 @@ class DataOrchestrator:
                 raise ValueError(
                     f"Attempting to add {node} with id {node.id} but {self.data_nodes[node.id]} already has that key."
                 )
+            node.orchestrator = self
             self.data_nodes[node.id] = node
 
     def check_tasks(self):
@@ -185,10 +136,7 @@ class DataOrchestrator:
                 if node.upstream is None:
                     raise Exception(f"no upstream list for {node.id}")
 
-                fresh = [
-                    nid in self.data_nodes and self.data_nodes[nid].is_fresh()
-                    for nid in node.upstream
-                ]
+                fresh = [node.is_fresh() for nid in node.upstream_nodes()]
 
                 if all(fresh):
                     fork_and_refresh(self, node, log_dir)
@@ -204,10 +152,17 @@ class DataOrchestrator:
 
         return info
 
+    def refresh_node(self, node_id, info=None, force=True):
+        if info is None:
+            info = {}
+        node = self.data_nodes[node_id]
+        tid = trigger_refresh(self, node, info, force=force)
+        return (node, self.load_task(tid))
+
     def downstream_nodes(self, node):
         downstream = {}
         for down in self.data_nodes.values():
-            if node.id in down.upstream:
+            if node.id in down.upstream_nodes():
                 downstream[down.id] = down
 
                 for other in self.downstream_nodes(down):
@@ -253,6 +208,12 @@ class DataOrchestrator:
         finally:
             conn.close()
 
+    def load_task(self, tid):
+        with self.cursor() as cur:
+            res = cur.execute("select tid, state, info from tasks")
+            (tid, state, info_json) = res.fetchone()
+            return Task(id=tid, state=state, _info=json.loads(info_json))
+
     def tasks(self):
         with self.cursor() as cur:
             res = cur.execute("select tid, state, info from tasks")
@@ -266,6 +227,68 @@ class DataOrchestrator:
             nodes=[node.info() for node in self.data_nodes.values()],
             tasks=[task.info() for task in self.tasks()],
         )
+
+
+@dataclass
+class DataNode:
+    id: str
+    container: Optional[str] = None
+    upstream: Optional[Sequence[str]] = None
+    details: Optional[dict] = None
+    expires_after: Optional[timedelta] = None
+    state: Optional[DataNodeState] = None
+    refresher: Optional[Callable] = None
+    orchestrator: Optional[DataOrchestrator] = None
+
+    def upstream_nodes(self):
+        if self.upstream is None:
+            return []
+        if isinstance(self.upstream, DataNode):
+            return [self.upstream]
+
+        if isinstance(self.upstream, str) or not is_iterable(self.upstream):
+            upstreams = [self.upstream]
+        else:
+            upstreams = self.upstream
+        for u in upstreams:
+            if isinstance(u, str):
+                yield self.orchestrator.data_nodes[u]
+            else:
+                yield u
+
+    def info(self):
+        i = {
+            "id": self.id,
+            "state": self.state.value,
+            "upstream": [node.id for node in self.upstream_nodes()],
+        }
+        if self.container is not None:
+            i["container"] = self.container
+        if self.details:
+            i["details"] = self.details
+        if self.expires_after is not None:
+            i["expires_after"] = timedelta_as_info(self.expires_after)
+
+        return i
+
+    def refresh(self, orchestrator):
+        self.refresher(orchestrator)
+
+    def is_fresh(self):
+        return self.state == DataNodeState.FRESH
+
+
+class NoopDataNode(DataNode):
+    def refresh(self, orchestrator):
+        return None
+
+
+class OrphanDataNode(DataNode):
+    def __init__(self, id):
+        super().__init__(id=id, state=DataNodeState.ORPHAN)
+
+    def refresh(self, orchestrator):
+        print(f"Not refreshing orphan node {self.id}.")
 
 
 @dataclass
@@ -307,25 +330,30 @@ class IsNotStale(Exception):
     pass
 
 
+def _state_to_running(orchestrator, nid, tid, info):
+    with orchestrator.cursor() as cur:
+        cur.execute(
+            "insert into tasks (tid, state, info) values (?, 'RUNNING', ?)",
+            [
+                tid,
+                json.dumps(info),
+            ],
+        )
+        cur.execute(
+            "update data_nodes set state = ?, current_tid = ? where nid = ?",
+            [DataNodeState.REFRESHING.value, tid, nid],
+        )
+
+
 def _state_to_refreshing(orchestrator, nid, tid, info):
     with orchestrator.cursor() as cur:
         state = _fetch_one_value(
             cur, "select state from data_nodes where nid = ?", [nid]
         )
-        if state == "STALE":
-            cur.execute(
-                "insert into tasks (tid, state, info) values (?, 'RUNNING', ?)",
-                [
-                    tid,
-                    json.dumps(info),
-                ],
-            )
-            cur.execute(
-                "update data_nodes set state = ?, current_tid = ? where nid = ?",
-                [DataNodeState.REFRESHING.value, tid, nid],
-            )
-        else:
-            raise IsNotStale()
+    if state == "STALE":
+        _state_to_running(orchestrator, nid, tid, info)
+    else:
+        raise IsNotStale()
 
 
 def timestamp():
@@ -364,7 +392,7 @@ def _task_failed(orchestrator, nid, tid, e, tb):
         )
 
 
-def trigger_refresh(orchestrator, node, info):
+def trigger_refresh(orchestrator, node, info, force=False):
     print(f"Refresh on {node.id} triggered")
     pid = os.getpid()
     tid = datetime.utcnow().strftime("%Y%m%dT%H:%M:%S") + "-" + str(pid)
@@ -381,8 +409,12 @@ def trigger_refresh(orchestrator, node, info):
             print(f"sqllite3.OperationalError: {oe}")
             time.sleep(1)
         except IsNotStale:
-            print("is not stale. not refreshing.")
-            return
+            if force:
+                _state_to_running(orchestrator, node.id, tid, info)
+                break
+            else:
+                print("is not stale. not refreshing.")
+                return
 
     try:
         node.refresh(orchestrator)
@@ -411,6 +443,8 @@ def trigger_refresh(orchestrator, node, info):
         raise e
     finally:
         print("Exiting trigger_refresh")
+
+    return tid
 
 
 # NOTE https://stackoverflow.com/questions/107705/disable-output-buffering 20210408:mb

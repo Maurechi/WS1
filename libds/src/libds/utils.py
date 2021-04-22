@@ -85,7 +85,7 @@ class GaugeProgress:
 
         elif self.last_display_at < (now - self.interval):
             self.display()
-            self.interval = min(30, self.interval * 1.5)
+            self.interval = min(120, self.interval * 1.2)
 
     def display(self, message=None):
         if message is None:
@@ -140,7 +140,7 @@ class DSException(Exception):
         return dict(code=self.code(), details=str(self))
 
 
-def _timedelta_as_info(td):
+def timedelta_as_info(td):
     info = {}
     days = td.days
 
@@ -164,3 +164,11 @@ def _timedelta_as_info(td):
         info["seconds"] = secs
 
     return info
+
+
+def is_iterable(thing):
+    try:
+        _ = (e for e in thing)
+        return True
+    except TypeError:
+        return False

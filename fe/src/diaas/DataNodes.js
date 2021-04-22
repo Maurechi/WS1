@@ -83,8 +83,9 @@ const Graph = observer(() => {
           links={linksList}
           config={{
             rankdir: "LR",
-            // align: 'UL',
-            ranker: "tight-tree",
+            // align: "DR",
+            // ranker: "longest-path",
+            // ranker: "tighest-tree",
           }}
           width={width || 500}
           height={800}
