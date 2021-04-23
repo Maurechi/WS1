@@ -3,6 +3,9 @@ import secrets
 import threading
 import time
 from collections import defaultdict
+from pathlib import Path
+
+from ruamel.yaml import YAML
 
 
 class ThreadLocalList(threading.local):
@@ -172,3 +175,20 @@ def is_iterable(thing):
         return True
     except TypeError:
         return False
+
+
+def yaml_dump(object, file):
+    if isinstance(file, str):
+        file = Path(str)
+    if isinstance(file, Path):
+        file = file.open("w")
+    YAML(typ="rt").dump(object, file)
+    return object
+
+
+def yaml_load(file):
+    if isinstance(file, str):
+        file = Path(str)
+    if isinstance(file, Path):
+        file = file.open("r")
+    return YAML(typ="rt").load(file)

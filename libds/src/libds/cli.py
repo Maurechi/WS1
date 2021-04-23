@@ -13,7 +13,7 @@ from libds.data_node import DataNodeState
 from libds.data_stack import DataStack
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.source import BaseSource
-from libds.utils import DoesNotExist, DSException
+from libds.utils import DoesNotExist, DSException, yaml_dump
 
 
 class OutputEncoder(json.JSONEncoder):
@@ -54,10 +54,7 @@ class Command:
                 result["data"] = data
 
         if self.format == "yaml":
-            from ruamel.yaml import YAML
-
-            yaml = YAML(typ="safe")
-            yaml.dump(result, sys.stdout)
+            yaml_dump(result, sys.stdout)
         elif self.format == "json":
             import json
 

@@ -2,9 +2,8 @@ import json
 import re
 from pathlib import Path
 
-from ruamel.yaml import YAML
-
 from libds.data_node import DataNode
+from libds.utils import yaml_dump, yaml_load
 
 
 class Record:
@@ -114,7 +113,7 @@ class BaseSource:
 
     @classmethod
     def load_from_config_file(cls, data_stack, filename):
-        config = YAML(typ="safe").load(filename.open("r"))
+        config = yaml_load(filename)
         type = config.pop("type", None)
         if type is None:
             raise ValueError("Missing required property `type`")
@@ -145,9 +144,7 @@ class BaseSource:
                 data_stack.directory / "sources" / (current_id + ".yaml")
             )
             current_path.rename(path)
-        with path.open("wb") as file:
-            yaml = YAML(typ="rt")
-            yaml.dump(config, file)
+        yaml_dump(config, path)
         return BaseSource.load_from_config_file(data_stack, path)
 
     def _split_table_name(self):

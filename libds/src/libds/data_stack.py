@@ -3,12 +3,17 @@ from itertools import chain
 from pathlib import Path
 
 import pygit2
-from ruamel.yaml import YAML
 
 from libds.data_node import DataOrchestrator
 from libds.model import BaseModel
 from libds.source import BaseSource
-from libds.utils import DoesNotExist, ThreadLocalList, ThreadLocalValue
+from libds.utils import (
+    DoesNotExist,
+    ThreadLocalList,
+    ThreadLocalValue,
+    yaml_dump,
+    yaml_load,
+)
 
 LOCAL_DATA_STACKS = ThreadLocalList()
 LOCAL_SOURCES = ThreadLocalList()
@@ -47,8 +52,7 @@ class DataStack:
 
         data_stack_yaml = dir / "data_stack.yaml"
         if data_stack_yaml.exists():
-            yaml = YAML(typ="safe")
-            ds = DataStack(directory=dir, config=yaml.load(data_stack_yaml))
+            ds = DataStack(directory=dir, config=yaml_load(data_stack_yaml))
 
         if ds is None:
             raise Exception("No data stack defined.")
