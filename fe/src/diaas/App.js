@@ -261,6 +261,12 @@ const FatalError = ({ error }) => {
     );
   };
 
+  const Table = ({ children, ...props }) => (
+    <table {...props}>
+      <tbody>{children}</tbody>
+    </table>
+  );
+
   if (error && error.data && error.data.errors) {
     errText = "";
     error.data.errors.forEach((e) => {
@@ -270,38 +276,36 @@ const FatalError = ({ error }) => {
       errText += `Details: ${e.details}\n`;
       errText += "\n";
       errComponents.push(
-        <table key={errComponents.length}>
-          <tbody>
-            <Row label="Code">{e.code}</Row>
-            {e.title && <Row label="Title">{e.title}</Row>}
-            {e.source && <Row label="Source">{e.source}</Row>}
-            {e.details && <Row label="Details">{e.details}</Row>}
-          </tbody>
-        </table>
+        <Table key={`k${errComponents.length}`}>
+          <Row label="Code">{e.code}</Row>
+          {e.title && <Row label="Title">{e.title}</Row>}
+          {e.source && <Row label="Source">{e.source}</Row>}
+          {e.details && <Row label="Details">{e.details}</Row>}
+        </Table>
       );
     });
   } else if (error && error.data) {
     errText = JSON.stringify(error.data, null, 4);
     errComponents.push(
-      <table>
+      <Table key={`k${errComponents.length}`}>
         <Row label="Data">{errText}</Row>
-      </table>
+      </Table>
     );
   } else if (error) {
     errText = `Title: ${error.title}\n${error.details}`;
 
     errComponents.push(
-      <table>
+      <Table key={`k${errComponents.length}`}>
         <Row label="Title">{error.title}</Row>
         <Row label="Details">{error.details}</Row>
-      </table>
+      </Table>
     );
   } else {
     errText = JSON.stringify(error, null, 4);
     errComponents.push(
-      <table>
+      <Table key={`k${errComponents.length}`}>
         <Row label="Data">{errText}</Row>
-      </table>
+      </Table>
     );
   }
 

@@ -112,15 +112,11 @@ class LibDS:
     def info(self):
         return self.call_ds(cmd=["info"])
 
-    def source_update(self, id, current_id, config):
-        cmd = "source-update --if-exists update --if-does-not-exist create".split()
-        if current_id is not None:
-            cmd += ["--current-id", current_id]
-        cmd += [id, json.dumps(config)]
-        return self.call_ds(cmd=cmd)
+    def update_file(self, filename, text):
+        return self.call_ds(cmd=["update-file", filename, "-"], input=text)
 
-    def source_load(self, id):
-        return self.call_ds(cmd=["source-load", id])
+    def delete_file(self, filename):
+        return self.call_ds(cmd=["delete-file", filename])
 
     def model_update(self, id, type=None, source=None, current_id=None):
         cmd = "model-update --if-exists update --if-does-not-exist create".split()

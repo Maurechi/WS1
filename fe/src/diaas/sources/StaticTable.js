@@ -1,67 +1,40 @@
-import { Box, Divider, Grid } from "@material-ui/core";
+import { Box, Grid } from "@material-ui/core";
+import _ from "lodash";
 import { observer } from "mobx-react-lite";
-import React, { useState } from "react";
+import React from "react";
 
 import { Form, TextField, useFormValue } from "diaas/form.js";
 import { SampleDataTable } from "diaas/SampleDataTable.js";
-import { useAppState } from "diaas/state.js";
-import { ActionButton } from "diaas/ui.js";
-
 export const StaticTable = observer(({ source }) => {
-  const state = useAppState();
-  const config = source.definition.config;
-  const data = useFormValue(config.data, { trim: false });
-
-  const targetTable = useFormValue(config.target_table);
-
-  const [rows, setRows] = useState([]);
-
-  const submit = () => {
-    return saveAndLoad();
-  };
-  const saveAndLoadLabel = useFormValue("Save and Load");
-  const saveAndLoad = () => {
-    saveAndLoadLabel.v = "Saving...";
-    return state.backend
-      .postSource(source.id || "", { data: data.v, target_table: targetTable.v, id: targetTable.v, type: source.type })
-      .then(() => {
-        saveAndLoadLabel.v = "Loading...";
-        return state.backend.loadSource(targetTable.v).then((data) => {
-          saveAndLoadLabel.v = "Save and Load";
-          setRows(data.rows);
-          // return [update, load];
-        });
-      });
-  };
+  const table = useFormValue(source.data.table);
+  const data = useFormValue(source.data.data);
+  const rows = source.info.rows.map((row) => Object.fromEntries(_.zip(source.info.columns, row)));
+  const submit = () => null;
   return (
     <Form onSubmit={submit}>
       <Grid container>
         <Grid item xs={12}>
-          <TextField pb={4} label="Target Table" value={targetTable} fullWidth={true} style={{ maxWidth: "600px" }} />
+          <TextField pb={4} label="Table" value={table} fullWidth={true} style={{ maxWidth: "600px" }} />
+        </Grid>
+        <Grid item xs={6}>
+          <Box p={4}>
+            <TextField
+              label="Values"
+              value={data}
+              fullWidth={true}
+              multiline={true}
+              InputProps={{ style: { fontFamily: "monospace" } }}
+            >
+              {data.v}
+            </TextField>
+          </Box>
+        </Grid>
+        <Grid item xs={6}>
+          <Box p={4}>
+            <SampleDataTable rows={rows} />
+          </Box>
         </Grid>
       </Grid>
-      <TextField
-        label="Values"
-        value={data}
-        fullWidth={true}
-        multiline={true}
-        InputProps={{ style: { fontFamily: "monospace" } }}
-      >
-        {data.v}
-      </TextField>
-      <Box display="flex">
-        <Box pr={2}>
-          <ActionButton onClick={saveAndLoad}>{saveAndLoadLabel.v}</ActionButton>
-        </Box>
-        <Box>
-          <ActionButton disabled={true}>Save only</ActionButton>
-        </Box>
-      </Box>
-      <Box py={4}>
-        <Divider />
-      </Box>
-      <p>Data:</p>
-      <SampleDataTable rows={rows} />
     </Form>
   );
 });

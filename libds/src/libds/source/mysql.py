@@ -8,6 +8,7 @@ from MySQLdb.cursors import SSCursor
 
 from libds.data_node import DataNode
 from libds.source import BaseSource, Record
+from libds.utils import yaml_load
 
 
 def _fetchone(cur, stmt, *args):
@@ -35,6 +36,19 @@ class MySQL(BaseSource):
         self.target_schema = kwargs.pop("target_schema", "public")
         self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
         super().__init__(**kwargs)
+
+    @classmethod
+    def load_from_yaml(cls, data_stack, file):
+        data = yaml_load(file)
+
+        init_args = {}
+        for (
+            prop
+        ) in "connect_args tables target_schema target_table_name_prefix".split():
+            if prop in data:
+                init_args[prop] = data[prop]
+
+        return cls(**init_args)
 
     def info(self):
         return self._info(
@@ -109,6 +123,8 @@ class MySQL(BaseSource):
         if self.tables == MySQL.ALL_TABLES:
             cur = self.connect().cursor()
             return {name: {} for name in self.select_tables(cur).keys()}
+        elif self.tables is None:
+            return {}
         else:
             return self.tables
 
@@ -170,7 +186,11 @@ class MySQLDataNode(DataNode):
     def __init__(self, mysql, expires_after):
         connect_args = mysql.connect_args_for_mysql()
         details = " ".join(
-            [k + "=" + str(connect_args[k]) for k in "host port db".split()]
+            [
+                k + "=" + str(connect_args[k])
+                for k in "host port db".split()
+                if connect_args.get(k)
+            ]
         )
         super().__init__(
             id=mysql.fqid(), details=details, upstream=[], expires_after=expires_after

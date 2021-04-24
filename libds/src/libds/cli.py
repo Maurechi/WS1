@@ -12,7 +12,6 @@ from libds.__version__ import __version__
 from libds.data_node import DataNodeState
 from libds.data_stack import DataStack
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
-from libds.source import BaseSource
 from libds.utils import DoesNotExist, DSException, yaml_dump
 
 
@@ -148,38 +147,6 @@ def info():
 
 
 @command()
-@click.option(
-    "--if-exists",
-    type=click.Choice(["error", "update"], case_sensitive=False),
-    default="update",
-)
-@click.option(
-    "--if-does-not-exist",
-    type=click.Choice(["error", "create"], case_sensitive=False),
-    default="create",
-)
-@click.option("--current-id")
-@click.argument("id")
-@click.argument("config")
-def source_update(if_exists, if_does_not_exist, current_id, id, config):
-    config = _arg_json(config)
-    source = COMMAND.ds.get_source(id)
-    if source is None:
-        if if_does_not_exist == "error":
-            return {"error": {"code": "source-not-found", "id": id}}
-    else:
-        if if_exists == "error":
-            return {"error": {"code": "source-exists", "id": current_id}}
-
-    if current_id is None:
-        current_id = id
-    BaseSource.update_config_file(
-        data_stack=COMMAND.ds, current_id=current_id, id=id, config=config
-    )
-    return COMMAND.ds.get_source(id).info()
-
-
-@command()
 @click.argument("source_id")
 def source_inspect(source_id):
     src = COMMAND.ds.get_source(source_id)
@@ -242,6 +209,21 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
         orchestrator.set_node_state(n.id, DataNodeState.STALE)
 
     return COMMAND.reload_data_stack().get_model(model_id).info()
+
+
+@command()
+@click.argument("filename")
+@click.argument("text")
+def update_file(filename, text):
+    COMMAND.ds.update_file(Path(filename), _arg_str(text))
+    return COMMAND.reload_data_stack().info()
+
+
+@command()
+@click.argument("filename")
+def delete_file(filename):
+    COMMAND.ds.delete_file(Path(filename))
+    return COMMAND.reload_data_stack().info()
 
 
 @command()
