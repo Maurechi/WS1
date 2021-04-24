@@ -5,5 +5,5 @@ name="lcl-store-clickhouse"
 docker volume create "${name}"
 docker stop "${name}" || true
 docker rm "${name}" || true
-docker run -it -v "${name}:/var/lib/clickhouse:rw" --name "${name}" -p 19000:9000 yandex/clickhouse-server
+docker run -it -v "${name}:/var/lib/clickhouse:rw" --name "${name}" -p 19000:9000 -p 18123:8123 yandex/clickhouse-server
 
