@@ -3,8 +3,8 @@ import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React from "react";
 
+import { SampleDataTable } from "diaas/DataTable.js";
 import { Form, TextField, useFormValue } from "diaas/form.js";
-import { SampleDataTable } from "diaas/SampleDataTable.js";
 export const StaticTable = observer(({ source }) => {
   const table = useFormValue(source.data.table);
   const data = useFormValue(source.data.data);

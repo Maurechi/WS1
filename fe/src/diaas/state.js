@@ -75,6 +75,10 @@ class Backend {
     return this.delete("session").then(dataIfStatusEquals([200, 201]));
   }
 
+  inspectSource(id) {
+    return this.get(`/sources/${id}/inspect`).then(dataIfStatusEquals(200));
+  }
+
   postFile(filename, text) {
     return this.post(`/files/${filename}`, { text: text }).then(dataIfStatusEquals(200));
   }
@@ -85,10 +89,6 @@ class Backend {
 
   postModel(id, model) {
     return this.post(`/model/${id}`, model).then(dataIfStatusEquals(200));
-  }
-
-  loadModel(model_id) {
-    return this.post(`/model/${model_id}/load`).then(dataIfStatusEquals(200));
   }
 
   execute(payload) {

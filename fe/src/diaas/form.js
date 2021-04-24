@@ -1,12 +1,12 @@
 import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
+import _ from "lodash";
 import React, { createContext, useCallback, useContext, useState } from "react";
 import * as uuid from "uuid";
-import v from "voca";
 
 import AceEditor from "diaas/AceEditor";
 import { wrapInBox } from "diaas/ui.js";
 
-const makeValueObject = (store, load, onChange) => {
+export const makeValueObject = (store, load, onChange) => {
   if (!onChange) {
     onChange = () => null;
   }
@@ -81,7 +81,9 @@ export const useFormValue = (initialValue, config) => {
 
   const store = (newValue) => {
     newValue = transform(newValue);
-    newValue = trim ? v.trim(newValue) : newValue;
+    if (trim && _.isString(newValue)) {
+      newValue = _.trim(newValue);
+    }
     setIsDirty(true);
     setValue(newValue);
   };
@@ -140,7 +142,7 @@ export const TextField = wrapInBox(({ value, onChange: callerOnChange, inputProp
 
 export const Checkbox = ({ value, ...CheckboxProps }) => (
   <MUICheckbox
-    value={value.v}
+    checked={value.v}
     onChange={(e) => {
       value.setter(e.target.checked);
       value.touch();

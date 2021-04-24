@@ -47,6 +47,14 @@ def session_delete():
     return None, 200
 
 
+@api_v1.route("/sources/<path:id>/inspect", methods=["GET"])
+@login_required
+@as_json
+def inspect_source(id):
+    libds = g.user.current_data_stack.libds
+    return libds.inspect("source", id)
+
+
 @api_v1.route("/files/<path:file>", methods=["POST"])
 @login_required
 @as_json

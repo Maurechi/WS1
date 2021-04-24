@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from hashlib import sha256
 from pprint import pformat, pprint  # noqa: F401
@@ -59,23 +60,26 @@ class MySQL(BaseSource):
         )
 
     def connect_args_for_mysql(self):
-        connect_args = dict(use_unicode=True, charset="utf8", cursorclass=SSCursor)
+        args = dict(use_unicode=True, charset="utf8", cursorclass=SSCursor)
 
         if "port" in self.connect_args:
-            connect_args["port"] = int(self.connect_args["port"])
-        mapping = {
-            "host": "host",
-            "username": "user",
-            "password": "passwd",
-            "database": "db",
-        }
-        for frm, to in mapping.items():
-            if frm in self.connect_args:
-                value = self.connect_args[frm]
-                if value is not None:
-                    connect_args[to] = value
+            args["port"] = int(self.connect_args["port"])
 
-        return connect_args
+        if "host" in self.connect_args:
+            args["host"] = self.connect_args["host"]
+
+        if "password_var" in self.connect_args:
+            args["passwd"] = os.environ.get(self.connect_args["password_var"])
+        elif "password" in self.connect_args:
+            args["passwd"] = self.connect_args["password"]
+
+        if "username" in self.connect_args:
+            args["user"] = self.connect_args["username"]
+
+        if "database" in self.connect_args:
+            args["db"] = self.connect_args["database"]
+
+        return args
 
     def connect(self):
         return MySQLdb.connect(**self.connect_args_for_mysql())
@@ -102,20 +106,18 @@ class MySQL(BaseSource):
             cur = self.connect().cursor()
         except exceptions.OperationalError as oe:
             if oe.args[0] == 2003:
-                code = "con-not-connect"
+                code = "could-not-connect"
             else:
                 code = oe.__class__.__name__
 
             return dict(
-                {"error": {"code": code, "error": pformat(oe), "args": connect_args}}
+                error={"code": code, "error": pformat(oe), "args": connect_args}
             )
 
         return dict(
             data=dict(
-                conn=connect_args,
                 database=_fetchone(cur, "SELECT database()"),
-                tables_available=self.select_tables(cur),
-                tables=self.tables,
+                tables=self.select_tables(cur),
             )
         )
 

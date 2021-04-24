@@ -52,19 +52,20 @@ const SOURCE_TYPE_REGISTRY = {
   "libds.source.google.GoogleSheet": { editor: GoogleSheet, iconURL: "google-sheets.svg", label: "Google Sheet" },
   "libds.source.static.StaticTable": { editor: StaticTable, iconURL: "csv.png", label: "Manual Data Entry" },
   "libds.source.mysql.MySQL": { editor: MySQL, iconURL: "mysql.png", label: "MySQL" },
-  ":broken": { editor: BrokenSource, iconURL: "broken.svg", label: "Broken" },
 };
 
 const lookupSourceSpec = (source) => {
-  const mapped = SOURCE_TYPE_REGISTRY[source.type];
   if (source.type === ":broken") {
-    return mapped;
+    return { editor: BrokenSource, iconURL: "broken.svg", label: "Broken" };
   } else if (source.code) {
     return { editor: Code, iconURL: "python.png", label: "Code" };
-  } else if (mapped) {
-    return mapped;
   } else {
-    return { editor: UnknownSourceType, iconURL: "unknown.png", label: "Unknown" };
+    const mapped = SOURCE_TYPE_REGISTRY[source.type];
+    if (mapped) {
+      return mapped;
+    } else {
+      return { editor: UnknownSourceType, iconURL: "unknown.png", label: "Unknown" };
+    }
   }
 };
 

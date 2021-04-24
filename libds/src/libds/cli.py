@@ -147,10 +147,14 @@ def info():
 
 
 @command()
-@click.argument("source_id")
-def source_inspect(source_id):
-    src = COMMAND.ds.get_source(source_id)
-    return dict(info=src.info(), inspect=src.inspect())
+@click.argument("type", type=click.Choice(["source"], case_sensitive=False))
+@click.argument("id")
+def inspect(type, id):
+    if type == "source":
+        src = COMMAND.ds.get_source(id)
+        return src.inspect()
+    else:
+        raise ValueError(f"Unknown type {type}")
 
 
 @command()

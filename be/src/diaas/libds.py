@@ -112,6 +112,9 @@ class LibDS:
     def info(self):
         return self.call_ds(cmd=["info"])
 
+    def inspect(self, type, id):
+        return self.call_ds(cmd=["inspect", type, id])
+
     def update_file(self, filename, text):
         return self.call_ds(cmd=["update-file", filename, "-"], input=text)
 
