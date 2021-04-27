@@ -136,7 +136,7 @@ class DataOrchestrator:
                 if node.upstream is None:
                     raise Exception(f"no upstream list for {node.id}")
 
-                fresh = [node.is_fresh() for nid in node.upstream_nodes()]
+                fresh = [node.is_fresh() for node in node.upstream_nodes()]
 
                 if all(fresh):
                     fork_and_refresh(self, node, log_dir)
@@ -243,6 +243,7 @@ class DataNode:
     def upstream_nodes(self):
         if self.upstream is None:
             return []
+
         if isinstance(self.upstream, DataNode):
             return [self.upstream]
 
