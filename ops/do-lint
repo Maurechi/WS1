@@ -46,7 +46,6 @@ function do_lint {
 
 function _list-python-test-files-for-linting () {
     find ./be/tests -name "*.py" -print0
-    find ./libds/tests -name "*.py" -print0
 }
 
 function _list-python-source-files-for-linting () {
