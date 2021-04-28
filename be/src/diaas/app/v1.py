@@ -61,7 +61,11 @@ def inspect_source(id):
 def update_file(file):
     libds = g.user.current_data_stack.libds
     payload = request.get_json()
-    return libds.update_file(file, payload["text"])
+    if "text" in payload:
+        libds.update_file(file, payload["text"])
+    if "dst" in payload:
+        libds.move_file(file, payload["dst"])
+    return {}
 
 
 @api_v1.route("/files/<path:file>", methods=["DELETE"])

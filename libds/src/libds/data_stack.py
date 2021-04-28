@@ -148,6 +148,14 @@ class DataStack:
             path.unlink()
         return path
 
+    def move_file(self, src, dst):
+        src = self.directory / src
+        if not src.exists():
+            raise ValueError("SRC path {src} does not exist")
+        if dst.exists():
+            raise ValueError("DST path {dst} already exists")
+        src.rename(dst)
+
     def get_source(self, id):
         for s in self.sources:
             if s.id == id:

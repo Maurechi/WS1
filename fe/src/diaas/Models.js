@@ -30,11 +30,31 @@ export const Editor = observer(() => {
     }
   }
 
-  const codeValue = useFormValue(model.source, { trim: false });
+  const textValue = useFormValue(model.source, { trim: false });
   const idValue = useFormValue(model.id);
 
   const save = () => {
-    backend.postModel(creating ? "" : modelId, { type: "select", id: idValue.v, source: codeValue.v });
+    let updateFile;
+    if (creating) {
+      updateFile = backend.postFile(`models/${idValue.v}.sql`, textValue.v);
+    } else {
+      updateFile = backend.postFile(model.filename, textValue.v);
+      if (model.id !== idValue.v) {
+        updateFile = updateFile.then(() => {
+          const m = model.filename.match(/^models(.*)\/.*(\.[^.]+)$/);
+          if (m === null) {
+            throw new Error(`filename does not match regexp: ${model.filename}`);
+          }
+          const dirs = m[1];
+          const ext = m[2];
+          const basename = idValue.v;
+          return backend.moveFile(model.filename, "models" + dirs + "/" + basename + ext);
+        });
+      }
+    }
+    return updateFile.then(() => {
+      return backend.updateDataNodeState("public." + idValue.v, "STALE");
+    });
   };
 
   return (
@@ -62,7 +82,7 @@ export const Editor = observer(() => {
         <Grid container>
           <Grid item xs={6}>
             <Typography variant="h4">Model</Typography>
-            <CodeEditor mode={model.type} value={codeValue} />
+            <CodeEditor mode={model.type} value={textValue} />
           </Grid>
           <Grid item xs={6}>
             <Typography variant="h4">Notebook</Typography>

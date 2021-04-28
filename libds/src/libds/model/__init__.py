@@ -187,7 +187,7 @@ class SQLQueryModel(SQLModel):
     def create(cls, data_stack, id):
         return cls(
             data_stack=data_stack,
-            filename=data_stack.models_dir / f"{id}.sql",
+            filename=data_stack.models_dir() / f"{id}.sql",
             sql=None,
         )
 

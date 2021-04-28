@@ -231,6 +231,14 @@ def delete_file(filename):
 
 
 @command()
+@click.argument("src")
+@click.argument("dst")
+def move_file(src, dst):
+    COMMAND.ds.move_file(Path(src), Path(dst))
+    return COMMAND.reload_data_stack().info()
+
+
+@command()
 @click.argument("statement")
 def execute(statement):
     statement = _arg_str(statement)

@@ -87,8 +87,8 @@ class Backend {
     return this.delete(`/files/${filename}`).then(dataIfStatusEquals(200));
   }
 
-  postModel(id, model) {
-    return this.post(`/model/${id}`, model).then(dataIfStatusEquals(200));
+  moveFile(src, dst) {
+    return this.post(`/files/${src}`, { dst: dst }).then(dataIfStatusEquals(200));
   }
 
   execute(payload) {
