@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import sha256
 from pprint import pformat, pprint  # noqa: F401
@@ -26,14 +27,38 @@ def _quote_with(string, q_char):
     return q_char + string.replace(q_char, q_char + q_char) + q_char
 
 
+@dataclass
+class SourceTable:
+    table_name: str = None
+    load: bool = None
+    unpack: bool = None
+
+    def info(self):
+        return dict(load=self.load or False, unpack=self.unpack or False)
+
+
 class MySQL(BaseSource):
     ALL_TABLES = ";-all-;"
 
     def __init__(self, **kwargs):
         self.connect_args = kwargs.pop("connect_args", {})
-        self.tables = kwargs.pop("tables", None)
-        if isinstance(self.tables, list):
-            self.tables = {table_name: {} for table_name in self.tables}
+        tables = kwargs.pop("tables", None)
+        if tables is None:
+            self.tables = None
+        else:
+            self.tables = {}
+            if isinstance(self.tables, list):
+                for name in tables:
+                    self.tables[name] = SourceTable(
+                        table_name=name, load=True, unpack=True
+                    )
+            else:
+                for name, spec in tables.items():
+                    self.tables[name] = SourceTable(
+                        table_name=name,
+                        load=spec.get("load", False),
+                        unpack=spec.get("unpack", False),
+                    )
         self.target_schema = kwargs.pop("target_schema", "public")
         self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
         super().__init__(**kwargs)
@@ -56,7 +81,7 @@ class MySQL(BaseSource):
             connect_args=self.connect_args,
             target_schema=self.target_schema,
             target_table_name_prefix=self.target_table_name_prefix,
-            tables=self.tables,
+            tables={v.table_name: v.info() for v in self.tables.values()},
         )
 
     def connect_args_for_mysql(self):
@@ -124,14 +149,13 @@ class MySQL(BaseSource):
     def table_spec(self):
         if self.tables == MySQL.ALL_TABLES:
             cur = self.connect().cursor()
-            return {name: {} for name in self.select_tables(cur).keys()}
+            return {name: SourceTable() for name in self.select_tables(cur).keys()}
         elif self.tables is None:
             return {}
         else:
             return self.tables
 
     def load_one_table(self, schema_name, table_name):
-        spec = self.table_spec().get(table_name, {})
         if self.target_table_name_prefix is not None:
             table_name = self.target_table_name_prefix + table_name
 
@@ -144,23 +168,13 @@ class MySQL(BaseSource):
 
         json_obj = []
         for (name,) in column_names:
-            if "exclude" in spec:
-                if name in spec["exclude"]:
-                    continue
-            if "include" in spec:
-                if name not in spec["include"]:
-                    continue
             json_obj.append(_quote_with(name, '"'))
             json_obj.append(_quote_with(name, "`"))
 
-        primary_key_expr = spec.get("primary_key", "NULL")
-
-        query = f"SELECT json_object({', '.join(json_obj)}), cast({primary_key_expr} as char) FROM {table_name}"
+        query = f"SELECT json_object({', '.join(json_obj)}) FROM {table_name}"
 
         def as_record(row):
-            return Record(
-                data_str=row[0], primary_key=row[1], valid_at=datetime.utcnow()
-            )
+            return Record(data_str=row[0], valid_at=datetime.utcnow())
 
         return self.data_stack.store.load_raw_from_records(
             schema_name=schema_name,
@@ -175,12 +189,15 @@ class MySQL(BaseSource):
                 expires_after=timedelta(hours=6),
             )
         ]
-        for table_name, spec in self.table_spec().items():
-            nodes.append(
-                MySQLTableDataNode(
-                    mysql=self, schema_name=self.target_schema, table_name=table_name
+        for t in self.table_spec().values():
+            if t.load:
+                nodes.append(
+                    MySQLTableDataNode(
+                        mysql=self,
+                        schema_name=self.target_schema,
+                        table_name=t.table_name,
+                    )
                 )
-            )
         return nodes
 
 

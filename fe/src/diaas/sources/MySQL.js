@@ -38,10 +38,9 @@ export const MySQL = observer(({ source }) => {
     data.target_schema = target_schema.v;
     data.tables = {};
     for (const table_name in tables.v) {
-      const imprt = tables.v[table_name]["import"];
-      const unpack = tables.v[table_name]["unpack"];
-      if (imprt || unpack) {
-        data.tables[table_name] = { import: imprt, unpack: unpack };
+      const { load, unpack } = tables.v[table_name];
+      if (load || unpack) {
+        data.tables[table_name] = { load, unpack };
       }
     }
 
@@ -59,7 +58,7 @@ export const MySQL = observer(({ source }) => {
           const allTables = _.cloneDeep(tables.v);
           _.keys(res.data.tables).forEach((name) => {
             if (!(name in allTables)) {
-              allTables[name] = { import: false, unpack: false };
+              allTables[name] = { load: false, unpack: false };
             }
           });
           tables.v = allTables;
@@ -69,7 +68,7 @@ export const MySQL = observer(({ source }) => {
   };
 
   const listingColumns = [
-    { label: "Import", style: { width: 40 } },
+    { label: "Load", style: { width: 40 } },
     { label: "Unpack", style: { width: 40 } },
     { label: "Table Name" },
   ];
@@ -81,13 +80,13 @@ export const MySQL = observer(({ source }) => {
     load = makeValueObject(
       (v) => {
         console.log("setting load on", name, "to", v);
-        tables.v[name]["import"] = v;
+        tables.v[name]["load"] = v;
         if (!v) {
           unpack.v = false;
         }
         tables.v = _.cloneDeep(tables.v);
       },
-      () => tables.v[name]["import"]
+      () => tables.v[name]["load"]
     );
     load.touch = () => null;
     unpack = makeValueObject(

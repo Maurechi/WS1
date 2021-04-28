@@ -96,6 +96,8 @@ class DataStack:
         for data in self.sources + self.models:
             self.data_orchestrator.collect_nodes(data.data_nodes())
 
+        self.data_orchestrator.post_load_backpatch()
+
         self.data_orchestrator.load_states()
 
     def sources_dir(self):
