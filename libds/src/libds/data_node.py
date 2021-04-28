@@ -11,12 +11,12 @@ from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from pprint import pformat, pprint  # noqa: F401
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Union
 
 import psutil
 import setproctitle
 
-from libds.utils import is_iterable, timedelta_as_info
+from libds.utils import timedelta_as_info
 
 
 class DataNodeState(Enum):
@@ -76,7 +76,6 @@ class DataOrchestrator:
     def _connect(self):
         db_filename = self.data_stack.directory / "orchestrator.sqlite3"
         db_filename = db_filename.resolve()
-        # print(f"Connecting to db at {db_filename}")
         return sqlite3.connect(db_filename, timeout=10)
 
     def connect(self):
@@ -99,6 +98,11 @@ class DataOrchestrator:
                 )
             node.orchestrator = self
             self.data_nodes[node.id] = node
+        return self.data_nodes
+
+    def post_load_backpatch(self):
+        for n in list(self.data_nodes.values()):
+            n.backpatch_upstream()
 
     def check_tasks(self):
         # TODO need to go and look for tasks whose pid is in the db but they don't exist, these are zombies and should be killed 20210408:mb
@@ -159,24 +163,10 @@ class DataOrchestrator:
         tid = trigger_refresh(self, node, info, force=force)
         return (node, self.load_task(tid))
 
-    def downstream_nodes(self, node):
-        downstream = {}
-        for down in self.data_nodes.values():
-            if node.id in down.upstream_nodes():
-                downstream[down.id] = down
-
-                for other in self.downstream_nodes(down):
-                    downstream[other.id] = other
-
-        return list(downstream.values())
-
     def set_node_state(self, node_id, state):
-        node = self.data_nodes[node_id]
-        if node.state == state:
-            return
-
         if state == DataNodeState.STALE:
-            downstream = [node] + self.downstream_nodes(node)
+            node = self.data_nodes[node_id]
+            downstream = [node] + node.downstream_nodes()
             downstream = [n.id for n in downstream]
             with self.cursor() as cur:
                 cur.execute(
@@ -188,10 +178,9 @@ class DataOrchestrator:
                     downstream,
                 )
         else:
-            with self.cursor() as cur:
-                cur.execute(
-                    "update data_nodes set state = ? where nid = ?", [state, node_id]
-                )
+            raise ValueError(
+                "Want to set state of node {node_id} to {state} but that would break the orchestrator's internals."
+            )
 
     @contextmanager
     def cursor(self):
@@ -233,29 +222,45 @@ class DataOrchestrator:
 class DataNode:
     id: str
     container: Optional[str] = None
-    upstream: Optional[Sequence[str]] = None
+    upstream: Optional[Sequence[Union[str, "DataNode"]]] = None
     details: Optional[dict] = None
     expires_after: Optional[timedelta] = None
     state: Optional[DataNodeState] = None
     refresher: Optional[Callable] = None
     orchestrator: Optional[DataOrchestrator] = None
 
+    def backpatch_upstream(self):
+        nodes = self.orchestrator.data_nodes
+
+        if isinstance(self.upstream, (str, DataNode)):
+            self.upstream = [self.upstream]
+
+        upstream = []
+        for u in self.upstream:
+            if isinstance(u, str):
+                if u not in nodes:
+                    nodes[u] = OrphanDataNode(id=u)
+                upstream.append(nodes[u])
+            else:
+                upstream.append(u)
+        self.upstream = upstream
+
     def upstream_nodes(self):
         if self.upstream is None:
-            return []
+            raise Exception(f"upstream of {self.id} is None, didn't we call backpatch?")
+        return self.upstream
 
-        if isinstance(self.upstream, DataNode):
-            return [self.upstream]
+    def downstream_nodes(self):
+        nodes = self.orchestrator.data_nodes
+        downstream = {}
+        for down in nodes.values():
+            if self in down.upstream_nodes():
+                downstream[down.id] = down
 
-        if isinstance(self.upstream, str) or not is_iterable(self.upstream):
-            upstreams = [self.upstream]
-        else:
-            upstreams = self.upstream
-        for u in upstreams:
-            if isinstance(u, str):
-                yield self.orchestrator.data_nodes[u]
-            else:
-                yield u
+                for other in down.downstream_nodes():
+                    downstream[other.id] = other
+
+        return list(downstream.values())
 
     def info(self):
         i = {
@@ -286,7 +291,7 @@ class NoopDataNode(DataNode):
 
 class OrphanDataNode(DataNode):
     def __init__(self, id):
-        super().__init__(id=id, state=DataNodeState.ORPHAN)
+        super().__init__(id=id, state=DataNodeState.ORPHAN, upstream=[])
 
     def refresh(self, orchestrator):
         print(f"Not refreshing orphan node {self.id}.")
