@@ -37,26 +37,35 @@ const Loading = () => {
     <div className="App" style={{ textAlign: "center" }}>
       <header
         style={{
-          backgroundColor: "#2e3631",
-          minHeight: "100vh",
+          backgroundColor: "#ffffff",
+          minHeight: "80vh",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           fontSize: "calc(10px + 2vmin)",
-          color: "white",
+          color: "black",
         }}
       >
         <img style={{ pointerEvents: "none", width: "420px" }} src={logo} alt="Caravel WorkBench Logo" />
         <div style={{ position: "relative", top: "0px", left: "0px" }}>
-          <p style={{ color: "#2e3631", opacity: 0 }}>Loading the Caravel WorkBench, please wait...</p>
+          <p style={{ color: "#000000", opacity: 0 }}>Loading the workbench, please wait...</p>
           <p style={{ position: "absolute", top: "0px", left: "0px" }}>
-            Loading the Caravel WorkBench, please wait
+            Loading the workbench, please wait
             <span>{v.repeat(".", tick + 1)}</span>
           </p>
         </div>
-        <div style={{ position: "absolute", bottom: "0px", right: "0px" }}>
-          (debug: {window.DIAAS.DEPLOYMENT_ENVIRONMENT})
+        <div
+          style={{
+            position: "absolute",
+            bottom: "0px",
+            right: "0px",
+            color: "#333333",
+            fontFamily: "monospace",
+            fontSize: "calc(10px + 1vmin)",
+          }}
+        >
+          (welcome to {window.DIAAS.DEPLOYMENT_ENVIRONMENT} at {window.DIAAS.DEPLOYMENT_COMMIT_SHA})
         </div>
       </header>
     </div>
