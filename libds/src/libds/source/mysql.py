@@ -60,7 +60,7 @@ class MySQL(BaseSource):
                         unpack=spec.get("unpack", False),
                     )
         self.target_schema = kwargs.pop("target_schema", "public")
-        self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
+        self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", "")
         super().__init__(**kwargs)
 
     @classmethod
@@ -155,10 +155,7 @@ class MySQL(BaseSource):
         else:
             return self.tables
 
-    def load_one_table(self, schema_name, table_name):
-        if self.target_table_name_prefix is not None:
-            table_name = self.target_table_name_prefix + table_name
-
+    def load_raw_from_table(self, schema_name, table_name):
         cur = self.connect().cursor()
         column_names = _fetchall(
             cur,
@@ -178,13 +175,51 @@ class MySQL(BaseSource):
 
         return self.data_stack.store.load_raw_from_records(
             schema_name=schema_name,
-            table_name=table_name + "_raw",
+            table_name=self.target_table_name_prefix + table_name + "_raw",
             records=(as_record(row) for row in _fetchall(cur, query)),
         )
 
+    def unpack_table(self, schema_name, table_name):
+        cur = self.connect().cursor()
+        cols = _fetchall(
+            cur,
+            "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %s AND table_schema = database() ORDER BY ordinal_position",
+            [table_name],
+        )
+        columns = []
+        for col in cols:
+            column_name, data_type = col
+
+            if data_type in ("varchar", "text"):
+                type = "text()"
+            elif data_type in ("tinyint"):
+                type = "int(8)"
+            elif data_type in ("smallint"):
+                type = "int(16)"
+            elif data_type in ("mediumint", "int"):
+                type = "int(32)"
+            elif data_type in ("bigint"):
+                type = "int(64)"
+            elif data_type in ("decimal"):
+                type = "decimal()"
+            elif data_type in ("float"):
+                type = "float32"
+            elif data_type in ("double"):
+                type = "float64"
+
+            columns.append([column_name, type])
+
+        self.data_stack.store.create_table(
+            schema_name=schema_name,
+            table_name=self.target_table_name_prefix + table_name + "_raw",
+            columns=columns,
+        )
+
+        raise NotImplementedError
+
     def data_nodes(self):
         nodes = [
-            MySQLDataNode(
+            MySQLDBDataNode(
                 mysql=self,
                 expires_after=timedelta(hours=6),
             )
@@ -192,7 +227,7 @@ class MySQL(BaseSource):
         for t in self.table_spec().values():
             if t.load:
                 nodes.append(
-                    MySQLTableDataNode(
+                    MySQLRawTableNode(
                         mysql=self,
                         schema_name=self.target_schema,
                         table_name=t.table_name,
@@ -201,7 +236,7 @@ class MySQL(BaseSource):
         return nodes
 
 
-class MySQLDataNode(DataNode):
+class MySQLDBDataNode(DataNode):
     def __init__(self, mysql, expires_after):
         connect_args = mysql.connect_args_for_mysql()
         details = " ".join(
@@ -219,7 +254,7 @@ class MySQLDataNode(DataNode):
         return True
 
 
-class MySQLTableDataNode(DataNode):
+class MySQLRawTableNode(DataNode):
     def __init__(self, mysql, schema_name, table_name):
         super().__init__(
             id=schema_name + "." + table_name + "_raw", upstream=mysql.fqid()
@@ -229,4 +264,8 @@ class MySQLTableDataNode(DataNode):
         self.mysql = mysql
 
     def refresh(self, orchestrator):
-        self.mysql.load_one_table(self.schema_name, self.table_name)
+        spec = self.mysql.table_spec()[self.table_name]
+        if spec.unpack:
+            self.mysql.unpack_table(self.schema_name, self.table_name)
+        else:
+            self.mysql.load_raw_from_table(self.schema_name, self.table_name)

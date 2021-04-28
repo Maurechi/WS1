@@ -118,6 +118,51 @@ class ClickHouse(Store):
         default = self.client(schema_name="default")
         default.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
 
+    def create_table(self, schema_name, table_name, columns):
+        final = schema_name + "." + table_name
+        working = _with_random_suffix(final, "working")
+        tombstone = _with_random_suffix(final, "tombstone")
+        self._ensure_schema(schema_name)
+
+        cols = []
+        for c in columns:
+            data_type = c[1]
+            if data_type == "int8":
+                ch_type = "Int8"
+            elif data_type == "int16":
+                ch_type = "Int16"
+            elif data_type == "int32":
+                ch_type = "Int32"
+            elif data_type == "int64":
+                ch_type = "Int64"
+            elif data_type == "float32":
+                ch_type = "Float64"
+            elif data_type == "float64":
+                ch_type = "Float64"
+            elif data_type == "decimal":
+                ch_type = "Decimal64"
+            elif data_type == "text":
+                ch_type = "String"
+            else:
+                raise ValueError(f"Unknown data type {data_type} for {c[0]} on {table_name}")
+            cols.append(c[0] + " " + ch_type)
+
+        client = self.client()
+        client.execute(f"""
+            CREATE TABLE {working} (
+                _inserted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'),
+                {",".join(cols)}
+            )
+            ENGINE MergeTree()
+            ORDER BY (inserted_at);""")
+
+        if client.table_exists(schema_name, table_name):
+            client.execute(f"RENAME TABLE {final} to {tombstone};")
+            client.execute(f"RENAME TABLE {working} to {final};")
+            client.execute(f"DROP TABLE {tombstone};")
+        else:
+            client.execute(f"RENAME TABLE {working} to {final};")
+
     def load_raw_from_records(self, schema_name, table_name, records):
         final = schema_name + "." + table_name
         working = _with_random_suffix(final, "working")
