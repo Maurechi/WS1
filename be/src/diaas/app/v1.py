@@ -47,24 +47,33 @@ def session_delete():
     return None, 200
 
 
-@api_v1.route("/sources/<path:id>", methods=["POST"])
+@api_v1.route("/sources/<path:id>/inspect", methods=["GET"])
 @login_required
 @as_json
-def source_update(id):
+def inspect_source(id):
     libds = g.user.current_data_stack.libds
-    config = request.get_json()
-    current_id = id
-    id = config.pop("id")
-    return libds.source_update(current_id=current_id, id=id, config=config)
+    return libds.inspect("source", id)
 
 
-@api_v1.route("/sources/", methods=["POST"])
+@api_v1.route("/files/<path:file>", methods=["POST"])
 @login_required
 @as_json
-def source_create():
+def update_file(file):
     libds = g.user.current_data_stack.libds
-    config = request.get_json()
-    return libds.source_update(current_id=None, id=config.pop("id"), config=config)
+    payload = request.get_json()
+    if "text" in payload:
+        libds.update_file(file, payload["text"])
+    if "dst" in payload:
+        libds.move_file(file, payload["dst"])
+    return {}
+
+
+@api_v1.route("/files/<path:file>", methods=["DELETE"])
+@login_required
+@as_json
+def delete_file(file):
+    libds = g.user.current_data_stack.libds
+    return libds.delete_file(file)
 
 
 @api_v1.route("/model/<path:id>", methods=["POST"])

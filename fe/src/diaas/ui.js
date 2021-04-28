@@ -130,7 +130,6 @@ export const Literal = ({ children }) => <pre style={{ whiteSpace: "pre-wrap" }}
 export const DefinitionTable = ({ children }) => {
   return (
     <table>
-      {" "}
       <tbody>{children}</tbody>
     </table>
   );

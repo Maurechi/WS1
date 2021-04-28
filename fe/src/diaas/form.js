@@ -1,15 +1,15 @@
 import { Checkbox as MUICheckbox, Select as MUISelect, TextField as MUITextField } from "@material-ui/core";
+import _ from "lodash";
 import React, { createContext, useCallback, useContext, useState } from "react";
 import * as uuid from "uuid";
-import v from "voca";
 
 import AceEditor from "diaas/AceEditor";
 import { wrapInBox } from "diaas/ui.js";
 
-export const useCell = (config) => {
-  // eslint-disable-next-line unused-imports/no-unused-vars
-  const { store, load, onChange = (is, was) => null } = config || {};
-
+export const makeValueObject = (store, load, onChange) => {
+  if (!onChange) {
+    onChange = () => null;
+  }
   return {
     getter() {
       return load();
@@ -43,32 +43,32 @@ export const useLocalStorage = (key, initialValue) => {
 
   let [timer, setTimer] = useState(null);
 
-  return useCell({
-    store: (newValue) => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => window.localStorage.setItem(key, JSON.stringify(value)), 500);
-      setTimer(timer);
+  const store = (newValue) => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => window.localStorage.setItem(key, JSON.stringify(value)), 500);
+    setTimer(timer);
 
-      value = newValue;
-      setValue(newValue);
-    },
-    load: () => {
-      return value;
-    },
-  });
+    value = newValue;
+    setValue(newValue);
+  };
+  const load = () => {
+    return value;
+  };
+
+  return makeValueObject(store, load);
 };
 
 export const useStateV = (initialValue) => {
   let [value, setValue] = useState(initialValue);
-  return useCell({
-    store: (newValue) => {
+  return makeValueObject(
+    (newValue) => {
       setValue(newValue);
       value = newValue;
     },
-    load: () => value,
-  });
+    () => value
+  );
 };
 
 export const useFormValue = (initialValue, config) => {
@@ -79,25 +79,33 @@ export const useFormValue = (initialValue, config) => {
 
   let [value, setValue] = useState(initialValue);
 
-  return useCell({
-    store: (newValue) => {
-      newValue = transform(newValue);
-      newValue = trim ? v.trim(newValue) : newValue;
-      setIsDirty(true);
-      setValue(newValue);
-    },
-    load: () => value,
-    touch() {
-      isTouched = true;
-      setIsTouched(true);
-    },
-    get isDirty() {
-      return isDirty;
-    },
-    get isTouched() {
-      return isTouched;
-    },
+  const store = (newValue) => {
+    newValue = transform(newValue);
+    if (trim && _.isString(newValue)) {
+      newValue = _.trim(newValue);
+    }
+    setIsDirty(true);
+    setValue(newValue);
+  };
+
+  const load = () => value;
+
+  const o = makeValueObject(store, load);
+
+  o.touch = () => {
+    isTouched = true;
+    setIsTouched(true);
+  };
+
+  Object.defineProperty(o, "isDirty", {
+    get: () => isDirty,
   });
+
+  Object.defineProperty(o, "isTouched", {
+    get: () => isTouched,
+  });
+
+  return o;
 };
 
 export const TextField = wrapInBox(({ value, onChange: callerOnChange, inputProps = {}, ...TextFieldProps }) => {
@@ -134,7 +142,7 @@ export const TextField = wrapInBox(({ value, onChange: callerOnChange, inputProp
 
 export const Checkbox = ({ value, ...CheckboxProps }) => (
   <MUICheckbox
-    value={value.v}
+    checked={value.v}
     onChange={(e) => {
       value.setter(e.target.checked);
       value.touch();
@@ -180,7 +188,7 @@ export const CodeEditor = ({ mode, value, disabled = false }) => {
       fontSize={14}
       readOnly={disabled}
       minLines={4}
-      maxLines={20}
+      maxLines={Infinity}
     />
   );
 };

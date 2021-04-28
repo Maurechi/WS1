@@ -90,6 +90,8 @@ class LibDS:
             stderr=subprocess.PIPE,
             cwd=self.path,
         )
+        if input is not None and not isinstance(input, str):
+            raise ValueError(f"Can only send strings to process, not {input}")
         out, err = proc.communicate(input=input)
         if proc.returncode > 0:
             raise LibDSRuntimeError(
@@ -112,29 +114,17 @@ class LibDS:
     def info(self):
         return self.call_ds(cmd=["info"])
 
-    def source_update(self, id, current_id, config):
-        cmd = "source-update --if-exists update --if-does-not-exist create".split()
-        if current_id is not None:
-            cmd += ["--current-id", current_id]
-        cmd += [id, json.dumps(config)]
-        return self.call_ds(cmd=cmd)
+    def inspect(self, type, id):
+        return self.call_ds(cmd=["inspect", type, id])
 
-    def source_load(self, id):
-        return self.call_ds(cmd=["source-load", id])
+    def update_file(self, filename, text):
+        return self.call_ds(cmd=["update-file", filename, "-"], input=text)
 
-    def model_update(self, id, type=None, source=None, current_id=None):
-        cmd = "model-update --if-exists update --if-does-not-exist create".split()
-        if type is not None:
-            cmd += ["--type", type]
-        if current_id is not None:
-            cmd += ["--current-id", current_id]
-        cmd += [id, "-"]
-        update_res = self.call_ds(cmd=cmd, input=source)
-        self.call_ds(cmd=["data-orchestrator-tick"])
-        return update_res
+    def move_file(self, src, dst):
+        return self.call_ds(cmd=["move-file", src, dst])
 
-    def model_load(self, id):
-        return self.call_ds(cmd=["model-load", id])
+    def delete_file(self, filename):
+        return self.call_ds(cmd=["delete-file", filename])
 
     def execute(self, statement):
         return self.call_ds(cmd=["execute", "-"], input=statement)

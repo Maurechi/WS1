@@ -75,20 +75,20 @@ class Backend {
     return this.delete("session").then(dataIfStatusEquals([200, 201]));
   }
 
-  postSource(source_id, config) {
-    return this.post(`/sources/${source_id}`, config).then(dataIfStatusEquals(200));
+  inspectSource(id) {
+    return this.get(`/sources/${id}/inspect`).then(dataIfStatusEquals(200));
   }
 
-  loadSource(source_id) {
-    return this.post(`/sources/${source_id}/load`).then(dataIfStatusEquals(200));
+  postFile(filename, text) {
+    return this.post(`/files/${filename}`, { text: text }).then(dataIfStatusEquals(200));
   }
 
-  postModel(model_id, payload) {
-    return this.post(`/model/${model_id}`, payload).then(dataIfStatusEquals(200));
+  deleteFile(filename) {
+    return this.delete(`/files/${filename}`).then(dataIfStatusEquals(200));
   }
 
-  loadModel(model_id) {
-    return this.post(`/model/${model_id}/load`).then(dataIfStatusEquals(200));
+  moveFile(src, dst) {
+    return this.post(`/files/${src}`, { dst: dst }).then(dataIfStatusEquals(200));
   }
 
   execute(payload) {

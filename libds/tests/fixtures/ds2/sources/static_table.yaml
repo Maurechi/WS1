@@ -1,6 +1,0 @@
-type: libds.source.static.StaticTable
-name: "A Static Table"
-data: |
-  Date Value
-     " row 1" a\ b
-  "row \"' 2"       something-elseßáà,entirely

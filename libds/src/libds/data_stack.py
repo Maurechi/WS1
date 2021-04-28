@@ -1,14 +1,19 @@
 import runpy
+import traceback
 from itertools import chain
 from pathlib import Path
 
 import pygit2
-from ruamel.yaml import YAML
 
 from libds.data_node import DataOrchestrator
 from libds.model import BaseModel
-from libds.source import BaseSource
-from libds.utils import DoesNotExist, ThreadLocalList, ThreadLocalValue
+from libds.source import BaseSource, BrokenSource
+from libds.utils import (
+    DoesNotExist,
+    ThreadLocalList,
+    ThreadLocalValue,
+    yaml_load,
+)
 
 LOCAL_DATA_STACKS = ThreadLocalList()
 LOCAL_SOURCES = ThreadLocalList()
@@ -22,7 +27,6 @@ class DataStack:
     def __init__(self, directory=None, config={}):
         self.directory = directory
         self.config = config
-        self.models_dir = self.directory / "models"
 
         LOCAL_DATA_STACKS.append(self)
 
@@ -47,8 +51,7 @@ class DataStack:
 
         data_stack_yaml = dir / "data_stack.yaml"
         if data_stack_yaml.exists():
-            yaml = YAML(typ="safe")
-            ds = DataStack(directory=dir, config=yaml.load(data_stack_yaml))
+            ds = DataStack(directory=dir, config=yaml_load(file=data_stack_yaml))
 
         if ds is None:
             raise Exception("No data stack defined.")
@@ -95,32 +98,90 @@ class DataStack:
 
         self.data_orchestrator.load_states()
 
+    def sources_dir(self):
+        dir = self.directory / "sources"
+        dir.mkdir(parents=True, exist_ok=True)
+        return dir
+
     def load_sources(self):
         CURRENT_DATA_STACK.value = self
         self.sources = []
-        sources_dir = self.directory / "sources"
-        files = list(sources_dir.glob("*.py"))
+        files = list(self.sources_dir().glob("*.py"))
         for source_py in sorted(files, key=lambda p: str(p).lower()):
-            source_py = source_py.resolve()
-            CURRENT_FILENAME.value = source_py
-            LOCAL_SOURCES.reset()
-            runpy.run_path(source_py, run_name="local")
-            self.sources.extend(LOCAL_SOURCES)
+            try:
+                source_py = source_py.resolve()
+                CURRENT_FILENAME.value = source_py
+                LOCAL_SOURCES.reset()
+                runpy.run_path(source_py, run_name="local")
+                self.sources.extend(LOCAL_SOURCES)
+            except Exception:
+                self.sources.append(
+                    BrokenSource(
+                        data_stack=self,
+                        filename=source_py,
+                        error=traceback.format_exc(),
+                    )
+                )
 
-        for file in sources_dir.glob("*.yaml"):
-            self.sources.append(BaseSource.load_from_config_file(self, file))
+        for file in self.sources_dir().glob("*.yaml"):
+            CURRENT_FILENAME.value = file
+            try:
+                cls = BaseSource.class_from_yaml(self, file)
+                source = cls.load_from_yaml(self, file)
 
-        CURRENT_DATA_STACK.value = None
-        CURRENT_FILENAME.value = None
-        LOCAL_SOURCES.reset()
+            except:  # noqa: E722
+                source = BrokenSource(
+                    data_stack=self,
+                    filename=file,
+                    error=traceback.format_exc(),
+                )
+            self.sources.append(source)
+
+    def update_file(self, filename, source):
+        path = self.directory / filename
+        path.open("w").write(source)
+        return path
+
+    def delete_file(self, filename):
+        path = self.directory / filename
+        if path.exists():
+            path.unlink()
+        return path
+
+    def move_file(self, src, dst):
+        src = self.directory / src
+        if not src.exists():
+            raise ValueError("SRC path {src} does not exist")
+        if dst.exists():
+            raise ValueError("DST path {dst} already exists")
+        src.rename(dst)
+
+    def get_source(self, id):
+        for s in self.sources:
+            if s.id == id:
+                return s
+        else:
+            return None
+
+    def models_dir(self):
+        dir = self.directory / "models"
+        dir.mkdir(parents=True, exist_ok=True)
+        return dir
 
     def load_models(self):
         CURRENT_DATA_STACK.value = self
-        sqls = self.models_dir.glob("**/*.sql")
-        pys = self.models_dir.glob("**/*.py")
+        sqls = self.models_dir().glob("**/*.sql")
+        pys = self.models_dir().glob("**/*.py")
         models = [BaseModel.from_file(self, filename) for filename in chain(sqls, pys)]
         self.models = list(filter(None, models))
         CURRENT_DATA_STACK.value = None
+
+    def get_model(self, id):
+        for model in self.models:
+            if model.id == id:
+                return model
+        else:
+            raise DoesNotExist(f"Model: {id}")
 
     def load_store(self):
         LOCAL_STORES.reset()
@@ -145,18 +206,3 @@ class DataStack:
         self.load_data_orchestrator()
 
         return self
-
-    def get_source(self, id):
-        for s in self.sources:
-            if s.id == id:
-                return s
-        else:
-            return None
-
-    def get_model(self, id):
-        # print(f"Looking for model {id} in {list(self.models)}")
-        for model in self.models:
-            if model.id == id:
-                return model
-        else:
-            raise DoesNotExist(f"Model: {id}")

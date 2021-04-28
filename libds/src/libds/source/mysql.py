@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from hashlib import sha256
 from pprint import pformat, pprint  # noqa: F401
@@ -8,6 +9,7 @@ from MySQLdb.cursors import SSCursor
 
 from libds.data_node import DataNode
 from libds.source import BaseSource, Record
+from libds.utils import yaml_load
 
 
 def _fetchone(cur, stmt, *args):
@@ -36,6 +38,19 @@ class MySQL(BaseSource):
         self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
         super().__init__(**kwargs)
 
+    @classmethod
+    def load_from_yaml(cls, data_stack, file):
+        data = yaml_load(file)
+
+        init_args = {}
+        for (
+            prop
+        ) in "connect_args tables target_schema target_table_name_prefix".split():
+            if prop in data:
+                init_args[prop] = data[prop]
+
+        return cls(**init_args)
+
     def info(self):
         return self._info(
             connect_args=self.connect_args,
@@ -45,23 +60,26 @@ class MySQL(BaseSource):
         )
 
     def connect_args_for_mysql(self):
-        connect_args = dict(use_unicode=True, charset="utf8", cursorclass=SSCursor)
+        args = dict(use_unicode=True, charset="utf8", cursorclass=SSCursor)
 
         if "port" in self.connect_args:
-            connect_args["port"] = int(self.connect_args["port"])
-        mapping = {
-            "host": "host",
-            "username": "user",
-            "password": "passwd",
-            "database": "db",
-        }
-        for frm, to in mapping.items():
-            if frm in self.connect_args:
-                value = self.connect_args[frm]
-                if value is not None:
-                    connect_args[to] = value
+            args["port"] = int(self.connect_args["port"])
 
-        return connect_args
+        if "host" in self.connect_args:
+            args["host"] = self.connect_args["host"]
+
+        if "password_var" in self.connect_args:
+            args["passwd"] = os.environ.get(self.connect_args["password_var"])
+        elif "password" in self.connect_args:
+            args["passwd"] = self.connect_args["password"]
+
+        if "username" in self.connect_args:
+            args["user"] = self.connect_args["username"]
+
+        if "database" in self.connect_args:
+            args["db"] = self.connect_args["database"]
+
+        return args
 
     def connect(self):
         return MySQLdb.connect(**self.connect_args_for_mysql())
@@ -88,20 +106,18 @@ class MySQL(BaseSource):
             cur = self.connect().cursor()
         except exceptions.OperationalError as oe:
             if oe.args[0] == 2003:
-                code = "con-not-connect"
+                code = "could-not-connect"
             else:
                 code = oe.__class__.__name__
 
             return dict(
-                {"error": {"code": code, "error": pformat(oe), "args": connect_args}}
+                error={"code": code, "error": pformat(oe), "args": connect_args}
             )
 
         return dict(
             data=dict(
-                conn=connect_args,
                 database=_fetchone(cur, "SELECT database()"),
-                tables_available=self.select_tables(cur),
-                tables=self.tables,
+                tables=self.select_tables(cur),
             )
         )
 
@@ -109,6 +125,8 @@ class MySQL(BaseSource):
         if self.tables == MySQL.ALL_TABLES:
             cur = self.connect().cursor()
             return {name: {} for name in self.select_tables(cur).keys()}
+        elif self.tables is None:
+            return {}
         else:
             return self.tables
 
@@ -170,7 +188,11 @@ class MySQLDataNode(DataNode):
     def __init__(self, mysql, expires_after):
         connect_args = mysql.connect_args_for_mysql()
         details = " ".join(
-            [k + "=" + str(connect_args[k]) for k in "host port db".split()]
+            [
+                k + "=" + str(connect_args[k])
+                for k in "host port db".split()
+                if connect_args.get(k)
+            ]
         )
         super().__init__(
             id=mysql.fqid(), details=details, upstream=[], expires_after=expires_after

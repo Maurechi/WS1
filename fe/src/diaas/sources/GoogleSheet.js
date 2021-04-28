@@ -1,8 +1,8 @@
 import { Box, Divider } from "@material-ui/core";
 import React, { useState } from "react";
 
+import { SampleDataTable } from "diaas/DataTable.js";
 import { TextField, useFormValue } from "diaas/form.js";
-import { SampleDataTable } from "diaas/SampleDataTable.js";
 import { useAppState } from "diaas/state.js";
 import { ActionButton } from "diaas/ui.js";
 

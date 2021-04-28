@@ -6,15 +6,43 @@ import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-route
 
 import { DataGrid } from "diaas/DataGrid.js";
 import { ErrorDialog } from "diaas/ErrorDialog.js";
+import { TextField, useFormValue } from "diaas/form.js";
 import { Code } from "diaas/sources/Code.js";
 import { GoogleSheet } from "diaas/sources/GoogleSheet.js";
+import { MySQL } from "diaas/sources/MySQL.js";
 import { StaticTable } from "diaas/sources/StaticTable.js";
 import { useAppState } from "diaas/state.js";
-import { ButtonLink, VCenter } from "diaas/ui.js";
+import { ActionButton, ButtonLink, DefinitionTable as DTable, VCenter } from "diaas/ui.js";
 
-const UnknownSourceType = ({ user, source }) => {
-  return <pre>{JSON.stringify({ user, source })}</pre>;
+const UnknownSourceType = ({ source }) => {
+  return <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ source }, null, 4)}</pre>;
 };
+
+const BrokenSource = observer(({ source }) => {
+  const { backend } = useAppState();
+  const text = useFormValue(source.text);
+  const updateSource = () => {
+    return backend.postFile("sources/" + source.filename, text.v);
+  };
+  const deleteSource = () => {
+    return backend.deleteFile("sources/" + source.filename);
+  };
+  return (
+    <DTable>
+      <DTable.Term label="Error">
+        <pre style={{ whiteSpace: "pre-nowrap" }}>{source.error}</pre>
+      </DTable.Term>
+      <DTable.Term label="Source Code">
+        <TextField value={text} fullWidth={true} multiline={true} />
+        <ActionButton onClick={updateSource}>Update Source</ActionButton>
+        <ActionButton onClick={deleteSource}>Delete Source</ActionButton>
+      </DTable.Term>
+      <DTable.Term label="Full Dump">
+        <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(source, null, 4)}</pre>
+      </DTable.Term>
+    </DTable>
+  );
+});
 
 // NOTE we could do something smarter here not have to edit this file
 // every time we define a new componnet. however we'd still need to
@@ -22,13 +50,14 @@ const UnknownSourceType = ({ user, source }) => {
 // this feels like a decent comporommise to me. 20210102:mb
 const SOURCE_TYPE_REGISTRY = {
   "libds.source.google.GoogleSheet": { editor: GoogleSheet, iconURL: "google-sheets.svg", label: "Google Sheet" },
-  "libds.source.facebook.Ads": { editor: GoogleSheet, iconURL: "facebook.svg", label: "Facebook Ads" },
-  "libds.source.google.Adwords": { editor: Code, iconURL: "google-adwords.png", label: "Google Ads" },
   "libds.source.static.StaticTable": { editor: StaticTable, iconURL: "csv.png", label: "Manual Data Entry" },
+  "libds.source.mysql.MySQL": { editor: MySQL, iconURL: "mysql.png", label: "MySQL" },
 };
 
 const lookupSourceSpec = (source) => {
-  if (source.definition["in"] === "code") {
+  if (source.type === ":broken") {
+    return { editor: BrokenSource, iconURL: "broken.svg", label: "Broken" };
+  } else if (source.code) {
     return { editor: Code, iconURL: "python.png", label: "Code" };
   } else {
     const mapped = SOURCE_TYPE_REGISTRY[source.type];
@@ -37,15 +66,6 @@ const lookupSourceSpec = (source) => {
     } else {
       return { editor: UnknownSourceType, iconURL: "unknown.png", label: "Unknown" };
     }
-  }
-};
-
-const lookupCreateSourceSpec = (type) => {
-  const mapped = SOURCE_TYPE_REGISTRY[type];
-  if (mapped) {
-    return mapped;
-  } else {
-    return { editor: UnknownSourceType, iconURL: "unknown.png", label: "Unknown" };
   }
 };
 
@@ -71,7 +91,8 @@ export const SourcesTable = observer(() => {
       header: "Type",
       render: (column) => <SourceType source={column.data.source} />,
     },
-    { defaultFlex: 9, name: "name", header: "Name" },
+    { defaultFlex: 6, name: "name", header: "Name" },
+    { defaultFlex: 6, name: "filename", header: "File" },
   ];
 
   const makeRow = (source) => ({
@@ -79,6 +100,7 @@ export const SourcesTable = observer(() => {
     type: source.type,
     name: "name" in source ? source.name : source.id,
     source: source,
+    filename: source.filename,
   });
   const rows = sources.map(makeRow);
 
@@ -86,7 +108,7 @@ export const SourcesTable = observer(() => {
     const { onClick } = rowProps;
     rowProps.onClick = (e) => {
       onClick(e);
-      history.push(`${path}${rowProps.data.type}/${rowProps.data.id}`);
+      history.push(`${path}${rowProps.data.id}`);
     };
   };
 
@@ -197,6 +219,9 @@ export const NewSourceChooser = () => {
             <NewConnectorCard logo="csv.png" name="Static Table" type="libds.source.static.StaticTable" />
           </Grid>
           <Grid item xs={4}>
+            <NewConnectorCard logo="mysql.png" name="MySQL" type="libds.source.mysql.MySQL" />
+          </Grid>
+          <Grid item xs={4}>
             <NewConnectorCard logo="postgresql.svg" name="PostgreSQL" disabled />
           </Grid>
           <Grid item xs={4}>
@@ -215,24 +240,18 @@ export const NewSourceChooser = () => {
 };
 
 const SourceEditorContent = observer(() => {
-  const { id, type } = useParams();
+  const { id } = useParams();
   const { user } = useAppState();
   let source = _.find(user.data_stacks[0].sources, (s) => s.id === id); //
   let spec;
-  if (!source) {
-    if (id === ":new") {
-      spec = lookupCreateSourceSpec(type);
-      source = { definition: { config: {} }, type: type };
-    } else {
-      console.log("error");
-      return <ErrorDialog title="This was not supposed to happen." message={`No source found with id '${id}'`} />;
-    }
-  } else {
+  if (source) {
     spec = lookupSourceSpec(source);
+  } else {
+    return <ErrorDialog title="This was not supposed to happen." message={`No source found with id '${id}'`} />;
   }
 
   const Editor = spec.editor;
-  return <Editor user={user} source={source} />;
+  return <Editor user={user} source={source} id={id} />;
 });
 
 export const SourcesContent = () => {
@@ -242,7 +261,7 @@ export const SourcesContent = () => {
       <Route path={`${path}/\\:new`}>
         <NewSourceChooser />
       </Route>
-      <Route path={`${path}:type/:id`}>
+      <Route path={`${path}:id`}>
         <SourceEditorContent />
       </Route>
       <Route path={path}>
