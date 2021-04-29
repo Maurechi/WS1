@@ -56,8 +56,48 @@ export const SampleDataTable = ({ rows }) => {
   if (rows.length === 0) {
     return <>No data.</>;
   }
-  const headers = _.keys(rows[0]).map((c) => ({ field: c, label: c }));
-  const rowArrays = _.map(rows, (r) => _.map(headers, (h) => r[h.field]));
+  const columns = _.keys(rows[0]).map((c) => ({ label: c, property: c }));
+  const pformat = (v) => {
+    const StandOut = ({ children }) => <span style={{ color: "blue" }}>{children}</span>;
+    if (v === null) {
+      return <tt>NULL</tt>;
+    } else if (_.isNumber(v)) {
+      return (
+        <tt>
+          <StandOut>=</StandOut>
+          {v}
+        </tt>
+      );
+    } else if (_.isString(v)) {
+      let parts = [];
+      v.split(/((?<!\\)\n| )/).forEach((section) => {
+        if (section === "\n") {
+          parts.push(<StandOut>\n</StandOut>);
+        } else if (section === " ") {
+          parts.push(<StandOut>_</StandOut>);
+        } else {
+          parts.push(section);
+        }
+      });
 
-  return <DataTable headers={headers} rows={rowArrays} />;
+      return (
+        <tt>
+          <StandOut>"</StandOut>
+          {parts}
+          <StandOut>"</StandOut>
+        </tt>
+      );
+    } else {
+      return (
+        <tt>
+          <StandOut>(</StandOut>
+          {v}
+          <StandOut>)</StandOut>
+        </tt>
+      );
+    }
+  };
+  const rowArrays = _.map(rows, (r) => _.map(columns, (c) => pformat(r[c.property])));
+
+  return <DataTable columns={columns} rows={rowArrays} />;
 };

@@ -9,6 +9,7 @@ from MySQLdb import _exceptions as exceptions
 from MySQLdb.cursors import SSCursor
 
 from libds.data_node import DataNode
+from libds.model import data_type as dt
 from libds.source import BaseSource, Record
 from libds.utils import yaml_load
 
@@ -25,6 +26,31 @@ def _fetchall(cur, stmt, *args):
 
 def _quote_with(string, q_char):
     return q_char + string.replace(q_char, q_char + q_char) + q_char
+
+
+def _column_spec_for_unpacking(
+    column_name, data_type, is_nullable, numeric_precision, numeric_scale
+):
+    if data_type in ["varchar", "text"]:
+        type = dt.Text()
+    elif data_type in ["tinyint"]:
+        type = dt.Integer(width=8)
+    elif data_type in ["smallint"]:
+        type = dt.Integer(width=16)
+    elif data_type in ["mediumint", "int"]:
+        type = dt.Integer(width=32)
+    elif data_type in ["bigint"]:
+        type = dt.Integer(width=64)
+    elif data_type in ["decimal"]:
+        type = dt.Decimal(precision=numeric_precision, scale=numeric_scale)
+    elif data_type in ["float"]:
+        type = dt.Float(width=32)
+    elif data_type in ["double"]:
+        type = dt.Float(width=64)
+
+    type.is_nullable = is_nullable == "YES"
+
+    return [column_name, type]
 
 
 @dataclass
@@ -155,7 +181,7 @@ class MySQL(BaseSource):
         else:
             return self.tables
 
-    def load_raw_from_table(self, schema_name, table_name):
+    def load_table_raw(self, schema_name, table_name):
         cur = self.connect().cursor()
         column_names = _fetchall(
             cur,
@@ -171,7 +197,7 @@ class MySQL(BaseSource):
         query = f"SELECT json_object({', '.join(json_obj)}) FROM {table_name}"
 
         def as_record(row):
-            return Record(data_str=row[0], valid_at=datetime.utcnow())
+            return Record(data_str=row[0], extracted_at=datetime.utcnow())
 
         return self.data_stack.store.load_raw_from_records(
             schema_name=schema_name,
@@ -179,43 +205,30 @@ class MySQL(BaseSource):
             records=(as_record(row) for row in _fetchall(cur, query)),
         )
 
-    def unpack_table(self, schema_name, table_name):
+    def load_table_unpacked(self, schema_name, table_name):
         cur = self.connect().cursor()
         cols = _fetchall(
             cur,
-            "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %s AND table_schema = database() ORDER BY ordinal_position",
+            "SELECT column_name, data_type, is_nullable, numeric_precision, numeric_scale FROM information_schema.columns WHERE table_name = %s AND table_schema = database() ORDER BY ordinal_position",
             [table_name],
         )
-        columns = []
-        for col in cols:
-            column_name, data_type = col
+        columns = [_column_spec_for_unpacking(*col) for col in cols]
+        column_names = [c[0] for c in columns]
 
-            if data_type in ("varchar", "text"):
-                type = "text()"
-            elif data_type in ("tinyint"):
-                type = "int(8)"
-            elif data_type in ("smallint"):
-                type = "int(16)"
-            elif data_type in ("mediumint", "int"):
-                type = "int(32)"
-            elif data_type in ("bigint"):
-                type = "int(64)"
-            elif data_type in ("decimal"):
-                type = "decimal()"
-            elif data_type in ("float"):
-                type = "float32"
-            elif data_type in ("double"):
-                type = "float64"
+        query = f"SELECT {','.join(column_names)} FROM {table_name}"
 
-            columns.append([column_name, type])
+        def as_record(row):
+            return Record(
+                data={col: value for col, value in zip(column_names, row)},
+                extracted_at=datetime.utcnow(),
+            )
 
-        self.data_stack.store.create_table(
+        self.data_stack.store.load_unpacked_from_records(
             schema_name=schema_name,
             table_name=self.target_table_name_prefix + table_name + "_raw",
             columns=columns,
+            records=(as_record(row) for row in _fetchall(cur, query)),
         )
-
-        raise NotImplementedError
 
     def data_nodes(self):
         nodes = [
@@ -266,6 +279,6 @@ class MySQLRawTableNode(DataNode):
     def refresh(self, orchestrator):
         spec = self.mysql.table_spec()[self.table_name]
         if spec.unpack:
-            self.mysql.unpack_table(self.schema_name, self.table_name)
+            self.mysql.load_table_unpacked(self.schema_name, self.table_name)
         else:
-            self.mysql.load_raw_from_table(self.schema_name, self.table_name)
+            self.mysql.load_table_raw(self.schema_name, self.table_name)

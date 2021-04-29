@@ -5,6 +5,7 @@ from pprint import pformat
 import clickhouse_driver.errors
 from clickhouse_driver import Client
 
+from libds.model import data_type
 from libds.store import BaseTable, Store, to_sample_value
 from libds.store.clickhouse_error_codes import ERROR_CODES
 from libds.utils import DSException, GaugeProgress, InsertProgress
@@ -19,6 +20,47 @@ def _with_random_suffix(table_name, tag=""):
             secrets.token_hex(4),
         ]
     )
+
+
+def _data_type_to_clickhouse_type(t):
+    if isinstance(t, data_type.Text):
+        type_string = "String"
+    elif isinstance(t, data_type.Integer):
+        if t.width <= 8:
+            type_string = "Int8"
+        elif t.width <= 16:
+            type_string = "Int16"
+        elif t.width <= 32:
+            type_string = "Int32"
+        elif t.width <= 64:
+            type_string = "Int64"
+        elif t.width <= 128:
+            type_string = "Int128"
+        elif t.width <= 256:
+            type_string = "Int256"
+        else:
+            raise ValueError(f"Int width {t.width} is too wide for clickhouse.")
+    elif isinstance(t, data_type.Float):
+        if t.width <= 32:
+            type_string = "Float32"
+        elif t.width <= 64:
+            type_string = "Float64"
+        else:
+            raise ValueError(f"Float width {t.width} is too wide for clickhouse.")
+    elif isinstance(t, data_type.Decimal):
+        p, s = (t.precision, t.scale)
+        if p > 76:
+            raise ValueError(f"Decimal precision {p} is too wide for clickhouse.")
+        if s > p:
+            raise ValueError(
+                f"Decimal scale {s} is greater than requested precision {p}."
+            )
+        type_string = f"Decimal({p}, {s})"
+    else:
+        raise ValueError("No matching clickhouse type for {t}")
+    if t.is_nullable:
+        type_string = f"Nullable({type_string})"
+    return type_string
 
 
 class ClickHouseServerException(DSException):
@@ -118,43 +160,44 @@ class ClickHouse(Store):
         default = self.client(schema_name="default")
         default.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
 
-    def create_table(self, schema_name, table_name, columns):
+    def load_unpacked_from_records(self, schema_name, table_name, columns, records):
         final = schema_name + "." + table_name
         working = _with_random_suffix(final, "working")
         tombstone = _with_random_suffix(final, "tombstone")
         self._ensure_schema(schema_name)
 
-        cols = []
-        for c in columns:
-            data_type = c[1]
-            if data_type == "int8":
-                ch_type = "Int8"
-            elif data_type == "int16":
-                ch_type = "Int16"
-            elif data_type == "int32":
-                ch_type = "Int32"
-            elif data_type == "int64":
-                ch_type = "Int64"
-            elif data_type == "float32":
-                ch_type = "Float64"
-            elif data_type == "float64":
-                ch_type = "Float64"
-            elif data_type == "decimal":
-                ch_type = "Decimal64"
-            elif data_type == "text":
-                ch_type = "String"
-            else:
-                raise ValueError(f"Unknown data type {data_type} for {c[0]} on {table_name}")
-            cols.append(c[0] + " " + ch_type)
+        p = InsertProgress(
+            make_message=lambda count, last_row: f"Processed {count} records to {working}, last was {last_row}"
+        )
+
+        column_names = [c[0] for c in columns]
+        column_types = [_data_type_to_clickhouse_type(c[1]) for c in columns]
+        cols = [name + " " + type for name, type in zip(column_names, column_types)]
 
         client = self.client()
-        client.execute(f"""
+        query = f"""
             CREATE TABLE {working} (
-                _inserted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'),
-                {",".join(cols)}
+                _sdc_extracted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'),
+        {", ".join(cols)}
             )
             ENGINE MergeTree()
-            ORDER BY (inserted_at);""")
+            ORDER BY (_sdc_extracted_at);"""
+        client.execute(query)
+        p.display(f"Created {query}")
+
+        def record_for_clickhouse(record):
+            row = [record.data[column] for column in column_names]
+            p.update(row)
+            return row
+
+        insert = f"""INSERT INTO {working} ({', '.join(column_names)}) VALUES"""
+        p.display(f"Insert query: {insert}")
+
+        client.execute(
+            insert, (record_for_clickhouse(row) for row in records), types_check=True
+        )
+
+        p.display()
 
         if client.table_exists(schema_name, table_name):
             client.execute(f"RENAME TABLE {final} to {tombstone};")
@@ -176,32 +219,18 @@ class ClickHouse(Store):
         )
 
         def record_for_clickhouse(record):
-
-            if record.primary_key is None:
-                has_primary_key = 0
-                primary_key = ""
-            else:
-                has_primary_key = 1
-                primary_key = record.primary_key
-            if record.valid_at is None:
-                valid_at = ""
-            else:
-                valid_at = record.valid_at.isoformat()
-            row = [has_primary_key, primary_key, record.data_str, valid_at]
+            row = [record.data_str]
             p.update(row)
             return row
 
         client.execute(
             f"""CREATE TABLE IF NOT EXISTS {working} (
-                    has_primary_key UInt8,
-                    primary_key String,
                     data String,
-                    valid_at String,
-                    inserted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
+                    _sdc_extracted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
                 ENGINE MergeTree()
-                ORDER BY (primary_key, inserted_at);"""
+                ORDER BY (_sdc_extracted_at);"""
         )
-        insert = f"""INSERT INTO {working} (has_primary_key, primary_key, data, valid_at) VALUES"""
+        insert = f"""INSERT INTO {working} (data, _sdc_extracted_at) VALUES"""
         num_rows = client.execute(
             insert, (record_for_clickhouse(row) for row in records)
         )
