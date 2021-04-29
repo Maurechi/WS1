@@ -107,7 +107,6 @@ class GoogleSheet(StaticSource):
 
         for row in rows:
             yield Record(
-                primary_key=None,
                 data={key: value for key, value in zip(columns, row)},
-                valid_at=datetime.utcnow(),
+                extracted_at=datetime.utcnow(),
             )

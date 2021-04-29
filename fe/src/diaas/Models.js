@@ -79,12 +79,12 @@ export const Editor = observer(() => {
           </Box>
         </Box>
         <Divider />
-        <Grid container>
-          <Grid item xs={6}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
             <Typography variant="h4">Model</Typography>
             <CodeEditor mode={model.type} value={textValue} />
           </Grid>
-          <Grid item xs={6}>
+          <Grid item xs={12} md={6}>
             <Typography variant="h4">Notebook</Typography>
             <Notebook id={modelId} baseTable={modelId} />
           </Grid>
@@ -123,7 +123,9 @@ export const FileTable = observer(() => {
   return (
     <Box>
       <Box display="flex" mb={3}>
-        <Box style={{ flexGrow: 1 }}>Models:</Box>
+        <Box style={{ flexGrow: 1 }}>
+          <Typography variant="h4">Models</Typography>
+        </Box>
         <Box>
           <Box display="flex">
             <Box mx={1}>
@@ -137,7 +139,7 @@ export const FileTable = observer(() => {
         columns={columns}
         dataSource={files}
         defaultSortInfo={{ name: "id", dir: 1 }}
-        style={{ minHeight: 550 }}
+        style={{ minHeight: 1000 }}
         onRenderRow={onRenderRow}
       />
     </Box>

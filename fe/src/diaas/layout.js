@@ -261,7 +261,7 @@ export const AppNavigation = observer(({ children }) => {
       </Drawer>
       <main className={classes.content}>
         <div className={classes.toolbar} />
-        <Box p={4}>{children}</Box>
+        <Box>{children}</Box>
       </main>
     </div>
   );

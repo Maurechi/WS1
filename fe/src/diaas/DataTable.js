@@ -2,7 +2,7 @@
 // avoid recursive dependencies 20210116:mb
 import { makeStyles, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@material-ui/core";
 import _ from "lodash";
-import React from "react";
+import React, { useMemo } from "react";
 
 const tableStyles = makeStyles({
   table: {
@@ -53,11 +53,53 @@ export const DataTable = ({ columns = null, rows = null }) => {
 };
 
 export const SampleDataTable = ({ rows }) => {
+  const pformat = (v) => {
+    const StandOut = ({ children }) => <span style={{ color: "blue" }}>{children}</span>;
+    if (v === null) {
+      return <tt>NULL</tt>;
+    } else if (_.isNumber(v)) {
+      return (
+        <tt>
+          <StandOut>=</StandOut>
+          {v}
+        </tt>
+      );
+    } else if (_.isString(v)) {
+      let parts = [];
+      v.split(/((?<!\\)\n| )/).forEach((section) => {
+        if (section === "\n") {
+          parts.push(<StandOut key={parts.length}>\n</StandOut>);
+        } else if (section === " ") {
+          parts.push(<StandOut key={parts.length}>{"\u2423"}</StandOut>);
+        } else {
+          parts.push(<span key={parts.length}>{section}</span>);
+        }
+      });
+
+      return (
+        <tt>
+          <StandOut>"</StandOut>
+          {parts}
+          <StandOut>"</StandOut>
+        </tt>
+      );
+    } else {
+      return (
+        <tt>
+          <StandOut>(</StandOut>
+          {v}
+          <StandOut>)</StandOut>
+        </tt>
+      );
+    }
+  };
+
+  const columns = useMemo(() => _.keys(rows[0]).map((c) => ({ label: c, property: c })), [rows]);
+  const rowArrays = useMemo(() => _.map(rows, (r) => _.map(columns, (c) => pformat(r[c.property]))), [rows, columns]);
+
   if (rows.length === 0) {
     return <>No data.</>;
+  } else {
+    return <DataTable columns={columns} rows={rowArrays} />;
   }
-  const headers = _.keys(rows[0]).map((c) => ({ field: c, label: c }));
-  const rowArrays = _.map(rows, (r) => _.map(headers, (h) => r[h.field]));
-
-  return <DataTable headers={headers} rows={rowArrays} />;
 };

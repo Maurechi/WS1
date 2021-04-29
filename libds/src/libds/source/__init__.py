@@ -6,11 +6,10 @@ from libds.utils import yaml_load
 
 
 class Record:
-    def __init__(self, primary_key=None, data=None, valid_at=None, data_str=None):
-        self.primary_key = primary_key
+    def __init__(self, extracted_at=None, data=None, data_str=None):
+        self.extracted_at = extracted_at
         self._data = data
         self._data_str = data_str
-        self.valid_at = valid_at
 
     @property
     def data_str(self):

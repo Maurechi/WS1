@@ -1,34 +1,48 @@
+import { Box, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
-import React, { useState } from "react";
+import React, { createRef, useState } from "react";
 
 import { SampleDataTable } from "diaas/DataTable.js";
 import { CodeEditor, useLocalStorage } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { StandardButton as Button } from "diaas/ui.js";
+import { ActionButton, StandardButton as Button, useResize } from "diaas/ui.js";
+
+const CellData = React.memo((props) => <SampleDataTable {...props} />);
 
 export const Cell = observer(({ value }) => {
-  const {
-    user: { dataStack: ds },
-    backend,
-  } = useAppState();
+  const { backend } = useAppState();
   const [rows, setRows] = useState([]);
+  const ref = createRef();
+  const { width } = useResize(ref);
   const run = () => {
-    backend.execute({ statement: value.v }).then((data) => {
+    return backend.execute({ statement: value.v }).then((data) => {
       setRows(data);
     });
   };
 
   return (
     <>
-      <CodeEditor mode="sql" value={value} />
-      <Button onClick={run}>Run against {ds.config.name}</Button>
-      <Button>Delete Cell</Button>
-      {rows && (
-        <>
-          <hr />
-          <SampleDataTable rows={rows} />
-        </>
-      )}
+      <Grid container ref={ref}>
+        <Grid item xs={12}>
+          <CodeEditor mode="sql" value={value} />
+        </Grid>
+        <Grid item xs={6}>
+          <ActionButton onClick={run}>Run</ActionButton>
+        </Grid>
+        <Grid item xs={6}>
+          <Button>Delete Cell</Button>
+        </Grid>
+        <Grid item xs={12}>
+          {rows && (
+            <>
+              <hr />
+              <Box style={{ overflow: "scroll", maxWidth: width }}>
+                <CellData rows={rows} />
+              </Box>
+            </>
+          )}
+        </Grid>
+      </Grid>
       <hr />
     </>
   );
@@ -55,15 +69,15 @@ export const Notebook = ({ id, baseTable }) => {
   });
 
   return (
-    <ul style={{ listStyle: "none" }}>
+    <Grid container spacing={2}>
       {cellValues.map((v, i) => (
-        <li key={i}>
+        <Grid item xs={12} key={i}>
           <Cell value={v} />
-        </li>
+        </Grid>
       ))}
-      <li key="add-cell">
+      <Grid item key="+1" xs={12}>
         <Button onClick={newCellClick}>New Cell</Button>
-      </li>
-    </ul>
+      </Grid>
+    </Grid>
   );
 };

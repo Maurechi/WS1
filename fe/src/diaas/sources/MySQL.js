@@ -26,7 +26,6 @@ export const MySQL = observer(({ source }) => {
     ["Target Table Name Prefix", <TextField value={target_table_name_prefix} />],
   ];
   const tables = useFormValue(source.data.tables || {});
-  console.log("tables is", tables.v);
   const save = () => {
     const data = _.cloneDeep(source.data);
     data.connect_args["host"] = host.v;
@@ -51,7 +50,6 @@ export const MySQL = observer(({ source }) => {
   const inspect = () => {
     return save().then(() => {
       return backend.inspectSource(source.id).then((res) => {
-        console.log("res", res);
         if (res.error) {
           inspectError.v = res.error;
         } else {
@@ -79,26 +77,24 @@ export const MySQL = observer(({ source }) => {
     // return [name, name, name];
     load = makeValueObject(
       (v) => {
-        console.log("setting load on", name, "to", v);
         tables.v[name]["load"] = v;
         if (!v) {
           unpack.v = false;
         }
         tables.v = _.cloneDeep(tables.v);
       },
-      () => tables.v[name]["load"]
+      () => !!tables.v[name]["load"]
     );
     load.touch = () => null;
     unpack = makeValueObject(
       (v) => {
-        console.log("setting unpack on", name, "to", v);
         tables.v[name]["unpack"] = v;
         if (v) {
           load.v = true;
         }
         tables.v = _.cloneDeep(tables.v);
       },
-      () => tables.v[name]["unpack"]
+      () => !!tables.v[name]["unpack"]
     );
     unpack.touch = () => null;
 

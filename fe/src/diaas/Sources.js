@@ -115,7 +115,9 @@ export const SourcesTable = observer(() => {
   return (
     <Box>
       <Box display="flex" mb={3}>
-        <Box style={{ flexGrow: 1 }}>Sources:</Box>
+        <Box style={{ flexGrow: 1 }}>
+          <Typography variant="h4">Sources</Typography>
+        </Box>
         <Box>
           <ButtonLink target={`${path}/:new`}>New Source</ButtonLink>
         </Box>
