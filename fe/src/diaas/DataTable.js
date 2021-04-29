@@ -68,11 +68,11 @@ export const SampleDataTable = ({ rows }) => {
       let parts = [];
       v.split(/((?<!\\)\n| )/).forEach((section) => {
         if (section === "\n") {
-          parts.push(<StandOut>\n</StandOut>);
+          parts.push(<StandOut key={parts.length}>\n</StandOut>);
         } else if (section === " ") {
-          parts.push(<StandOut>_</StandOut>);
+          parts.push(<StandOut key={parts.length}>{"\u2423"}</StandOut>);
         } else {
-          parts.push(section);
+          parts.push(<span key={parts.length}>{section}</span>);
         }
       });
 

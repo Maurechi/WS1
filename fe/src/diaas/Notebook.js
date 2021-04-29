@@ -5,7 +5,7 @@ import React, { createRef, useState } from "react";
 import { SampleDataTable } from "diaas/DataTable.js";
 import { CodeEditor, useLocalStorage } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { StandardButton as Button, useResize } from "diaas/ui.js";
+import { ActionButton, StandardButton as Button, useResize } from "diaas/ui.js";
 
 const CellData = React.memo((props) => <SampleDataTable {...props} />);
 
@@ -15,7 +15,7 @@ export const Cell = observer(({ value }) => {
   const ref = createRef();
   const { width } = useResize(ref);
   const run = () => {
-    backend.execute({ statement: value.v }).then((data) => {
+    return backend.execute({ statement: value.v }).then((data) => {
       setRows(data);
     });
   };
@@ -27,7 +27,7 @@ export const Cell = observer(({ value }) => {
           <CodeEditor mode="sql" value={value} />
         </Grid>
         <Grid item xs={6}>
-          <Button onClick={run}>Run</Button>
+          <ActionButton onClick={run}>Run</ActionButton>
         </Grid>
         <Grid item xs={6}>
           <Button>Delete Cell</Button>
