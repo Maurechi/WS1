@@ -1,6 +1,7 @@
 // NOTE ideally this would be in Source.js, but we put it here to
 // avoid recursive dependencies 20210116:mb
 import { makeStyles, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@material-ui/core";
+import { parseCss, rgbToHsl } from "colorsys";
 import _ from "lodash";
 import React, { useMemo } from "react";
 
@@ -65,24 +66,31 @@ export const SampleDataTable = ({ rows }) => {
         </tt>
       );
     } else if (_.isString(v)) {
-      let parts = [];
-      v.split(/((?<!\\)\n| )/).forEach((section) => {
-        if (section === "\n") {
-          parts.push(<StandOut key={parts.length}>\n</StandOut>);
-        } else if (section === " ") {
-          parts.push(<StandOut key={parts.length}>{"\u2423"}</StandOut>);
-        } else {
-          parts.push(<span key={parts.length}>{section}</span>);
-        }
-      });
+      if (v.match(/^#[a-f0-9]{6}$/)) {
+        const hsl = rgbToHsl(parseCss(v));
+        const color = hsl.l < 50 ? "#ffffff" : "#000000";
 
-      return (
-        <tt>
-          <StandOut>"</StandOut>
-          {parts}
-          <StandOut>"</StandOut>
-        </tt>
-      );
+        return <span style={{ backgroundColor: v, color: color }}>{v}</span>;
+      } else {
+        let parts = [];
+        v.split(/((?<!\\)\n| )/).forEach((section) => {
+          if (section === "\n") {
+            parts.push(<StandOut key={parts.length}>\n</StandOut>);
+          } else if (section === " ") {
+            parts.push(<StandOut key={parts.length}>{"\u2423"}</StandOut>);
+          } else {
+            parts.push(<span key={parts.length}>{section}</span>);
+          }
+        });
+
+        return (
+          <tt>
+            <StandOut>"</StandOut>
+            {parts}
+            <StandOut>"</StandOut>
+          </tt>
+        );
+      }
     } else {
       return (
         <tt>

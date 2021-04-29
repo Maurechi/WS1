@@ -13,6 +13,7 @@
     "@testing-library/user-event": "^12.1.10",
     "ace-builds": "^1.4.12",
     "axios": "^0.21.0",
+    "colorsys": "^1.0.22",
     "dagre-d3-react": "github:segv/dagre-d3-react",
     "dagre-reactjs": "^0.2.0",
     "date-fns": "^2.21.1",
