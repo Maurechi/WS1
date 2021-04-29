@@ -232,7 +232,7 @@ class MySQL(BaseSource):
 
     def data_nodes(self):
         nodes = [
-            MySQLDBDataNode(
+            MySQLDatabaseNode(
                 mysql=self,
                 expires_after=timedelta(hours=6),
             )
@@ -249,7 +249,7 @@ class MySQL(BaseSource):
         return nodes
 
 
-class MySQLDBDataNode(DataNode):
+class MySQLDatabaseNode(DataNode):
     def __init__(self, mysql, expires_after):
         connect_args = mysql.connect_args_for_mysql()
         details = " ".join(
