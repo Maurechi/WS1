@@ -2,7 +2,7 @@
 // avoid recursive dependencies 20210116:mb
 import { makeStyles, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@material-ui/core";
 import _ from "lodash";
-import React from "react";
+import React, { useMemo } from "react";
 
 const tableStyles = makeStyles({
   table: {
@@ -53,10 +53,6 @@ export const DataTable = ({ columns = null, rows = null }) => {
 };
 
 export const SampleDataTable = ({ rows }) => {
-  if (rows.length === 0) {
-    return <>No data.</>;
-  }
-  const columns = _.keys(rows[0]).map((c) => ({ label: c, property: c }));
   const pformat = (v) => {
     const StandOut = ({ children }) => <span style={{ color: "blue" }}>{children}</span>;
     if (v === null) {
@@ -97,7 +93,13 @@ export const SampleDataTable = ({ rows }) => {
       );
     }
   };
-  const rowArrays = _.map(rows, (r) => _.map(columns, (c) => pformat(r[c.property])));
 
-  return <DataTable columns={columns} rows={rowArrays} />;
+  const columns = useMemo(() => _.keys(rows[0]).map((c) => ({ label: c, property: c })), [rows]);
+  const rowArrays = useMemo(() => _.map(rows, (r) => _.map(columns, (c) => pformat(r[c.property]))), [rows, columns]);
+
+  if (rows.length === 0) {
+    return <>No data.</>;
+  } else {
+    return <DataTable columns={columns} rows={rowArrays} />;
+  }
 };

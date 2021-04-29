@@ -1,15 +1,19 @@
-import { Grid } from "@material-ui/core";
+import { Box, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
-import React, { useState } from "react";
+import React, { createRef, useState } from "react";
 
 import { SampleDataTable } from "diaas/DataTable.js";
 import { CodeEditor, useLocalStorage } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { StandardButton as Button } from "diaas/ui.js";
+import { StandardButton as Button, useResize } from "diaas/ui.js";
+
+const CellData = React.memo((props) => <SampleDataTable {...props} />);
 
 export const Cell = observer(({ value }) => {
   const { backend } = useAppState();
   const [rows, setRows] = useState([]);
+  const ref = createRef();
+  const { width } = useResize(ref);
   const run = () => {
     backend.execute({ statement: value.v }).then((data) => {
       setRows(data);
@@ -18,7 +22,7 @@ export const Cell = observer(({ value }) => {
 
   return (
     <>
-      <Grid container>
+      <Grid container ref={ref}>
         <Grid item xs={12}>
           <CodeEditor mode="sql" value={value} />
         </Grid>
@@ -32,7 +36,9 @@ export const Cell = observer(({ value }) => {
           {rows && (
             <>
               <hr />
-              <SampleDataTable rows={rows} />
+              <Box style={{ overflow: "scroll", maxWidth: width }}>
+                <CellData rows={rows} />
+              </Box>
             </>
           )}
         </Grid>
