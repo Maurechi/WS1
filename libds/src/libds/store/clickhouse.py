@@ -185,13 +185,13 @@ class ClickHouse(Store):
         client.execute(query)
         p.display(f"Created {query}")
 
+        insert = f"""INSERT INTO {working} ({', '.join(column_names)}) VALUES"""
+        p.display(f"Insert query: {insert}")
+
         def record_for_clickhouse(record):
             row = [record.data[column] for column in column_names]
             p.update(row)
             return row
-
-        insert = f"""INSERT INTO {working} ({', '.join(column_names)}) VALUES"""
-        p.display(f"Insert query: {insert}")
 
         client.execute(
             insert, (record_for_clickhouse(row) for row in records), types_check=True
@@ -219,7 +219,7 @@ class ClickHouse(Store):
         )
 
         def record_for_clickhouse(record):
-            row = [record.data_str]
+            row = [record.data_str, record.extracted_at]
             p.update(row)
             return row
 
