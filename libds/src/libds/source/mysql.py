@@ -85,8 +85,12 @@ class MySQL(BaseSource):
                         load=spec.get("load", False),
                         unpack=spec.get("unpack", False),
                     )
-        self.target_schema = kwargs.pop("target_schema", "public")
-        self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", "")
+        self.target_schema = kwargs.pop("target_schema", None)
+        if self.target_schema is None:
+            self.target_schema = "public"
+        self.target_table_name_prefix = kwargs.pop("target_table_name_prefix", None)
+        if self.target_table_name_prefix is None:
+            self.target_table_name_prefix = ""
         super().__init__(**kwargs)
 
     @classmethod
