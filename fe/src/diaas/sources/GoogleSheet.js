@@ -1,90 +1,115 @@
-import { Box, Divider } from "@material-ui/core";
-import React, { useState } from "react";
+import _ from "lodash";
+import { observer } from "mobx-react-lite";
+import React from "react";
+import { useHistory } from "react-router-dom";
 
-import { SampleDataTable } from "diaas/DataTable.js";
-import { TextField, useFormValue } from "diaas/form.js";
+import { DataTable } from "diaas/DataTable.js";
+import { Checkbox, TextField, useFormValue } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { ActionButton } from "diaas/ui.js";
+import { ActionButton, ContentTitle } from "diaas/ui.js";
 
-export const GoogleSheet = ({ source }) => {
-  const state = useAppState();
-  const config = source.definition.config;
-  const targetTable = useFormValue(config.target_table);
+export const iconURL = "google-sheets.svg";
+export const label = "Google Sheet";
 
-  const spreadsheet = useFormValue(config.spreadsheet);
-  const range = useFormValue(config.range);
-  const service_account_info = useFormValue(config.service_account_info);
+const SettingsTable = ({
+  filename,
+  spreadsheet,
+  target_table,
+  range,
+  headerRow,
+  service_account_json_var,
+  afterSave,
+}) => {
+  const { backend } = useAppState();
+  const history = useHistory();
 
-  const [rows, setRows] = useState([]);
+  const rows = [
+    ["Spreadsheet (ID or URL)", <TextField value={spreadsheet} fullWidth={true} />],
+    ["Table", <TextField value={target_table} fullWidth={true} />],
+    ["Range", <TextField value={range} fullWidth={true} />],
+    ["Header Row", <Checkbox value={headerRow} />],
+    ["Service Account JSON from var", <TextField value={service_account_json_var} fullWidth={true} />],
+  ];
+
+  const saveEnabled = _.trim(spreadsheet.v) && _.trim(target_table.v);
+
   const save = () => {
-    saveAndLoadLabel.v = "Saving...";
-    return state.backend
-      .postSource(source.id, {
-        type: source.type,
+    return backend
+      .postFile(`sources/${filename}`, {
+        type: "libds.source.google.GoogleSheet",
         spreadsheet: spreadsheet.v,
+        target_table: target_table.v,
         range: range.v,
-        service_account_info: service_account_info.v,
-        target_table: targetTable.v,
+        header_row: !!headerRow.v,
+        service_account_json_var: service_account_json_var.v,
       })
+      .then(afterSave || (() => null))
       .then(() => {
-        saveAndLoadLabel.v = "Save and Load";
+        history.replace(`/sources/${target_table.v}`);
       });
   };
-  const saveAndLoadLabel = useFormValue("Save and Load");
-  const saveAndLoad = () => {
-    return save().then(() => {
-      saveAndLoadLabel.v = "Loading...";
-      return state.backend.loadSource(source.id).then((data) => {
-        saveAndLoadLabel.v = "Save and Load";
-        setRows(data.rows);
-        // return [update, load];
-      });
-    });
-  };
+
   return (
     <>
-      <p>
-        <b>{source.name}</b>
-      </p>
-      <table>
-        <tr>
-          <td>
-            <b>Spreadsheet:</b>
-          </td>
-          <td>
-            <TextField type="text" value={spreadsheet} />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <b>Range:</b>
-          </td>
-          <td>
-            <TextField type="text" value={range} />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <b>Service Account:</b>
-          </td>
-          <td>
-            <TextField value={service_account_info} />
-          </td>
-        </tr>
-      </table>
-      <Box display="flex">
-        <Box pr={2}>
-          <ActionButton onClick={saveAndLoad}>{saveAndLoadLabel.v}</ActionButton>
-        </Box>
-        <Box>
-          <ActionButton onClick={save}>Save only</ActionButton>
-        </Box>
-      </Box>
-      <Box py={4}>
-        <Divider />
-      </Box>
-      <p>Data:</p>
-      <SampleDataTable rows={rows} />
+      <DataTable rows={rows} columns={[{ style: { width: "20%" } }, { style: {} }]} />
+      <ActionButton enabled={saveEnabled} onClick={save}>
+        Save
+      </ActionButton>
+    </>
+  );
+};
+
+export const Creator = observer(() => {
+  const spreadsheet = useFormValue("");
+  const target_table = useFormValue("");
+  const range = useFormValue("A1:ZZ999");
+  const headerRow = useFormValue(true);
+  const service_account_json_var = useFormValue("CARAVEL_SERVICE_ACCOUNT_JSON");
+
+  return (
+    <>
+      <ContentTitle iconURL={iconURL}>Creating new Google Sheet Source</ContentTitle>
+      <SettingsTable
+        filename={target_table.v + ".yaml"}
+        spreadsheet={spreadsheet}
+        target_table={target_table}
+        range={range}
+        headerRow={headerRow}
+        service_account_json_var={service_account_json_var}
+      />
+    </>
+  );
+});
+
+export const Editor = ({ source }) => {
+  const { backend } = useAppState();
+
+  const spreadsheet = useFormValue(source.data.spreadsheet);
+  const target_table = useFormValue(source.data.target_table);
+  const range = useFormValue(source.data.range);
+  const headerRow = useFormValue(source.data.header_row);
+  const service_account_json_var = useFormValue(source.data.service_account_json_var);
+
+  const afterSave = () => {
+    if (source.data.target_table !== target_table.v) {
+      return backend.moveFile(`sources/${source.filename}`, `sources/${target_table.v}.yaml`);
+    } else {
+      return Promise.resolve(null);
+    }
+  };
+
+  return (
+    <>
+      <ContentTitle iconURL={iconURL}>Editing Google Sheet for {target_table.v}</ContentTitle>
+      <SettingsTable
+        filename={source.filename}
+        spreadsheet={spreadsheet}
+        target_table={target_table}
+        range={range}
+        headerRow={headerRow}
+        service_account_json_var={service_account_json_var}
+        afterSave={afterSave}
+      />
     </>
   );
 };

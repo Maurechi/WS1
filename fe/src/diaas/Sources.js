@@ -8,9 +8,9 @@ import { DataGrid } from "diaas/DataGrid.js";
 import { ErrorDialog } from "diaas/ErrorDialog.js";
 import { TextField, useFormValue } from "diaas/form.js";
 import { Code } from "diaas/sources/Code.js";
-import { GoogleSheet } from "diaas/sources/GoogleSheet.js";
-import { MySQL } from "diaas/sources/MySQL.js";
-import { StaticTable } from "diaas/sources/StaticTable.js";
+import * as GoogleSheet from "diaas/sources/GoogleSheet.js";
+import * as MySQL from "diaas/sources/MySQL.js";
+import * as StaticTable from "diaas/sources/StaticTable.js";
 import { useAppState } from "diaas/state.js";
 import { ActionButton, ButtonLink, DefinitionTable as DTable, VCenter } from "diaas/ui.js";
 
@@ -49,22 +49,22 @@ const BrokenSource = observer(({ source }) => {
 // import the code and then we'd have unusedimports dangling around.
 // this feels like a decent comporommise to me. 20210102:mb
 const SOURCE_TYPE_REGISTRY = {
-  "libds.source.google.GoogleSheet": { editor: GoogleSheet, iconURL: "google-sheets.svg", label: "Google Sheet" },
-  "libds.source.static.StaticTable": { editor: StaticTable, iconURL: "csv.png", label: "Manual Data Entry" },
-  "libds.source.mysql.MySQL": { editor: MySQL, iconURL: "mysql.png", label: "MySQL" },
+  "libds.source.google.GoogleSheet": GoogleSheet,
+  "libds.source.static.StaticTable": StaticTable,
+  "libds.source.mysql.MySQL": MySQL,
 };
 
 const lookupSourceSpec = (source) => {
   if (source.type === ":broken") {
-    return { editor: BrokenSource, iconURL: "broken.svg", label: "Broken" };
+    return { Editor: BrokenSource, iconURL: "broken.svg", label: "Broken" };
   } else if (source.code) {
-    return { editor: Code, iconURL: "python.png", label: "Code" };
+    return { Editor: Code, iconURL: "python.png", label: "Code" };
   } else {
     const mapped = SOURCE_TYPE_REGISTRY[source.type];
     if (mapped) {
       return mapped;
     } else {
-      return { editor: UnknownSourceType, iconURL: "unknown.png", label: "Unknown" };
+      return { Editor: UnknownSourceType, iconURL: "unknown.png", label: "Unknown" };
     }
   }
 };
@@ -119,7 +119,7 @@ export const SourcesTable = observer(() => {
           <Typography variant="h4">Sources</Typography>
         </Box>
         <Box>
-          <ButtonLink target={`${path}/:new`}>New Source</ButtonLink>
+          <ButtonLink target={`${path}:new`}>New Source</ButtonLink>
         </Box>
       </Box>
       <DataGrid
@@ -137,7 +137,7 @@ export const NewConnectorCard = ({ logo, name, type, disabled }) => {
   return (
     <Paper>
       <ButtonLink
-        target={`/sources/${type}/:new`}
+        target={`:new/${type}`}
         style={{ width: "100%" }}
         variant="outlined"
         color="#000000"
@@ -184,13 +184,13 @@ export const NewSourceChooser = () => {
         </Box>
         <Grid container spacing={4}>
           <Grid item xs={4}>
-            <NewConnectorCard logo="google-adwords.png" name="Google Adwords" target="google-adwords" disabled />
+            <NewConnectorCard logo="google-adwords.png" name="Google Adwords" disabled />
           </Grid>
           <Grid item xs={4}>
             <NewConnectorCard logo="google-analytics.svg" name="Google Analytics" disabled />
           </Grid>
           <Grid item xs={4}>
-            <NewConnectorCard logo="facebook.svg" name="Facebook ADs" target="facebook-ads" disabled />
+            <NewConnectorCard logo="facebook.svg" name="Facebook ADs" disabled />
           </Grid>
           <Grid item xs={4}>
             <NewConnectorCard logo="microsoft-bing.svg" name="Bing" disabled />
@@ -218,16 +218,16 @@ export const NewSourceChooser = () => {
         </Box>
         <Grid container spacing={4}>
           <Grid item xs={4}>
-            <NewConnectorCard logo="csv.png" name="Static Table" type="libds.source.static.StaticTable" />
+            <NewConnectorCard logo="csv.png" name="Static Table" type="libds.source.static.StaticTable" disabled />
           </Grid>
           <Grid item xs={4}>
-            <NewConnectorCard logo="mysql.png" name="MySQL" type="libds.source.mysql.MySQL" />
+            <NewConnectorCard logo="mysql.png" name="MySQL" type="libds.source.mysql.MySQL" disabled />
           </Grid>
           <Grid item xs={4}>
             <NewConnectorCard logo="postgresql.svg" name="PostgreSQL" disabled />
           </Grid>
           <Grid item xs={4}>
-            <NewConnectorCard logo="google-sheets.svg" name="Google Sheets" target="google-sheets" disabled />
+            <NewConnectorCard logo="google-sheets.svg" name="Google Sheets" type="libds.source.google.GoogleSheet" />
           </Grid>
           <Grid item xs={4}>
             <NewConnectorCard name="BigQuery" logo="bigquery.png" disabled />
@@ -244,23 +244,33 @@ export const NewSourceChooser = () => {
 const SourceEditorContent = observer(() => {
   const { id } = useParams();
   const { user } = useAppState();
-  let source = _.find(user.data_stacks[0].sources, (s) => s.id === id); //
-  let spec;
+  let source = _.find(user.data_stacks[0].sources, (s) => s.id === id);
   if (source) {
-    spec = lookupSourceSpec(source);
+    const spec = lookupSourceSpec(source);
+    return <spec.Editor user={user} source={source} id={id} />;
   } else {
     return <ErrorDialog title="This was not supposed to happen." message={`No source found with id '${id}'`} />;
   }
-
-  const Editor = spec.editor;
-  return <Editor user={user} source={source} id={id} />;
 });
+
+const SourceCreatorContent = () => {
+  const { type } = useParams();
+  const spec = lookupSourceSpec({ type });
+  if (spec) {
+    return <spec.Creator />;
+  } else {
+    return <ErrorDialog title="This was not supposed to happen." message={`No creator found for '${type}'`} />;
+  }
+};
 
 export const SourcesContent = () => {
   let { path } = useRouteMatch();
   return (
     <Switch>
-      <Route path={`${path}/\\:new`}>
+      <Route path={`${path}\\:new/:type`}>
+        <SourceCreatorContent />
+      </Route>
+      <Route path={`${path}\\:new`}>
         <NewSourceChooser />
       </Route>
       <Route path={`${path}:id`}>

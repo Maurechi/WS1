@@ -97,6 +97,15 @@ export const VCenter = ({ children, ...BoxProps }) => (
   </Box>
 );
 
+export const ContentTitle = ({ iconURL, children }) => (
+  <Box pb={2} display="flex" style={{ width: "100%" }}>
+    <Box pr={2}>
+      <img src={`/i/icons/${iconURL}`} alt={`Icon for page content`} width={20} />
+    </Box>
+    <Box style={{ flexGrow: 1 }}>{children}</Box>
+  </Box>
+);
+
 export const NotFound = ({ children }) => (
   <Box style={{ width: "100%" }}>
     <HCenter>Not Found</HCenter>

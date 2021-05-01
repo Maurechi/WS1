@@ -1,13 +1,14 @@
 import json
+import os
 import re
 from datetime import datetime
-from pathlib import Path
 from urllib.parse import urlparse
 
 import google.oauth2.service_account
 from googleapiclient.discovery import build
 
 from libds.source import Record, StaticSource
+from libds.utils import yaml_load
 
 
 def lookup_spreadsheet_id(spreadsheet):
@@ -26,57 +27,45 @@ def lookup_spreadsheet_id(spreadsheet):
 class GoogleSheet(StaticSource):
     def __init__(
         self,
-        service_account_file=None,
-        service_account_info=None,
-        spreadsheet=None,
-        range=None,
-        header_row=True,
+        sheet_id,
+        range,
+        header_row,
+        target_table,
+        service_account_info,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        if service_account_info and service_account_file:
-            raise ValueError(
-                "Attempting to set both service_account_file and service_account_json, exaclty one must be specified."
-            )
-        if service_account_info is None and service_account_file is None:
-            raise ValueError(
-                "One of either service_account_file or service_account_json must be set."
-            )
-        if service_account_file is not None:
-            self.service_account_file = Path(service_account_file)
-        else:
-            self.service_account_file = None
-
-        if service_account_info is not None:
-            if isinstance(service_account_info, str):
-                self.service_account_info = json.loads(service_account_info)
-            elif isinstance(service_account_info, dict):
-                self.service_account_info = service_account_info
-            else:
-                raise ValueError(
-                    "service_account_info must be a str, of properly formatted json, or a dict."
-                )
-        else:
-            self.service_account_info = None
-
-        self.spreadsheet = spreadsheet
+        self.sheet_id = sheet_id
         self.range = range
         self.header_row = header_row
+        self.target_table = target_table
+        self.service_account_info = service_account_info
+
+    @classmethod
+    def load_from_yaml(cls, data_stack, file):
+        data = yaml_load(file)
+
+        sheet_id = lookup_spreadsheet_id(data["spreadsheet"])
+        target_table = data["target_table"]
+        range = data["range"]
+        header_row = data["header_row"]
+        service_account_json_var = data["service_account_json_var"]
+        service_account_json = os.environ.get(service_account_json_var)
+        service_account_info = json.loads(service_account_json)
+
+        return cls(sheet_id, range, header_row, target_table, service_account_info)
 
     def info(self):
         return self._info(
-            spreadsheet=self.spreadsheet,
+            sheet_id=self.sheet_id,
             range=self.range,
+            header_row=self.header_row,
         )
 
     def collect_new_records(self, since):
-        if self.service_account_file is not None:
-            service_account_info = json.load(self.service_account_file.open("r"))
-        else:
-            service_account_info = self.service_account_info
         credentials = (
             google.oauth2.service_account.Credentials.from_service_account_info(
-                service_account_info
+                self.service_account_info
             )
         )
 
@@ -85,7 +74,7 @@ class GoogleSheet(StaticSource):
         response = (
             sheets.values()
             .get(
-                spreadsheetId=lookup_spreadsheet_id(self.spreadsheet),
+                spreadsheetId=self.sheet_id,
                 range=self.range,
                 majorDimension="ROWS",
                 valueRenderOption="UNFORMATTED_VALUE",

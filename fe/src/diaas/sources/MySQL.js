@@ -5,9 +5,12 @@ import React from "react";
 import { DataTable } from "diaas/DataTable.js";
 import { Checkbox, makeValueObject, TextField, useFormValue } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { ActionButton } from "diaas/ui.js";
+import { ActionButton, ContentTitle } from "diaas/ui.js";
 
-export const MySQL = observer(({ source }) => {
+export const iconURL = "mysql.png";
+export const label = "MySQL";
+
+export const Editor = observer(({ source }) => {
   const { backend } = useAppState();
   const host = useFormValue(source.data.connect_args.host);
   const port = useFormValue(source.data.connect_args.port);
@@ -17,13 +20,13 @@ export const MySQL = observer(({ source }) => {
   const target_table_name_prefix = useFormValue(source.data.target_table_name_prefix);
   const target_schema = useFormValue(source.data.target_schema);
   const rows = [
-    ["Host", <TextField value={host} />],
-    ["Port", <TextField value={port} />],
-    ["Username", <TextField value={username} />],
-    ["Password (var name)", <TextField value={password_var} />],
-    ["Database", <TextField value={database} />],
-    ["Target Schema", <TextField value={target_schema} />],
-    ["Target Table Name Prefix", <TextField value={target_table_name_prefix} />],
+    ["Host", <TextField value={host} fullWidth={true} />],
+    ["Port", <TextField value={port} fullWidth={true} />],
+    ["Username", <TextField value={username} fullWidth={true} />],
+    ["Password (var name)", <TextField value={password_var} fullWidth={true} />],
+    ["Database", <TextField value={database} fullWidth={true} />],
+    ["Target Schema", <TextField value={target_schema} fullWidth={true} />],
+    ["Target Table Name Prefix", <TextField value={target_table_name_prefix} fullWidth={true} />],
   ];
   const tables = useFormValue(source.data.tables || {});
   const save = () => {
@@ -103,6 +106,7 @@ export const MySQL = observer(({ source }) => {
 
   return (
     <>
+      <ContentTitle iconURL="mysql.png">MySQL</ContentTitle>
       <DataTable rows={rows} columns={[{ style: { width: "20%" } }, { style: {} }]} />
       <ActionButton onClick={save}>Save</ActionButton>
       <ActionButton onClick={inspect}>Load Tables</ActionButton>
