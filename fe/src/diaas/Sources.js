@@ -73,7 +73,7 @@ const SourceType = ({ source }) => {
   const { iconURL, label } = lookupSourceSpec(source);
   return (
     <>
-      <img width="20px" src={`/i/logos/${iconURL}`} alt={label} /> {label}
+      <img width="20px" src={`/i/icons/${iconURL}`} alt={label} /> {label}
     </>
   );
 };
@@ -149,13 +149,13 @@ export const NewConnectorCard = ({ logo, name, type, disabled }) => {
               <VCenter style={{ minHeight: "50px" }}>
                 <img
                   alt={`logo for ${name}`}
-                  src={`/i/logos/${logo}`}
+                  src={`/i/icons/${logo}`}
                   width="30px"
                   style={{ filter: disabled ? "grayscale(1)" : "none" }}
                 />
               </VCenter>
             )}
-            {!logo && <img alt="filler logo for layout purposes" src="/i/logos/postgresql.svg" width="30px" />}
+            {!logo && <img alt="filler logo for layout purposes" src="/i/icons/postgresql.svg" width="30px" />}
           </Box>
           <Box flexGrow={2}>
             <Box
