@@ -23,10 +23,12 @@ export const DataTable = ({ columns = null, rows = null }) => {
 
   rows = rows.map((row) => _.zip(row, columns).map((x) => ({ value: x[0], style: x[1].style })));
 
+  const haveLabels = columns !== null && _.every(columns, (c) => c.label);
+
   return (
     <TableContainer component={Paper}>
       <Table className={classes.table} size="small">
-        {columns !== null && (
+        {haveLabels && (
           <TableHead>
             <TableRow>
               {columns.map((c, i) => (
