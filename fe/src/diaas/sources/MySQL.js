@@ -43,7 +43,7 @@ export const MySQL = observer(({ source }) => {
       }
     }
 
-    return backend.postFile("sources/" + source.filename, JSON.stringify(data, null, 4));
+    return backend.postFile("sources/" + source.filename, data);
   };
 
   const inspectError = useFormValue(null);
