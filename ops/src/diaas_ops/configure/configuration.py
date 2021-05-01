@@ -9,9 +9,7 @@ class Configuration(BaseConfiguration):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        default_project_id = self.if_env(prd="diaas-prd", otherwise="diaas-stg")
-        project_id = from_env("CLOUDSDK_CORE_PROJECT", default=default_project_id)
-        self.secrets = SecretStore(project_id=project_id)
+        self.secrets_store = None
         self.commit_config()
         self.deployment_config()
         self.app_config()
@@ -20,6 +18,10 @@ class Configuration(BaseConfiguration):
         self.login_config()
 
     def _secret(self, name):
+        if self.secrets_store is None:
+            default_project_id = self.if_env(prd="diaas-prd", otherwise="diaas-stg")
+            project_id = from_env("CLOUDSDK_CORE_PROJECT", default=default_project_id)
+            self.secrets_store = SecretStore(project_id=project_id)
         secret = self.secrets.secret_from_name(name).value
         if secret is None:
             raise ValueError(f"Missing required secret {name} in {self.secrets}")
