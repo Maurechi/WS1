@@ -56,7 +56,7 @@ export const wrapInBox = (Component) => {
   };
 };
 
-export const ActionButton = wrapInBox(({ onClick, disabled = false, children, color = "secondary" }) => {
+export const ActionButton = wrapInBox(({ onClick, disabled = null, enabled = null, children, color = "secondary" }) => {
   const [state, setState] = useState("idle");
   const buttonOnClick = () => {
     setState("busy");
@@ -66,6 +66,12 @@ export const ActionButton = wrapInBox(({ onClick, disabled = false, children, co
     });
   };
   const isIdle = state === "idle";
+  if (enabled !== null && disabled !== null && enabled !== disabled) {
+    throw new Error(`Incompatable enabled (${enabled}) and disabled (${disabled}) settings.`);
+  }
+  if (enabled !== null) {
+    disabled = !enabled;
+  }
   return (
     <StandardButton onClick={buttonOnClick} color={isIdle ? color : "inherit"} disabled={!isIdle || disabled}>
       {children}
