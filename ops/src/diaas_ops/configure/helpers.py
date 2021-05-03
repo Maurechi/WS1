@@ -74,10 +74,10 @@ class BaseConfiguration:
                     "CLOUDSDK_CORE_PROJECT", default=default_project_id
                 )
                 self.secrets_store = SecretStore(project_id=project_id)
-            secret = self.secrets.secret_from_name(secret_id).value
+            secret = self.secrets_store.secret_from_name(secret_id).value
             if secret is None:
                 raise ValueError(
-                    f"Missing required secret {secret_id} in {self.secrets}"
+                    f"Missing required secret {secret_id} in {self.secrets_store}"
                 )
             else:
                 value = secret
