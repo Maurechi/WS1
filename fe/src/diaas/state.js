@@ -2,6 +2,7 @@ import axios from "axios";
 import _ from "lodash";
 import { makeAutoObservable } from "mobx";
 import { createContext, useContext } from "react";
+import YAML from "yaml";
 
 const dataIf = (condition) => {
   return (response) => {
@@ -79,8 +80,16 @@ class Backend {
     return this.get(`/sources/${id}/inspect`).then(dataIfStatusEquals(200));
   }
 
-  postFile(filename, text) {
-    return this.post(`/files/${filename}`, { text: text }).then(dataIfStatusEquals(200));
+  postFile(filename, contents) {
+    let text;
+    if (_.isString(contents)) {
+      text = contents;
+    } else if (filename.match(/[.]yaml$/)) {
+      text = YAML.stringify(contents);
+    } else if (filename.match(/[.]json$/)) {
+      text = JSON.stringify(contents, null, 4);
+    }
+    return this.post(`/files/${filename}`, { text }).then(dataIfStatusEquals(200));
   }
 
   deleteFile(filename) {

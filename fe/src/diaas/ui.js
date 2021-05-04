@@ -56,7 +56,7 @@ export const wrapInBox = (Component) => {
   };
 };
 
-export const ActionButton = wrapInBox(({ onClick, disabled = false, children, color = "secondary" }) => {
+export const ActionButton = wrapInBox(({ onClick, disabled = null, enabled = null, children, color = "secondary" }) => {
   const [state, setState] = useState("idle");
   const buttonOnClick = () => {
     setState("busy");
@@ -66,6 +66,12 @@ export const ActionButton = wrapInBox(({ onClick, disabled = false, children, co
     });
   };
   const isIdle = state === "idle";
+  if (enabled !== null && disabled !== null && enabled !== disabled) {
+    throw new Error(`Incompatable enabled (${enabled}) and disabled (${disabled}) settings.`);
+  }
+  if (enabled !== null) {
+    disabled = !enabled;
+  }
   return (
     <StandardButton onClick={buttonOnClick} color={isIdle ? color : "inherit"} disabled={!isIdle || disabled}>
       {children}
@@ -88,6 +94,15 @@ export const HCenter = ({ children, ...BoxProps }) => (
 export const VCenter = ({ children, ...BoxProps }) => (
   <Box display="flex" width="100%" alignItems="center" {...BoxProps}>
     {children}
+  </Box>
+);
+
+export const ContentTitle = ({ iconURL, children }) => (
+  <Box pb={2} display="flex" style={{ width: "100%" }}>
+    <Box pr={2}>
+      <img src={`/i/icons/${iconURL}`} alt={`Icon for page content`} width={20} />
+    </Box>
+    <Box style={{ flexGrow: 1 }}>{children}</Box>
   </Box>
 );
 

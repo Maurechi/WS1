@@ -2,9 +2,9 @@ import { Box } from "@material-ui/core";
 
 import { useAppState } from "diaas/state.js";
 
-const StoreLogo = ({ logo, alt }) => (
+const StoreIcon = ({ icon, alt }) => (
   <p>
-    <img width="100em" src={`/i/logos/${logo}`} alt={alt} />
+    <img width="100em" src={`/i/icons/${icon}`} alt={alt} />
   </p>
 );
 
@@ -31,7 +31,7 @@ const StoreTable = ({ store, children }) => (
 const PostgreSQL = (store) => {
   return (
     <>
-      <StoreLogo logo="postgresql.svg" alt="PostgreSQL DB" />
+      <StoreIcon icon="postgresql.svg" alt="PostgreSQL DB" />
       <StoreTable store={store}>
         <tr>
           <td>Host:</td>
@@ -53,7 +53,7 @@ const PostgreSQL = (store) => {
 const ClickHouse = ({ store }) => {
   return (
     <>
-      <StoreLogo logo="clickhouse.png" alt="ClickHouse" />
+      <StoreIcon icon="clickhouse.png" alt="ClickHouse" />
       <StoreTable store={store}>
         <tr>
           <td>Host:</td>
@@ -81,7 +81,7 @@ export const StoreContent = () => {
     } else {
       return (
         <>
-          <StoreLogo logo="404.gif" alt="Unknown Type" />
+          <StoreIcon icon="404.gif" alt="Unknown Type" />
           <StoreTable store={store} />
         </>
       );

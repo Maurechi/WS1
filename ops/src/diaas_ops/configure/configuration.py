@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from diaas_ops.configure.helpers import BaseConfiguration, from_env
-from diaas_ops.secret import SecretStore
 from slugify import slugify
 
 
@@ -9,22 +8,12 @@ class Configuration(BaseConfiguration):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        default_project_id = self.if_env(prd="diaas-prd", otherwise="diaas-stg")
-        project_id = from_env("CLOUDSDK_CORE_PROJECT", default=default_project_id)
-        self.secrets = SecretStore(project_id=project_id)
         self.commit_config()
         self.deployment_config()
         self.app_config()
         self.monitoring_config()
         self.tracker_config()
         self.login_config()
-
-    def _secret(self, name):
-        secret = self.secrets.secret_from_name(name).value
-        if secret is None:
-            raise ValueError(f"Missing required secret {name} in {self.secrets}")
-        else:
-            return secret
 
     def commit_config(self):
         if from_env("CI"):
@@ -84,10 +73,8 @@ class Configuration(BaseConfiguration):
         )
 
     def _flask_config(self):
-        self._set_all(
-            DIAAS_INTERNAL_API_TOKEN=self._secret("app/internal-api-token"),
-            DIAAS_SESSION_SECRET_KEY=self._secret("app/session-secret-key"),
-        )
+        self._set_secret("DIAAS_INTERNAL_API_TOKEN", "app/internal-api-token")
+        self._set_secret("DIAAS_SESSION_SECRET_KEY", "app/session-secret-key")
 
         self._set_all(
             DIAAS_SESSION_COOKIE_IS_SECURE=not self.is_lcl,
@@ -110,8 +97,7 @@ class Configuration(BaseConfiguration):
                 DIAAS_LIBDS_DIR=install_dir / "libds",
                 DIAAS_BEDB_MIGRATIONS_DIR=install_dir / "be/migrations",
             )
-            pg_hashids_salt = self.secrets.secret_from_name("app/pg_hashids-salt").value
-            self._set("DIAAS_PG_HASHIDS_SALT", value=pg_hashids_salt)
+            self._set_secret("DIAAS_PG_HASHIDS_SALT", "app/pg_hashids-salt")
 
             self._set("DIAAS_BE_BIN_DIR", default=install_dir / "be/bin")
 
@@ -151,11 +137,8 @@ class Configuration(BaseConfiguration):
         self._set(
             "DIAAS_AUTH_METHOD", default=self.if_env(lcl="TRUST", otherwise="VERIFY")
         )
-        self._set(
-            "DIAAS_AUTH_GOOGLE_CLIENT_ID", self._secret("app/google-oauth/client-id")
-        )
+        self._set_secret("DIAAS_AUTH_GOOGLE_CLIENT_ID", "app/google-oauth/client-id")
         if self.with_be:
-            self._set(
-                "DIAAS_AUTH_GOOGLE_CLIENT_SECRET",
-                self._secret("app/google-oauth/client-secret"),
+            self._set_secret(
+                "DIAAS_AUTH_GOOGLE_CLIENT_SECRET", "app/google-oauth/client-secret"
             )

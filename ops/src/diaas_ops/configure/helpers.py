@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pygit2
 import tabulate
+from diaas_ops.secret import SecretStore
 
 
 def from_env(name, type=None, default=None, required=False):
@@ -59,6 +60,29 @@ class BaseConfiguration:
             raise ValueError(
                 f"Unknown environment {environment}, must be one of prd, stg, or lcl."
             )
+
+        self.secrets_store = None
+
+    def _set_secret(self, key, secret_id, **from_env_args):
+        env_value = from_env(key)
+        if env_value is not None:
+            value = env_value
+        else:
+            if self.secrets_store is None:
+                default_project_id = self.if_env(prd="diaas-prd", otherwise="diaas-stg")
+                project_id = from_env(
+                    "CLOUDSDK_CORE_PROJECT", default=default_project_id
+                )
+                self.secrets_store = SecretStore(project_id=project_id)
+            secret = self.secrets_store.secret_from_name(secret_id).value
+            if secret is None:
+                raise ValueError(
+                    f"Missing required secret {secret_id} in {self.secrets_store}"
+                )
+            else:
+                value = secret
+
+        return self._set(key, value)
 
     def _set(self, key, value=None, **from_env_args):
         if value is None:
