@@ -2,6 +2,7 @@
 import functools
 import json
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -55,8 +56,6 @@ class Command:
         if self.format == "yaml":
             yaml_dump(result, sys.stdout)
         elif self.format == "json":
-            import json
-
             json.dump(result, sys.stdout, cls=OutputEncoder)
             print("")
         else:
@@ -256,9 +255,14 @@ def data_nodes():
 
 
 @command(other_names=["dot"])
-def data_orchestrator_tick():
-    orchestrator = COMMAND.ds.data_orchestrator
-    return orchestrator.tick()
+@click.option("--loop", type=bool, is_flag=True, default=False)
+def data_orchestrator_tick(loop):
+    if loop:
+        while True:
+            COMMAND.results(COMMAND.ds.data_orchestrator.tick())
+            time.sleep(30)
+    else:
+        return COMMAND.ds.data_orchestrator.tick()
 
 
 @command(other_names=["dnu"])
