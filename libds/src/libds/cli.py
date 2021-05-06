@@ -259,7 +259,8 @@ def data_nodes():
 def data_orchestrator_tick(loop):
     if loop:
         while True:
-            COMMAND.results(COMMAND.ds.data_orchestrator.tick())
+            ds = COMMAND.reload_data_stack()
+            COMMAND.results(ds.data_orchestrator.tick())
             time.sleep(30)
     else:
         return COMMAND.ds.data_orchestrator.tick()
