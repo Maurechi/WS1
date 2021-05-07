@@ -12,6 +12,18 @@ export const label = "MySQL";
 
 export const Editor = observer(({ source }) => {
   const { backend } = useAppState();
+
+  if (!source) {
+    source = {
+      data: {
+        connect_args: {},
+      },
+      filename: null,
+      id: null,
+    };
+  }
+
+  const id = useFormValue(source.id);
   const host = useFormValue(source.data.connect_args.host);
   const port = useFormValue(source.data.connect_args.port);
   const username = useFormValue(source.data.connect_args.username);
@@ -20,6 +32,7 @@ export const Editor = observer(({ source }) => {
   const target_table_name_prefix = useFormValue(source.data.target_table_name_prefix);
   const target_schema = useFormValue(source.data.target_schema);
   const rows = [
+    ["Id", <TextField value={id} fullWidth={true} disabled={source.id !== null} />],
     ["Host", <TextField value={host} fullWidth={true} />],
     ["Port", <TextField value={port} fullWidth={true} />],
     ["Username", <TextField value={username} fullWidth={true} />],
@@ -46,7 +59,7 @@ export const Editor = observer(({ source }) => {
       }
     }
 
-    return backend.postFile("sources/" + source.filename, data);
+    return backend.postFile(source.id === null ? `sources/{id.v}.yaml` : `sources/${source.filename}`, data);
   };
 
   const inspectError = useFormValue(null);
@@ -119,3 +132,5 @@ export const Editor = observer(({ source }) => {
     </>
   );
 });
+
+export const Creator = () => <Editor />;

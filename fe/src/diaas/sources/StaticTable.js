@@ -12,23 +12,41 @@ export const iconURL = "csv.png";
 export const label = "Manual Data Entry";
 
 export const Editor = observer(({ source }) => {
+  if (!source) {
+    source = {
+      data: {
+        table: null,
+        data: "",
+        type: "libds.source.static.StaticTable",
+      },
+      info: {
+        rows: [],
+        columns: [],
+      },
+      filename: null,
+    };
+  }
   const table = useFormValue(source.data.table);
-  const data = useFormValue(source.data.data);
+  const data = useFormValue(source.data.data, { trim: false });
   const rows = source.info.rows.map((row) => Object.fromEntries(_.zip(source.info.columns, row)));
   const { backend } = useAppState();
   const save = () => {
+    let src, dst;
+    if (source.filename === null) {
+      src = `sources/${table.v}.yaml`;
+      dst = src;
+    } else {
+      src = `sources/${source.filename}`;
+      dst = `sources/${table.v}.yaml`;
+    }
     return backend
-      .postFile("sources/" + source.filename, {
+      .postFile(src, {
         data: data.v,
         table: table.v,
         type: source.data.type,
       })
       .then(() => {
-        if (table.v !== source.data.table) {
-          return backend.moveFile("sources/" + source.filename, "sources/" + table.v + ".yaml");
-        } else {
-          return null;
-        }
+        return src !== dst ? backend.moveFile(src, dst) : null;
       });
   };
   return (
@@ -52,3 +70,5 @@ export const Editor = observer(({ source }) => {
     </Form>
   );
 });
+
+export const Creator = Editor;

@@ -180,6 +180,32 @@ export const NewSourceChooser = () => {
     <Box>
       <Box mb={2}>
         <Box mb={2}>
+          <Typography variant="h6">Data Sources</Typography>
+        </Box>
+        <Grid container spacing={4}>
+          <Grid item xs={4}>
+            <NewConnectorCard logo="csv.png" name="Static Table" type="libds.source.static.StaticTable" />
+          </Grid>
+          <Grid item xs={4}>
+            <NewConnectorCard logo="mysql.png" name="MySQL" type="libds.source.mysql.MySQL" />
+          </Grid>
+          <Grid item xs={4}>
+            <NewConnectorCard logo="postgresql.svg" name="PostgreSQL" disabled />
+          </Grid>
+          <Grid item xs={4}>
+            <NewConnectorCard logo="google-sheets.svg" name="Google Sheets" type="libds.source.google.GoogleSheet" />
+          </Grid>
+          <Grid item xs={4}>
+            <NewConnectorCard name="BigQuery" logo="bigquery.png" disabled />
+          </Grid>
+          <Grid item xs={4}>
+            <NewConnectorCard name="Redshift" logo="redshift.png" disabled />
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box mb={2}>
+        <Box mb={2}>
           <Typography variant="h6">Marketing Sources</Typography>
         </Box>
         <Grid container spacing={4}>
@@ -208,32 +234,6 @@ export const NewSourceChooser = () => {
           </Grid>
           <Grid item xs={4}>
             <NewConnectorCard name="Pipedrive" logo="pipedrive.svg" disabled />
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box mb={2}>
-        <Box mb={2}>
-          <Typography variant="h6">Data Sources</Typography>
-        </Box>
-        <Grid container spacing={4}>
-          <Grid item xs={4}>
-            <NewConnectorCard logo="csv.png" name="Static Table" type="libds.source.static.StaticTable" disabled />
-          </Grid>
-          <Grid item xs={4}>
-            <NewConnectorCard logo="mysql.png" name="MySQL" type="libds.source.mysql.MySQL" disabled />
-          </Grid>
-          <Grid item xs={4}>
-            <NewConnectorCard logo="postgresql.svg" name="PostgreSQL" disabled />
-          </Grid>
-          <Grid item xs={4}>
-            <NewConnectorCard logo="google-sheets.svg" name="Google Sheets" type="libds.source.google.GoogleSheet" />
-          </Grid>
-          <Grid item xs={4}>
-            <NewConnectorCard name="BigQuery" logo="bigquery.png" disabled />
-          </Grid>
-          <Grid item xs={4}>
-            <NewConnectorCard name="Redshift" logo="redshift.png" disabled />
           </Grid>
         </Grid>
       </Box>
