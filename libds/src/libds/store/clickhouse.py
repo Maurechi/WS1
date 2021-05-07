@@ -177,11 +177,11 @@ class ClickHouse(Store):
         client = self.client()
         query = f"""
             CREATE TABLE {working} (
-                _sdc_extracted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'),
+                _extracted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'),
         {", ".join(cols)}
             )
             ENGINE MergeTree()
-            ORDER BY (_sdc_extracted_at);"""
+            ORDER BY (_extracted_at);"""
         client.execute(query)
         p.display(f"Created {query}")
 
@@ -226,11 +226,11 @@ class ClickHouse(Store):
         client.execute(
             f"""CREATE TABLE IF NOT EXISTS {working} (
                     data String,
-                    _sdc_extracted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
+                    _extracted_at DateTime64 DEFAULT toDateTime64(now(), 3, 'UTC'))
                 ENGINE MergeTree()
-                ORDER BY (_sdc_extracted_at);"""
+                ORDER BY (_extracted_at);"""
         )
-        insert = f"""INSERT INTO {working} (data, _sdc_extracted_at) VALUES"""
+        insert = f"""INSERT INTO {working} (data, _extracted_at) VALUES"""
         num_rows = client.execute(
             insert, (record_for_clickhouse(row) for row in records)
         )
