@@ -333,7 +333,9 @@ def fork():
 
 
 class IsNotStale(Exception):
-    pass
+    def __init__(self, state):
+        super().__init__()
+        self.state = state
 
 
 def _state_to_running(orchestrator, nid, tid, info):
@@ -359,7 +361,7 @@ def _state_to_refreshing(orchestrator, nid, tid, info):
     if state == "STALE":
         _state_to_running(orchestrator, nid, tid, info)
     else:
-        raise IsNotStale()
+        raise IsNotStale(state)
 
 
 def timestamp():
@@ -414,12 +416,12 @@ def trigger_refresh(orchestrator, node, info, force=False):
         except sqlite3.OperationalError as oe:
             print(f"sqllite3.OperationalError: {oe}")
             time.sleep(1)
-        except IsNotStale:
+        except IsNotStale as ins:
             if force:
                 _state_to_running(orchestrator, node.id, tid, info)
                 break
             else:
-                print("is not stale. not refreshing.")
+                print(f"is not stale (is {ins.state}). not refreshing.")
                 return
 
     try:
