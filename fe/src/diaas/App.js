@@ -14,7 +14,6 @@ import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
 import { AppNavigation, AppSplash, FallbackAppNavigation } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
-import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
@@ -181,9 +180,6 @@ const AppContent = () => (
     <Router>
       <AppNavigation>
         <Switch>
-          <Route path="/modules/">
-            <ModulesContent />
-          </Route>
           <Route path="/sources/">
             <SourcesContent />
           </Route>
