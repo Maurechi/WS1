@@ -505,7 +505,9 @@ def fork_and_refresh(orchestrator, node, log_dir):
     stdout_file = log_file("stdout")
     stderr_file = log_file("stderr")
 
-    if fork() > 0:
+    child_pid = fork()
+    if child_pid > 0:
+        os.waitpid(child_pid, 0)
         return pid_file
 
     # NOTE From this point on we're in the child and we never return 20210326:mb
@@ -579,7 +581,9 @@ def fork_and_check_for_zombies(orchestrator, log_dir):
     stdout_file = log_file("stdout")
     stderr_file = log_file("stderr")
 
-    if fork() > 0:
+    child_pid = fork()
+    if child_pid > 0:
+        os.waitpid(child_pid, 0)
         return pid_file
 
     # NOTE From this point on we're in the child and we never return 20210326:mb
