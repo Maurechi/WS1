@@ -6,9 +6,9 @@ windows:
       panes:
         - ./ops/lcl/run-be
         - (cd fe && nvm use && npm ci && ../ops/lcl/run-fe)
-        - ./ops/lcl/run-bedb
   - data:
       layout: even-horizontal
       panes:
+        - ./ops/lcl/run-bedb
         - ./ops/lcl/run-lcl-postgres
         - ./ops/lcl/run-lcl-clickhouse
