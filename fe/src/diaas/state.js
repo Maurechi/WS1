@@ -64,8 +64,12 @@ class Backend {
     return this.axios.delete(url, config);
   }
 
-  getCurrentUser() {
+  getSession() {
     return this.get("session").then(dataIfStatusEquals(200));
+  }
+
+  getCurrentUser() {
+    return this.getSession();
   }
 
   login(data) {
@@ -110,6 +114,10 @@ class Backend {
 
   deleteDataNode(nid, state) {
     return this.delete(`/data-nodes/${nid}`, { state }).then(dataIfStatusEquals(200));
+  }
+
+  getDataNodes() {
+    return this.getSession().then((data) => data.data_stacks[0].data);
   }
 
   taskInfo(tid) {

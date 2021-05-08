@@ -13,7 +13,14 @@ import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-route
 import { DataGrid } from "diaas/DataGrid.js";
 import { useStateV } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { ActionButton, DefinitionTable as DefTable, Literal, useResize } from "diaas/ui.js";
+import {
+  ActionButton,
+  CircularProgressWithLabel,
+  DefinitionTable as DefTable,
+  Literal,
+  useResize,
+  useTick,
+} from "diaas/ui.js";
 
 const useDataNodes = () => {
   const { user } = useAppState();
@@ -262,7 +269,7 @@ const Tasks = () => {
   );
 };
 
-const Content = () => {
+const Content = observer(() => {
   let { tab: tabParam } = useParams();
   if (!_.includes(["graph", "nodes", "tasks"], tabParam)) {
     tabParam = "graph";
@@ -277,13 +284,39 @@ const Content = () => {
     history.push("./" + newValue);
   };
 
+  const { user, backend } = useAppState();
+
+  const refreshInterval = 30;
+  const tick = useTick({ bound: refreshInterval + 1 });
+  const secondsRemaining = refreshInterval - tick;
+  const percentRemaining = Math.min(100, Math.round(100 * (secondsRemaining / refreshInterval)));
+  const [loading, setLoading] = useState(null);
+
+  console.log(tick, secondsRemaining, percentRemaining);
+
+  if (tick === 0 && loading === null) {
+    setLoading(
+      backend.getDataNodes().then((data) => {
+        user.dataStack.data = data;
+        setLoading(null);
+      })
+    );
+  }
+
   return (
     <TabContext value={tab}>
-      <TabList onChange={onChange}>
-        <Tab value="graph" label="Graph" />
-        <Tab value="nodes" label="Nodes" />
-        <Tab value="tasks" label="Tasks" />
-      </TabList>
+      <Box display="flex" alignItems="center">
+        <Box style={{ flexGrow: 1 }}>
+          <TabList onChange={onChange}>
+            <Tab value="graph" label="Graph" />
+            <Tab value="nodes" label="Nodes" />
+            <Tab value="tasks" label="Tasks" />
+          </TabList>
+        </Box>
+        <Box pr={4}>
+          <CircularProgressWithLabel value={percentRemaining}>{secondsRemaining}s</CircularProgressWithLabel>
+        </Box>
+      </Box>
       <TabPanel value="graph">
         <Graph />
       </TabPanel>
@@ -295,16 +328,13 @@ const Content = () => {
       </TabPanel>
     </TabContext>
   );
-};
+});
 
 export const DataNodesContent = () => {
   let { path } = useRouteMatch();
   return (
     <Switch>
       <Route path={`${path}:tab`}>
-        <Content />
-      </Route>
-      <Route path={path}>
         <Content />
       </Route>
     </Switch>

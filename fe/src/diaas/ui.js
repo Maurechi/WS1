@@ -1,4 +1,4 @@
-import { Box, Button } from "@material-ui/core";
+import { Box, Button, CircularProgress, Typography } from "@material-ui/core";
 import _ from "lodash";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
@@ -158,3 +158,41 @@ DefinitionTable.Term = ({ label, children }) => (
     <td style={{ verticalAlign: "top" }}>{children}</td>
   </tr>
 );
+
+/// https://material-ui.com/components/progress/
+export const CircularProgressWithLabel = ({ children, value }) => {
+  return (
+    <Box position="relative" display="inline-flex">
+      <CircularProgress variant="determinate" value={value} />
+      <Box
+        top={0}
+        left={0}
+        bottom={0}
+        right={0}
+        position="absolute"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Typography variant="caption" component="div" color="textSecondary">
+          {children}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+export const useTick = ({ start = 0, bound, step = 1, interval = 1000 }) => {
+  const [tick, setTick] = useState(start);
+  useEffect(() => {
+    let t = start;
+    const intervalId = setInterval(() => {
+      t = (t + step) % bound;
+      setTick(t);
+    }, interval);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [bound, interval, start, step]);
+  return tick;
+};

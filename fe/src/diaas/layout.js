@@ -268,7 +268,7 @@ export const AppNavigation = observer(({ children }) => {
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
           <SectionMenuItem location="/store" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
-          <SectionMenuItem location="/data-nodes" text="Data Nodes" Icon={DataNodesIcon} />
+          <SectionMenuItem location="/data-nodes/graph" text="Data Nodes" Icon={DataNodesIcon} />
           <SectionMenuItem
             location="/analytics"
             onClick={() => window.open("/analytics", "caravel-analytics")}

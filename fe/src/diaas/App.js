@@ -1,6 +1,6 @@
 import { Box, Button, Divider, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { GoogleLogin } from "react-google-login";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import v from "voca";
@@ -18,20 +18,10 @@ import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
 import { ThemeProvider } from "diaas/Theme.js";
-import { HCenter } from "diaas/ui.js";
+import { HCenter, useTick } from "diaas/ui.js";
 
 const Loading = () => {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    let t = 0;
-    const interval = setInterval(() => {
-      t = (t + 1) % 3;
-      setTick(t);
-    }, 600);
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+  const tick = useTick({ start: 0, bound: 3, interval: 600 });
   return (
     <div className="App" style={{ textAlign: "center" }}>
       <header
