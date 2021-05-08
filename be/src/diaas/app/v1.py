@@ -7,12 +7,29 @@ from diaas.model import User
 api_v1 = Blueprint("api_v1", __name__)
 
 
-def _user_as_json(user):
+def _data_stack_as_json(ds, trim=True):
+    info = ds.libds.info()
+    if trim:
+        tasks = info.get("data", {}).get("tasks", None)
+        if tasks is not None:
+            for task in tasks:
+                if "info" in task:
+                    for key, value in task["info"].items():
+                        if isinstance(value, str) and len(value) > 200:
+                            value = value[:99] + "\n...\n" + value[-99:]
+                            task["info"][key] = value
+    return info
+
+
+def _session_json(user):
     return {
         "uid": user.code,
         "display_name": user.display_name,
         "email": user.email,
-        "data_stacks": {ds.id: ds.libds.info() for ds in user.data_stacks.values()},
+        "data_stacks": {
+            ds.id: _data_stack_as_json(ds, trim=True)
+            for ds in user.data_stacks.values()
+        },
     }
 
 
@@ -24,7 +41,7 @@ def session_get():
         if u is None:
             return None, 404
         else:
-            return _user_as_json(u), 200
+            return _session_json(u), 200
     else:
         return None, 404
 
@@ -35,7 +52,7 @@ def session_post():
     u = login()
     if u:
         session["uid"] = u.uid
-        return _user_as_json(u)
+        return _session_json(u)
     else:
         return {}, 401
 
@@ -129,3 +146,15 @@ def data_node_update(nid):
 def data_node_delete(nid):
     libds = g.user.current_data_stack.libds
     return libds.data_node_delete(nid=nid)
+
+
+@api_v1.route("/tasks/<path:tid>", methods=["GET"])
+@login_required
+@as_json
+def task_info(tid):
+    info = g.user.current_data_stack.libds.info()
+    for task in info.get("data", {}).get("tasks", []):
+        if task.get("id") == tid:
+            return task
+    else:
+        return None

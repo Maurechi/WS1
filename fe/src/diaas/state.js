@@ -111,6 +111,10 @@ class Backend {
   deleteDataNode(nid, state) {
     return this.delete(`/data-nodes/${nid}`, { state }).then(dataIfStatusEquals(200));
   }
+
+  taskInfo(tid) {
+    return this.get(`/tasks/${tid}`).then(dataIfStatusEquals(200));
+  }
 }
 
 class User {

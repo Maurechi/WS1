@@ -13,7 +13,7 @@ import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-route
 import { DataGrid } from "diaas/DataGrid.js";
 import { useStateV } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
-import { ActionButton, DefinitionTable, Literal, useResize } from "diaas/ui.js";
+import { ActionButton, DefinitionTable as DefTable, Literal, useResize } from "diaas/ui.js";
 
 const useDataNodes = () => {
   const { user } = useAppState();
@@ -121,6 +121,76 @@ const Nodes = observer(() => {
   return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} />;
 });
 
+const TaskDialog = ({ tid, open }) => {
+  const { backend } = useAppState();
+
+  const tasks = useDataTasks();
+
+  let task = null;
+  tasks.forEach((t) => {
+    if (t.id === tid.v) {
+      task = t;
+    }
+  });
+
+  const taskState = useStateV(null);
+
+  if (!open.v) {
+    task = { info: {} };
+  } else {
+    if (task === null) {
+      throw new Error(`Selected task is ${tid.v} but no task with that id.`);
+    }
+
+    if (task._state === undefined) {
+      task._state = "INIT";
+    }
+
+    if (task._state === "INIT") {
+      task._state = "LOADING";
+      backend.taskInfo(task.id).then((t) => {
+        task._state = "LOADED";
+        task.info = t.info;
+        taskState.v = task._state;
+      });
+    }
+    taskState.v = task._state;
+  }
+
+  return (
+    <Dialog
+      fullWidth={true}
+      maxWidth="lg"
+      onClose={() => open.toggle()}
+      aria-labelledby="task-details-dialog-title"
+      open={open.v}
+    >
+      <DialogTitle id="simple-dialog-title">Task {task.id}</DialogTitle>
+      <Box p={2}>
+        <DefTable>
+          <DefTable.Term label="PID">{task.info.pid}</DefTable.Term>
+          <DefTable.Term label="Started At">{task.info.started_at}</DefTable.Term>
+          {task.info.stdout && (
+            <DefTable.Term label="stdout">
+              <Literal>{task.info.stdout}</Literal>
+            </DefTable.Term>
+          )}
+          {task.info.stderr && (
+            <DefTable.Term label="stderr">
+              <Literal>{task.info.stderr}</Literal>
+            </DefTable.Term>
+          )}
+          {task.info.otherInfo !== null && (
+            <DefTable.Term label="Other">
+              <Literal>{task.info.otherInfo}</Literal>
+            </DefTable.Term>
+          )}
+        </DefTable>
+      </Box>
+    </Dialog>
+  );
+};
+
 const Tasks = () => {
   const columns = [
     { defaultFlex: 1, name: "nid", header: "Node ID", defaultWidth: 100 },
@@ -149,9 +219,9 @@ const Tasks = () => {
     },
   ];
 
-  const dataNodes = useDataTasks();
+  const tasks = useDataTasks();
 
-  const rows = dataNodes
+  const rows = tasks
     .map((t) => {
       const { nid, started_at, completed_at, pid, stdout, stderr, ...otherInfo } = t.info;
       return {
@@ -170,65 +240,16 @@ const Tasks = () => {
     .slice(0, 100);
 
   const open = useStateV(false);
-
   const tid = useStateV(null);
-  const state = useStateV(null);
-  const startedAt = useStateV(null);
-  const pid = useStateV(null);
-  const stdout = useStateV(null);
-  const stderr = useStateV(null);
-  const otherInfo = useStateV(null);
 
   const select = ({ data }) => {
     tid.v = data.id;
-    startedAt.v = data.startedAt;
-    state.v = data.state;
-
-    pid.v = data.pid;
-    stdout.v = data.stdout;
-    stderr.v = data.stderr;
-    otherInfo.v = _.isEmpty(data.otherInfo) ? null : JSON.stringify(data.otherInfo, null, 4).trim();
     open.v = true;
   };
 
-  console.log("open", open.v);
-
-  const Table = DefinitionTable;
-
   return (
     <>
-      <Dialog
-        fullWidth={true}
-        maxWidth="lg"
-        onClose={() => open.toggle()}
-        aria-labelledby="task-details-dialog-title"
-        open={open.v}
-      >
-        <DialogTitle id="simple-dialog-title">Task {tid.v}</DialogTitle>
-        <Box p={2}>
-          <Table>
-            <Table.Term label="PID">{pid.v}</Table.Term>
-            <Table.Term label="Started At">{startedAt.v}</Table.Term>
-            {stdout.v && (
-              <Table.Term label="stdout">
-                {" "}
-                <Literal>{stdout.v}</Literal>{" "}
-              </Table.Term>
-            )}
-            {stderr.v && (
-              <Table.Term label="stderr">
-                {" "}
-                <Literal>{stderr.v}</Literal>{" "}
-              </Table.Term>
-            )}
-            {otherInfo.v !== null && (
-              <Table.Term label="Other">
-                <Literal>{otherInfo.v}</Literal>
-              </Table.Term>
-            )}
-          </Table>
-        </Box>
-      </Dialog>
+      <TaskDialog tid={tid} open={open} />
       <DataGrid
         idProperty="id"
         columns={columns}
