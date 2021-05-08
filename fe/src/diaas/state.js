@@ -115,6 +115,10 @@ class Backend {
   taskInfo(tid) {
     return this.get(`/tasks/${tid}`).then(dataIfStatusEquals(200));
   }
+
+  modelInfo(mid) {
+    return this.get(`/models/${mid}`).then(dataIfStatusEquals(200));
+  }
 }
 
 class User {

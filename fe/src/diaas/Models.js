@@ -2,7 +2,7 @@ import { Box, Divider, Grid, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React from "react";
-import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
+import { generatePath, Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
 import { CodeEditor, TextField, useFormValue } from "diaas/form.js";
@@ -12,6 +12,9 @@ import { ActionButton, ButtonLink, NotFound, VCenter } from "diaas/ui.js";
 
 export const Editor = observer(() => {
   const { user, backend } = useAppState();
+  const history = useHistory();
+  const routeMatch = useRouteMatch();
+  console.log(routeMatch);
 
   if (user.dataStack === null) {
     return <NotFound>No Data stacks for user</NotFound>;
@@ -20,23 +23,36 @@ export const Editor = observer(() => {
   const { modelId } = useParams();
   const creating = modelId === "new";
 
-  let model;
+  let model,
+    notFound = false;
   if (creating) {
     model = { id: "", type: "sql", source: "select * from" };
   } else {
     model = _.find(user.dataStack.models, (m) => m.id === modelId);
     if (!model) {
-      return <NotFound>No Model with id {modelId}</NotFound>;
+      notFound = true;
+      model = {};
     }
   }
 
   const textValue = useFormValue(model.source, { trim: false });
   const idValue = useFormValue(model.id);
 
+  const redirectToModel = (mid) => {
+    return backend.modelInfo(mid).then((m) => {
+      user.dataStack.models = _.concat(user.dataStack.models, [m]);
+      if (history.location.pathname === routeMatch.url) {
+        history.replace(generatePath(routeMatch.path, { modelId: mid }));
+      }
+    });
+  };
+
   const save = () => {
     let updateFile;
     if (creating) {
-      updateFile = backend.postFile(`models/${idValue.v}.sql`, textValue.v);
+      updateFile = backend.postFile(`models/${idValue.v}.sql`, textValue.v).then(() => {
+        return redirectToModel(idValue.v);
+      });
     } else {
       updateFile = backend.postFile(model.filename, textValue.v);
       if (model.id !== idValue.v) {
@@ -47,8 +63,10 @@ export const Editor = observer(() => {
           }
           const dirs = m[1];
           const ext = m[2];
-          const basename = idValue.v;
-          return backend.moveFile(model.filename, "models" + dirs + "/" + basename + ext);
+          return backend.moveFile(model.filename, "models" + dirs + "/" + idValue.v + ext).then(() => {
+            user.dataStack.models = _.filter(user.dataStack.models, (m) => m.id !== model.id);
+            return redirectToModel(idValue.v);
+          });
         });
       }
     }
@@ -57,41 +75,45 @@ export const Editor = observer(() => {
     });
   };
 
-  return (
-    <form onSubmit={save}>
-      <Box>
-        <Box display="flex" mb={3}>
-          <Box style={{ flexGrow: 1 }}>
-            <Typography variant="h4">Settings</Typography>
-            <VCenter>
-              <Box pr={2}>ID:</Box>
-              <Box>
-                <TextField value={idValue} />
-              </Box>
-            </VCenter>
-          </Box>
-          <Box>
-            <Box display="flex">
-              <Box mx={1}>
-                <ActionButton onClick={save}>Save</ActionButton>
+  if (notFound) {
+    return <NotFound>No Model with id {modelId}</NotFound>;
+  } else {
+    return (
+      <form onSubmit={save}>
+        <Box>
+          <Box display="flex" mb={3}>
+            <Box style={{ flexGrow: 1 }}>
+              <Typography variant="h4">Settings</Typography>
+              <VCenter>
+                <Box pr={2}>ID:</Box>
+                <Box>
+                  <TextField value={idValue} />
+                </Box>
+              </VCenter>
+            </Box>
+            <Box>
+              <Box display="flex">
+                <Box mx={1}>
+                  <ActionButton onClick={save}>Save</ActionButton>
+                </Box>
               </Box>
             </Box>
           </Box>
+          <Divider />
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h4">Model</Typography>
+              <CodeEditor mode={model.type} value={textValue} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h4">Notebook</Typography>
+              <Notebook id={modelId} baseTable={modelId} />
+            </Grid>
+          </Grid>
         </Box>
-        <Divider />
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="h4">Model</Typography>
-            <CodeEditor mode={model.type} value={textValue} />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="h4">Notebook</Typography>
-            <Notebook id={modelId} baseTable={modelId} />
-          </Grid>
-        </Grid>
-      </Box>
-    </form>
-  );
+      </form>
+    );
+  }
 });
 
 export const FileTable = observer(() => {

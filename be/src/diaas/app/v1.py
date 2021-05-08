@@ -93,6 +93,18 @@ def delete_file(file):
     return libds.delete_file(file)
 
 
+@api_v1.route("/models/<path:mid>", methods=["GET"])
+@login_required
+@as_json
+def model_info(mid):
+    info = g.user.current_data_stack.libds.info()
+    for m in info.get("models", []):
+        if m.get("id") == mid:
+            return m
+    else:
+        return None
+
+
 @api_v1.route("/model/<path:id>", methods=["POST"])
 @login_required
 @as_json
