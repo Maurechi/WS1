@@ -1,4 +1,4 @@
-import { Button, Divider, Grid } from "@material-ui/core";
+import { Box, Button, Divider, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
 import { GoogleLogin } from "react-google-login";
@@ -12,7 +12,7 @@ import { AccountProfileContent } from "diaas/Account.js";
 import { AnalyticsContent } from "diaas/Analytics";
 import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
-import { AppNavigation, AppSplash } from "diaas/layout.js";
+import { AppNavigation, AppSplash, FallbackAppNavigation } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
 import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
@@ -288,7 +288,7 @@ const FatalError = ({ error }) => {
         <Table key={`k${errComponents.length}`}>
           <Row label="Code">{e.code}</Row>
           {e.title && <Row label="Title">{e.title}</Row>}
-          {e.source && <Row label="Source">{e.source}</Row>}
+          {e.source && <Row label="Source">{JSON.stringify(e.source, null, 4)}</Row>}
           {e.details && <Row label="Details">{e.details}</Row>}
         </Table>
       );
@@ -319,24 +319,18 @@ const FatalError = ({ error }) => {
   }
 
   return (
-    <HCenter>
-      <Grid container>
-        <Grid item xs={12}>
-          <HCenter>
-            <img src={sorry_gif} alt="borken." />
-          </HCenter>
-        </Grid>
-        <Grid item xs={12}>
+    <FallbackAppNavigation>
+      <Box display="flex" style={{ width: "1800px" }}>
+        <Box style={{ flexGrow: 2 }}>
+          <img src={sorry_gif} alt="borken." />
+        </Box>
+        <Box style={{ flexGrow: 2 }}>
           <ToClipBoard />
-        </Grid>
-        <Grid item xs={12}>
-          {errComponents}
-        </Grid>
-        <Grid item xs={12}>
+          <Box style={{ maxWidth: "1200px", overflow: "scroll" }}>{errComponents}</Box>
           <ToClipBoard />
-        </Grid>
-      </Grid>
-    </HCenter>
+        </Box>
+      </Box>
+    </FallbackAppNavigation>
   );
 };
 
