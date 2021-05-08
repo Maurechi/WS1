@@ -5,7 +5,7 @@ windows:
       layout: even-horizontal
       panes:
         - ./ops/lcl/run-be
-        - (cd fe && nvm use && npm i && ../ops/lcl/run-fe)
+        - (cd fe && nvm use && npm ci && ../ops/lcl/run-fe)
         - ./ops/lcl/run-bedb
   - data:
       layout: even-horizontal
