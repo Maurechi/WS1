@@ -228,7 +228,7 @@ export const AppNavigation = observer(({ children }) => {
     const isCurrentLocation = v.startsWith(loc.pathname, location);
     const style = isCurrentLocation ? { color: theme.palette["primary"].main } : {};
     return (
-      <ListItem button component={Link} to={location + "/"} key={text} onClick={onClick}>
+      <ListItem button component={Link} to={location} key={text} onClick={onClick}>
         <ListItemIcon>
           <Icon style={style} />
         </ListItemIcon>

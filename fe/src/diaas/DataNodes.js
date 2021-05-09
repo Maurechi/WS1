@@ -281,7 +281,7 @@ const Content = observer(() => {
 
   const onChange = (event, newValue) => {
     setTab(newValue);
-    history.push("./" + newValue);
+    history.push("/data-nodes/" + newValue);
   };
 
   const { user, backend } = useAppState();
