@@ -62,6 +62,18 @@ def session_delete():
     return None, 200
 
 
+@api_v1.route("/sources/<path:sid>", methods=["GET"])
+@login_required
+@as_json
+def source_info(sid):
+    info = g.user.current_data_stack.libds.info()
+    for source in info.get("sources", []):
+        if source.get("id") == sid:
+            return source
+    else:
+        return None
+
+
 @api_v1.route("/sources/<path:id>/inspect", methods=["GET"])
 @login_required
 @as_json

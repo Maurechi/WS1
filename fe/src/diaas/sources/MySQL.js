@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React from "react";
+import { useHistory } from "react-router-dom";
 
 import { DataTable } from "diaas/DataTable.js";
 import { Checkbox, makeValueObject, TextField, useFormValue } from "diaas/form.js";
@@ -11,7 +12,8 @@ export const iconURL = "mysql.png";
 export const label = "MySQL";
 
 export const Editor = observer(({ source }) => {
-  const { backend } = useAppState();
+  const { user, backend } = useAppState();
+  const history = useHistory();
 
   if (!source) {
     source = {
@@ -44,6 +46,7 @@ export const Editor = observer(({ source }) => {
   const tables = useFormValue(source.data.tables || {});
   const save = () => {
     const data = _.cloneDeep(source.data);
+    data.type = "libds.source.mysql.MySQL";
     data.connect_args["host"] = host.v;
     data.connect_args["port"] = port.v;
     data.connect_args["username"] = username.v;
@@ -59,7 +62,19 @@ export const Editor = observer(({ source }) => {
       }
     }
 
-    return backend.postFile(source.id === null ? `sources/{id.v}.yaml` : `sources/${source.filename}`, data);
+    const post = backend.postFile(source.id === null ? `sources/${id.v}.yaml` : `sources/${source.filename}`, data);
+    if (source.id === null) {
+      return post
+        .then(() => {
+          return backend.sourceInfo(id.v);
+        })
+        .then((source) => {
+          user.data_stacks[0].sources.push(source);
+          return history.replace(`/sources/${id.v}`);
+        });
+    } else {
+      return post;
+    }
   };
 
   const inspectError = useFormValue(null);
@@ -133,4 +148,4 @@ export const Editor = observer(({ source }) => {
   );
 });
 
-export const Creator = () => <Editor />;
+export const Creator = () => <Editor source={null} />;

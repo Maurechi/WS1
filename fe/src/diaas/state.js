@@ -127,6 +127,10 @@ class Backend {
   modelInfo(mid) {
     return this.get(`/models/${mid}`).then(dataIfStatusEquals(200));
   }
+
+  sourceInfo(sid) {
+    return this.get(`/sources/${sid}`).then(dataIfStatusEquals(200));
+  }
 }
 
 class User {
@@ -164,23 +168,6 @@ class AppStateObject {
   setCurrentUser(user) {
     this.initialized = true;
     this.user = user ? new User(user) : null;
-  }
-
-  setSource(source) {
-    const sources = [];
-    let found = false;
-    for (const s of this.user.data_stacks[0].sources) {
-      if (s.id === source.id) {
-        sources.push(source);
-        found = true;
-      } else {
-        sources.push(s);
-      }
-    }
-    if (!found) {
-      sources.push(source);
-    }
-    this.user.data_stack.sources = sources;
   }
 
   setFatalError(err) {
