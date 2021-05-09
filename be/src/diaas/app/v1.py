@@ -7,17 +7,16 @@ from diaas.model import User
 api_v1 = Blueprint("api_v1", __name__)
 
 
-def _data_stack_as_json(ds, trim=True):
+def _data_stack_as_json(ds):
     info = ds.libds.info()
-    if trim:
-        tasks = info.get("data", {}).get("tasks", None)
-        if tasks is not None:
-            for task in tasks:
-                if "info" in task:
-                    for key, value in task["info"].items():
-                        if isinstance(value, str) and len(value) > 200:
-                            value = value[:99] + "\n...\n" + value[-99:]
-                            task["info"][key] = value
+    tasks = info.get("data", {}).get("tasks", None)
+    if tasks is not None:
+        for task in tasks:
+            if "info" in task:
+                for key, value in task["info"].items():
+                    if isinstance(value, str) and len(value) > 200:
+                        value = value[:99] + "\n...\n" + value[-99:]
+                        task["info"][key] = value
     return info
 
 
@@ -27,8 +26,7 @@ def _session_json(user):
         "display_name": user.display_name,
         "email": user.email,
         "data_stacks": {
-            ds.id: _data_stack_as_json(ds, trim=True)
-            for ds in user.data_stacks.values()
+            ds.id: _data_stack_as_json(ds) for ds in user.data_stacks.values()
         },
     }
 
