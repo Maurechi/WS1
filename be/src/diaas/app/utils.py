@@ -31,8 +31,8 @@ def error_json(status, code, **kwargs):
 
 
 class ApiError(Exception):
-    STATUS = None
-    CODE = None
+    STATUS = 500
+    CODE = "api-error"
 
     def __init__(self, status=None, code=None, source=None, title=None, details=None):
         self.status = status or self.STATUS
@@ -52,40 +52,6 @@ class ApiError(Exception):
             details=self.details,
             source=self.source(),
         )
-
-
-def ApiError_handler(e):
-    return json_response(status_=e.status, data_=dict(errors=[e.as_json()]))
-
-
-def _error_json_response(status, code, **error_json_kwargs):
-    return json_response(
-        status_=status,
-        data_=dict(errors=[error_json(status, code, **error_json_kwargs)]),
-    )
-
-
-def LibDSException_handler(e):
-    return _error_json_response(400, e.code(), source=e.source(), details=e.details())
-
-
-def Exception_handler(e):
-    if isinstance(e, HTTPException):
-        return e
-    else:
-        return _error_json_response(
-            500,
-            e.__class__.__module__ + "." + e.__class__.__name__,
-            details=traceback.format_exc(),
-        )
-
-
-def register_error_handlers(app):
-    app.errorhandler(ApiError)(ApiError_handler)
-    app.errorhandler(LibDSException)(LibDSException_handler)
-    app.errorhandler(Exception)(Exception_handler)
-
-    return app
 
 
 class NotFoundError(ApiError):
@@ -120,13 +86,47 @@ class AlreadyExistsError(ApiError):
 
 
 class ValidationError(ApiError):
-    STATUS = 422
-    CODE = "validation-failure"
+    STATUS = 420
+    CODE = "validation-error"
 
     def __init__(self, title, source=None):
         if source is None:
             source = {"request": request.get_json()}
         super().__init__(source=source, title=title)
+
+
+def ApiError_handler(e):
+    return json_response(status_=e.status, data_=dict(errors=[e.as_json()]))
+
+
+def _error_json_response(status, code, **error_json_kwargs):
+    return json_response(
+        status_=status,
+        data_=dict(errors=[error_json(status, code, **error_json_kwargs)]),
+    )
+
+
+def LibDSException_handler(e):
+    return _error_json_response(400, e.code(), source=e.source(), details=e.details())
+
+
+def Exception_handler(e):
+    if isinstance(e, HTTPException):
+        return e
+    else:
+        return _error_json_response(
+            500,
+            e.__class__.__module__ + "." + e.__class__.__name__,
+            details=traceback.format_exc(),
+        )
+
+
+def register_error_handlers(app):
+    app.errorhandler(ApiError)(ApiError_handler)
+    app.errorhandler(LibDSException)(LibDSException_handler)
+    app.errorhandler(Exception)(Exception_handler)
+
+    return app
 
 
 flask_json = FlaskJSON()
@@ -198,7 +198,7 @@ def login_required(f):
         if "user" not in g or g.user is None:
             g.user = current_user()
             if g.user is None:
-                raise ApiError(401, "unauthorized")
+                raise ApiError(status=401, code="unauthorized")
 
         with configure_scope() as scope:
             scope.user = {"email": g.user.email}
@@ -232,7 +232,7 @@ class Request:
         v = self.json.get(name, None)
         if v is None:
             if required:
-                raise ApiError(f"Missing required {name}")
+                raise ValidationError(f"Missing required {name}")
             else:
                 return default
         else:

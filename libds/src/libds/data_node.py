@@ -333,7 +333,9 @@ def fork():
 
 
 class IsNotStale(Exception):
-    pass
+    def __init__(self, state):
+        super().__init__()
+        self.state = state
 
 
 def _state_to_running(orchestrator, nid, tid, info):
@@ -359,7 +361,7 @@ def _state_to_refreshing(orchestrator, nid, tid, info):
     if state == "STALE":
         _state_to_running(orchestrator, nid, tid, info)
     else:
-        raise IsNotStale()
+        raise IsNotStale(state)
 
 
 def timestamp():
@@ -414,12 +416,12 @@ def trigger_refresh(orchestrator, node, info, force=False):
         except sqlite3.OperationalError as oe:
             print(f"sqllite3.OperationalError: {oe}")
             time.sleep(1)
-        except IsNotStale:
+        except IsNotStale as ins:
             if force:
                 _state_to_running(orchestrator, node.id, tid, info)
                 break
             else:
-                print("is not stale. not refreshing.")
+                print(f"is not stale (is {ins.state}). not refreshing.")
                 return
 
     try:
@@ -503,7 +505,9 @@ def fork_and_refresh(orchestrator, node, log_dir):
     stdout_file = log_file("stdout")
     stderr_file = log_file("stderr")
 
-    if fork() > 0:
+    child_pid = fork()
+    if child_pid > 0:
+        os.waitpid(child_pid, 0)
         return pid_file
 
     # NOTE From this point on we're in the child and we never return 20210326:mb
@@ -577,7 +581,9 @@ def fork_and_check_for_zombies(orchestrator, log_dir):
     stdout_file = log_file("stdout")
     stderr_file = log_file("stderr")
 
-    if fork() > 0:
+    child_pid = fork()
+    if child_pid > 0:
+        os.waitpid(child_pid, 0)
         return pid_file
 
     # NOTE From this point on we're in the child and we never return 20210326:mb

@@ -1,6 +1,6 @@
-import { Button, Divider, Grid } from "@material-ui/core";
+import { Box, Button, Divider, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { GoogleLogin } from "react-google-login";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import v from "voca";
@@ -12,27 +12,16 @@ import { AccountProfileContent } from "diaas/Account.js";
 import { AnalyticsContent } from "diaas/Analytics";
 import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
-import { AppNavigation, AppSplash } from "diaas/layout.js";
+import { AppNavigation, AppSplash, FallbackAppNavigation } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
-import { ModulesContent } from "diaas/Modules";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
 import { ThemeProvider } from "diaas/Theme.js";
-import { HCenter } from "diaas/ui.js";
+import { HCenter, useTick } from "diaas/ui.js";
 
 const Loading = () => {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    let t = 0;
-    const interval = setInterval(() => {
-      t = (t + 1) % 3;
-      setTick(t);
-    }, 600);
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+  const tick = useTick({ start: 0, bound: 3, interval: 600 });
   return (
     <div className="App" style={{ textAlign: "center" }}>
       <header
@@ -181,9 +170,6 @@ const AppContent = () => (
     <Router>
       <AppNavigation>
         <Switch>
-          <Route path="/modules/">
-            <ModulesContent />
-          </Route>
           <Route path="/sources/">
             <SourcesContent />
           </Route>
@@ -288,7 +274,7 @@ const FatalError = ({ error }) => {
         <Table key={`k${errComponents.length}`}>
           <Row label="Code">{e.code}</Row>
           {e.title && <Row label="Title">{e.title}</Row>}
-          {e.source && <Row label="Source">{e.source}</Row>}
+          {e.source && <Row label="Source">{JSON.stringify(e.source, null, 4)}</Row>}
           {e.details && <Row label="Details">{e.details}</Row>}
         </Table>
       );
@@ -319,24 +305,18 @@ const FatalError = ({ error }) => {
   }
 
   return (
-    <HCenter>
-      <Grid container>
-        <Grid item xs={12}>
-          <HCenter>
-            <img src={sorry_gif} alt="borken." />
-          </HCenter>
-        </Grid>
-        <Grid item xs={12}>
+    <FallbackAppNavigation>
+      <Box display="flex" style={{ width: "1800px" }}>
+        <Box style={{ flexGrow: 2 }}>
+          <img src={sorry_gif} alt="borken." />
+        </Box>
+        <Box style={{ flexGrow: 2 }}>
           <ToClipBoard />
-        </Grid>
-        <Grid item xs={12}>
-          {errComponents}
-        </Grid>
-        <Grid item xs={12}>
+          <Box style={{ maxWidth: "1200px", overflow: "scroll" }}>{errComponents}</Box>
           <ToClipBoard />
-        </Grid>
-      </Grid>
-    </HCenter>
+        </Box>
+      </Box>
+    </FallbackAppNavigation>
   );
 };
 

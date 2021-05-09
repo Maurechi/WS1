@@ -169,6 +169,27 @@ const AccountMenu = observer(() => {
   );
 });
 
+export const FallbackAppNavigation = ({ children }) => {
+  const classes = useStyles();
+
+  return (
+    <div className={classes.root}>
+      <MUIAppBar position="fixed" className={clsx(classes.appBar, { [classes.appBarShift]: false })}>
+        <Toolbar>
+          <Box style={{ flexGrow: 1 }}>
+            <img src={appBarGraphic} alt="CARAVEL" width="140em" />
+          </Box>
+          <Box pl={2}>ERROR</Box>
+        </Toolbar>
+      </MUIAppBar>
+      <main className={classes.content} style={{ width: "100vw" }}>
+        <div className={classes.toolbar} />
+        <Box>{children}</Box>
+      </main>
+    </div>
+  );
+};
+
 const AppNavigationToolbar = observer(() => {
   const classes = useStyles();
   const { user } = useAppState();
@@ -195,6 +216,7 @@ const AppNavigationToolbar = observer(() => {
 });
 
 const DataNodesIcon = () => <SvgIcon component={DataNodesIconSvg} viewBox="0 0 100 100" />;
+
 export const AppNavigation = observer(({ children }) => {
   const classes = useStyles();
   const theme = useTheme();
@@ -246,7 +268,7 @@ export const AppNavigation = observer(({ children }) => {
           <SectionMenuItem location="/sources" text="Sources" Icon={GetAppIcon} />
           <SectionMenuItem location="/store" text="Storage" Icon={StorageIcon} />
           <SectionMenuItem location="/models" text="Models" Icon={BuildIcon} />
-          <SectionMenuItem location="/data-nodes" text="Data Nodes" Icon={DataNodesIcon} />
+          <SectionMenuItem location="/data-nodes/graph" text="Data Nodes" Icon={DataNodesIcon} />
           <SectionMenuItem
             location="/analytics"
             onClick={() => window.open("/analytics", "caravel-analytics")}
