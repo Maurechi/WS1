@@ -23,15 +23,18 @@ export const Editor = observer(() => {
   const { modelId } = useParams();
   const creating = modelId === "new";
 
-  let model,
-    notFound = false;
+  let model;
+  let found;
   if (creating) {
     model = { id: "", type: "sql", source: "select * from" };
+    found = true;
   } else {
     model = _.find(user.dataStack.models, (m) => m.id === modelId);
     if (!model) {
-      notFound = true;
+      found = false;
       model = {};
+    } else {
+      found = true;
     }
   }
 
@@ -75,7 +78,7 @@ export const Editor = observer(() => {
     });
   };
 
-  if (notFound) {
+  if (!found) {
     return <NotFound>No Model with id {modelId}</NotFound>;
   } else {
     return (
