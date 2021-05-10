@@ -162,7 +162,6 @@ export const NewConnectorCard = ({ logo, name, type, disabled }) => {
               mx={1}
               style={{
                 textAlign: "left",
-                textDecoration: disabled ? "line-through" : "none",
                 color: disabled ? "#999999" : "inherit",
               }}
             >
