@@ -1,28 +1,16 @@
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React from "react";
-import { useHistory } from "react-router-dom";
 
 import { DataTable } from "diaas/DataTable.js";
 import { Checkbox, TextField, useFormValue } from "diaas/form.js";
-import { useAppState } from "diaas/state.js";
+import { useSourceFileUpdater } from "diaas/sources/common.js";
 import { ActionButton, ContentTitle } from "diaas/ui.js";
 
 export const iconURL = "google-sheets.svg";
 export const label = "Google Sheet";
 
-const SettingsTable = ({
-  filename,
-  spreadsheet,
-  target_table,
-  range,
-  headerRow,
-  service_account_json_var,
-  afterSave,
-}) => {
-  const { backend } = useAppState();
-  const history = useHistory();
-
+const SettingsTable = ({ src_id, spreadsheet, target_table, range, headerRow, service_account_json_var }) => {
   const rows = [
     ["Spreadsheet (ID or URL)", <TextField value={spreadsheet} fullWidth={true} />],
     ["Table", <TextField value={target_table} fullWidth={true} />],
@@ -32,21 +20,21 @@ const SettingsTable = ({
   ];
 
   const saveEnabled = _.trim(spreadsheet.v) && _.trim(target_table.v);
+  const sourceFileUpdater = useSourceFileUpdater();
 
   const save = () => {
-    return backend
-      .postFile(`sources/${filename}`, {
+    return sourceFileUpdater({
+      src_id: src_id,
+      dst_id: target_table.v,
+      data: {
         type: "libds.source.google.GoogleSheet",
         spreadsheet: spreadsheet.v,
         target_table: target_table.v,
         range: range.v,
         header_row: !!headerRow.v,
         service_account_json_var: service_account_json_var.v,
-      })
-      .then(afterSave || (() => null))
-      .then(() => {
-        history.replace(`/sources/${target_table.v}`);
-      });
+      },
+    });
   };
 
   return (
@@ -70,7 +58,7 @@ export const Creator = observer(() => {
     <>
       <ContentTitle iconURL={iconURL}>Creating new Google Sheet Source</ContentTitle>
       <SettingsTable
-        filename={target_table.v + ".yaml"}
+        src_id={target_table.v}
         spreadsheet={spreadsheet}
         target_table={target_table}
         range={range}
@@ -82,33 +70,22 @@ export const Creator = observer(() => {
 });
 
 export const Editor = ({ source }) => {
-  const { backend } = useAppState();
-
   const spreadsheet = useFormValue(source.data.spreadsheet);
   const target_table = useFormValue(source.data.target_table);
   const range = useFormValue(source.data.range);
   const headerRow = useFormValue(source.data.header_row);
   const service_account_json_var = useFormValue(source.data.service_account_json_var);
 
-  const afterSave = () => {
-    if (source.data.target_table !== target_table.v) {
-      return backend.moveFile(`sources/${source.filename}`, `sources/${target_table.v}.yaml`);
-    } else {
-      return Promise.resolve(null);
-    }
-  };
-
   return (
     <>
       <ContentTitle iconURL={iconURL}>Editing Google Sheet for {target_table.v}</ContentTitle>
       <SettingsTable
-        filename={source.filename}
+        src_id={source.id}
         spreadsheet={spreadsheet}
         target_table={target_table}
         range={range}
         headerRow={headerRow}
         service_account_json_var={service_account_json_var}
-        afterSave={afterSave}
       />
     </>
   );
