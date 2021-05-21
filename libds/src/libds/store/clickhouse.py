@@ -263,7 +263,8 @@ class ClickHouse(Store):
 
         client = self.client()
 
-        def make_message(num_rows, total_rows):
+        def make_message(progress):
+            num_rows, total_rows = progress
             if total_rows != 0:
                 return f"Processed {int(100 * (float(num_rows) / total_rows)) : 02d}% ({num_rows} / {total_rows}) to {working}"
             else:
@@ -278,7 +279,7 @@ class ClickHouse(Store):
             f"CREATE TABLE {working} ENGINE = MergeTree() ORDER BY order_by AS {select};"
         )
         for num_rows, total_rows in query:
-            p.update(num_rows, total_rows)
+            p.update([num_rows, total_rows])
 
         res = query.get_result()
         p.display(f"Table {working} created: {res}")

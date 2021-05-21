@@ -55,7 +55,7 @@ class InsertProgress:
         self.last_display_at = None
         self.interval = 30
 
-    def update(self, *values):
+    def update(self, values):
         self.last_values = values
         self.c += 1
         if (self.c % self.step == 0) or (
@@ -70,7 +70,7 @@ class InsertProgress:
 
     def display(self, message=None):
         if message is None:
-            message = self.make_message(self.c, *self.last_values)
+            message = self.make_message(self.c, self.last_values)
         print(message, flush=True)
         self.last_display_at = time.time()
 
@@ -81,7 +81,7 @@ class GaugeProgress:
         self.last_display_at = None
         self.interval = 1
 
-    def update(self, *values):
+    def update(self, values):
         self.last_values = values
         now = time.time()
         if self.last_display_at is None:
@@ -93,7 +93,7 @@ class GaugeProgress:
 
     def display(self, message=None):
         if message is None:
-            message = self.make_message(*self.last_values)
+            message = self.make_message(self.last_values)
         print(message, flush=True)
         self.last_display_at = time.time()
 
