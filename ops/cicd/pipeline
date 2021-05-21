@@ -1,10 +1,9 @@
 #!/bin/bash
 set -euo pipefail
-git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/leukosio/infra.git /opt/infra
-source /opt/infra/shell/bashrc
+git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/leukosio/dev-tools.git /opt/dev-tools/
+source /opt/dev-tools/bash/bashrc
 
-set -u; source "${LEUKOS_SH_V1}"; export PATH="${LEUKOS_BIN}":"${PATH}"
-cd "${__root__}"
+set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}"
 
 # Setup python
 
