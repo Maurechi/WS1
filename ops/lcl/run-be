@@ -1,4 +1,5 @@
 #!/bin/bash
 set -u; source "${LEUKOS_SH_V1}";
 
+"$__root__"/ops/lcl/flask db upgrade
 exec "$__root__"/ops/lcl/flask run -h 127.0.0.1 -p 8080
