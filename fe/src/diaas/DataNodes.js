@@ -230,14 +230,14 @@ const Tasks = () => {
 
   const rows = tasks
     .map((t) => {
-      const { nid, started_at, completed_at, pid, stdout, stderr, ...otherInfo } = t.info;
+      const { nid, pid, stdout, stderr, ...otherInfo } = t.info;
       return {
         nid: nid || `[${t.id}]`,
         id: t.id,
         state: t.state,
         otherInfo: otherInfo,
-        startedAt: started_at,
-        completedAt: completed_at,
+        startedAt: t.started_at,
+        completedAt: t.completed_at,
         pid: pid,
         stdout: stdout,
         stderr: stderr,

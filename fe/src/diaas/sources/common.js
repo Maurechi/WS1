@@ -1,6 +1,8 @@
+import { MenuItem } from "@material-ui/core";
 import _ from "lodash";
 import { useHistory } from "react-router-dom";
 
+import { Select } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
 
 export const useSourceFileUpdater = () => {
@@ -32,3 +34,13 @@ export const useSourceFileUpdater = () => {
       });
   };
 };
+
+export const IntervalSelector = ({ value }) => (
+  <Select value={value} fullWidth={true}>
+    <MenuItem value="@never">Manual Refresh Only</MenuItem>
+    <MenuItem value="3600s">1 Hour</MenuItem>
+    <MenuItem value="12600s">6 Hours</MenuItem>
+    <MenuItem value="43200s">12 Hours</MenuItem>
+    <MenuItem value="86400s">24 Hours</MenuItem>
+  </Select>
+);

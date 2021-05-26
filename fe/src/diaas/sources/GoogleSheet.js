@@ -4,18 +4,27 @@ import React from "react";
 
 import { DataTable } from "diaas/DataTable.js";
 import { Checkbox, TextField, useFormValue } from "diaas/form.js";
-import { useSourceFileUpdater } from "diaas/sources/common.js";
+import { IntervalSelector, useSourceFileUpdater } from "diaas/sources/common.js";
 import { ActionButton, ContentTitle } from "diaas/ui.js";
 
 export const iconURL = "google-sheets.svg";
 export const label = "Google Sheet";
 
-const SettingsTable = ({ src_id, spreadsheet, target_table, range, headerRow, service_account_json_var }) => {
+const SettingsTable = ({
+  src_id,
+  spreadsheet,
+  target_table,
+  range,
+  headerRow,
+  stale_after,
+  service_account_json_var,
+}) => {
   const rows = [
     ["Spreadsheet (ID or URL)", <TextField value={spreadsheet} fullWidth={true} />],
     ["Table", <TextField value={target_table} fullWidth={true} />],
     ["Range", <TextField value={range} fullWidth={true} />],
     ["Header Row", <Checkbox value={headerRow} />],
+    ["Refresh Interval", <IntervalSelector value={stale_after} />],
     ["Service Account JSON from var", <TextField value={service_account_json_var} fullWidth={true} />],
   ];
 
@@ -32,6 +41,7 @@ const SettingsTable = ({ src_id, spreadsheet, target_table, range, headerRow, se
         target_table: target_table.v,
         range: range.v,
         header_row: !!headerRow.v,
+        stale_after: stale_after.v,
         service_account_json_var: service_account_json_var.v,
       },
     });
@@ -52,6 +62,7 @@ export const Creator = observer(() => {
   const target_table = useFormValue("");
   const range = useFormValue("A1:ZZ999");
   const headerRow = useFormValue(true);
+  const stale_after = useFormValue(null);
   const service_account_json_var = useFormValue("CARAVEL_SERVICE_ACCOUNT_JSON");
 
   return (
@@ -63,6 +74,7 @@ export const Creator = observer(() => {
         target_table={target_table}
         range={range}
         headerRow={headerRow}
+        stale_after={stale_after}
         service_account_json_var={service_account_json_var}
       />
     </>
@@ -74,6 +86,7 @@ export const Editor = ({ source }) => {
   const target_table = useFormValue(source.data.target_table);
   const range = useFormValue(source.data.range);
   const headerRow = useFormValue(source.data.header_row);
+  const stale_after = useFormValue(source.data.stale_after);
   const service_account_json_var = useFormValue(source.data.service_account_json_var);
 
   return (
@@ -85,6 +98,7 @@ export const Editor = ({ source }) => {
         target_table={target_table}
         range={range}
         headerRow={headerRow}
+        stale_after={stale_after}
         service_account_json_var={service_account_json_var}
       />
     </>

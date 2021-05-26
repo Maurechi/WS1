@@ -5,6 +5,7 @@ import { useHistory } from "react-router-dom";
 
 import { DataTable } from "diaas/DataTable.js";
 import { Checkbox, makeValueObject, TextField, useFormValue } from "diaas/form.js";
+import { IntervalSelector } from "diaas/sources/common.js";
 import { useAppState } from "diaas/state.js";
 import { ActionButton, ContentTitle } from "diaas/ui.js";
 
@@ -31,6 +32,7 @@ export const Editor = observer(({ source }) => {
   const username = useFormValue(source.data.connect_args.username);
   const password_var = useFormValue(source.data.connect_args.password_var);
   const database = useFormValue(source.data.connect_args.database);
+  const stale_after = useFormValue(source.data.stale_after);
   const target_table_name_prefix = useFormValue(source.data.target_table_name_prefix);
   const target_schema = useFormValue(source.data.target_schema);
   const rows = [
@@ -40,6 +42,7 @@ export const Editor = observer(({ source }) => {
     ["Username", <TextField value={username} fullWidth={true} />],
     ["Password (var name)", <TextField value={password_var} fullWidth={true} />],
     ["Database", <TextField value={database} fullWidth={true} />],
+    ["Refresh Interval", <IntervalSelector value={stale_after} />],
     ["Target Schema", <TextField value={target_schema} fullWidth={true} />],
     ["Target Table Name Prefix", <TextField value={target_table_name_prefix} fullWidth={true} />],
   ];
@@ -52,6 +55,7 @@ export const Editor = observer(({ source }) => {
     data.connect_args["username"] = username.v;
     data.connect_args["password_var"] = password_var.v;
     data.connect_args["database"] = database.v;
+    data.stale_after = stale_after.v;
     data.target_table_name_prefix = target_table_name_prefix.v;
     data.target_schema = target_schema.v;
     data.tables = {};

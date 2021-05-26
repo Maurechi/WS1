@@ -238,7 +238,7 @@ class MySQL(BaseSource):
         nodes = [
             MySQLDatabaseNode(
                 mysql=self,
-                expires_after=timedelta(hours=6),
+                stale_after=timedelta(hours=6),
             )
         ]
         for t in self.table_spec().values():
@@ -254,7 +254,7 @@ class MySQL(BaseSource):
 
 
 class MySQLDatabaseNode(DataNode):
-    def __init__(self, mysql, expires_after):
+    def __init__(self, mysql, stale_after):
         connect_args = mysql.connect_args_for_mysql()
         details = " ".join(
             [
@@ -264,7 +264,7 @@ class MySQLDatabaseNode(DataNode):
             ]
         )
         super().__init__(
-            id=mysql.fqid(), details=details, upstream=[], expires_after=expires_after
+            id=mysql.fqid(), details=details, upstream=[], stale_after=stale_after
         )
 
     def refresh(self, orchestrator):

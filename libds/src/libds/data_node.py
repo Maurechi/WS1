@@ -16,7 +16,7 @@ from typing import Callable, Optional, Sequence, Union
 import psutil
 import setproctitle
 
-from libds.utils import timedelta_as_info
+from libds.utils import parse_timedelta, timedelta_as_info
 
 
 class DataNodeState(Enum):
@@ -55,10 +55,28 @@ class DataOrchestrator:
             cur, "select value from settings where key = 'version'"
         )
 
-        if version == "1":
-            return
+        if version == "2":
+            pass
 
-        if version == "0":
+        elif version == "1":
+            cur = conn.cursor()
+            cur.execute("begin")
+            cur.execute("alter table tasks add column nid text;")
+            cur.execute("alter table tasks add column started_at text;")
+            cur.execute("alter table tasks add column completed_at text;")
+            cur.execute(
+                f"""
+                update tasks set
+                started_at = {SQLITE_TIMESTAMP("json_extract(info, '$.started_at')")},
+                completed_at = {SQLITE_TIMESTAMP("json_extract(info, '$.completed_at')")},
+                nid = json_extract(info, '$.nid');
+            """
+            )
+            cur.execute("alter table data_nodes add column stale_after text;")
+            cur.execute("update settings set value = '2' where key = 'version';")
+            conn.commit()
+
+        elif version == "0":
             cur = conn.cursor()
             cur.execute("begin")
             cur.execute(
@@ -69,9 +87,9 @@ class DataOrchestrator:
             )
             cur.execute("update settings set value = '1' where key = 'version'")
             conn.commit()
-            return
 
-        raise Exception(f"Version {version} in orchestrator db.")
+        else:
+            raise Exception(f"Version {version} in orchestrator db.")
 
     def _connect(self):
         db_filename = self.data_stack.directory / "orchestrator.sqlite3"
@@ -144,6 +162,14 @@ class DataOrchestrator:
 
                 if all(fresh):
                     fork_and_refresh(self, node, log_dir)
+            else:
+                last_task = node.last_task()
+                stale_after = node.stale_after
+                if last_task is not None and stale_after is not None:
+                    started_at = last_task.started_at
+                    stale_after = parse_timedelta(node.stale_after)
+                    if (started_at + stale_after) < now:
+                        self.set_node_stale(node.id)
 
         return dict(log_dir=log_dir)
 

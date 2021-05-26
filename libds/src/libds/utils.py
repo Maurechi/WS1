@@ -1,9 +1,11 @@
 import hashlib
 import io
+import re
 import secrets
 import threading
 import time
 from collections import defaultdict
+from datetime import timedelta
 from pathlib import Path
 
 from ruamel.yaml import YAML
@@ -199,3 +201,22 @@ def yaml_load(file=None, string=None):
         if isinstance(file, Path):
             file = file.open("r")
         return YAML(typ="rt").load(file)
+
+
+def parse_timedelta(str):
+    m = re.match(r"\s*(\d)+\s*(s)\s*$")
+    if m:
+        scale = m[1]
+        try:
+            scale = int(scale)
+        except ValueError as ve:
+            raise ValueError(f"Unable to parse scale part of {str}: {ve}")
+
+        unit = m[2]
+        if unit == "s":
+            return timedelta(seconds=scale)
+        else:
+            raise ValueError(f"Unknown unit part of {str}: {unit}")
+
+    else:
+        raise ValueError(f"Unable to parse timedelta {str}")
