@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from hashlib import sha256
 from pprint import pformat, pprint  # noqa: F401
 
@@ -238,7 +238,7 @@ class MySQL(BaseSource):
         nodes = [
             MySQLDatabaseNode(
                 mysql=self,
-                stale_after=timedelta(hours=6),
+                stale_after="6h",
             )
         ]
         for t in self.table_spec().values():

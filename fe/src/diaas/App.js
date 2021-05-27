@@ -14,6 +14,7 @@ import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
 import { AppNavigation, AppSplash, FallbackAppNavigation } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
+import { SourcesDashboard } from "diaas/Monitoring.js";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
@@ -165,6 +166,15 @@ const SettingsContent = observer(() => {
   );
 });
 
+const HomePageContent = () => {
+  return (
+    <>
+      <p>Welcome to Caravel.</p>
+      <SourcesDashboard />
+    </>
+  );
+};
+
 const AppContent = () => (
   <div style={{ position: "static" }}>
     <Router>
@@ -192,7 +202,7 @@ const AppContent = () => (
             <AccountProfileContent />
           </Route>
           <Route path="/">
-            <p>Welcome to Caravel.</p>
+            <HomePageContent />
           </Route>
         </Switch>
       </AppNavigation>

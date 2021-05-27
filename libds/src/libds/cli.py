@@ -10,7 +10,6 @@ from pathlib import Path
 import click
 
 from libds.__version__ import __version__
-from libds.data_node import DataNodeState
 from libds.data_stack import DataStack
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.utils import DoesNotExist, DSException, yaml_dump
@@ -209,7 +208,7 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
     model = ds.get_model(model_id)
     nodes = model.data_nodes()
     for n in nodes:
-        orchestrator.set_node_state(n.id, DataNodeState.STALE)
+        orchestrator.set_node_stale(n.id)
 
     return COMMAND.reload_data_stack().get_model(model_id).info()
 
@@ -266,20 +265,12 @@ def data_orchestrator_tick(loop):
         return COMMAND.ds.data_orchestrator.tick()
 
 
-@command(other_names=["dnu"])
-@click.option(
-    "--state",
-    "-s",
-    type=click.Choice(DataNodeState.__members__.keys(), case_sensitive=False),
-    default=None,
-)
+@command(other_names=["dnsns"])
 @click.argument("node_id")
-def data_node_update(node_id, state):
-    if state is not None:
-        state = DataNodeState[state]
-        orchestrator = COMMAND.ds.data_orchestrator
-        orchestrator.set_node_state(node_id, state)
-        orchestrator.load_states()
+def data_node_update(node_id):
+    orchestrator = COMMAND.ds.data_orchestrator
+    orchestrator.set_node_stale(node_id)
+    orchestrator.load_node_states()
 
     return orchestrator.info()
 
@@ -289,7 +280,7 @@ def data_node_update(node_id, state):
 def data_node_delete(node_id):
     orchestrator = COMMAND.ds.data_orchestrator
     orchestrator.delete_node(node_id)
-    orchestrator.load_states()
+    orchestrator.load_node_states()
 
     return orchestrator.info()
 

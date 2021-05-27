@@ -98,6 +98,24 @@ class BaseSource:
             info["data"] = yaml_load(string=self.text())
         else:
             info["text"] = self.text()
+        o = self.data_stack.data_orchestrator
+        info["data_nodes"] = {}
+        for node in self.data_nodes():
+            node_state = o.load_node_state(node.id)
+            node_id = node.id
+            last_task = o.last_task_for_node(node_id)
+            if last_task is not None:
+                last_task = {
+                    "id": last_task.id,
+                    "state": last_task.state,
+                    "started_at": last_task.started_at,
+                    "completed_at": last_task.completed_at,
+                }
+            info["data_nodes"][node.id] = {
+                "id": node.id,
+                "state": node_state,
+                "last_task": last_task,
+            }
         return info
 
     def info(self):

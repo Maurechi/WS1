@@ -146,32 +146,6 @@ class DSException(Exception):
         return dict(code=self.code(), details=str(self))
 
 
-def timedelta_as_info(td):
-    info = {}
-    days = td.days
-
-    if days > 7:
-        info["weeks"] = int(days / 7)
-        days = days % 7
-
-    if days > 0:
-        info["days"] = days
-
-    secs = td.seconds
-    if secs > 3600:
-        info["hours"] = int(secs / 3600)
-        secs = secs % 3600
-
-    if secs > 60:
-        info["minutes"] = int(secs / 60)
-        secs = secs % 60
-
-    if secs > 0:
-        info["seconds"] = secs
-
-    return info
-
-
 def is_iterable(thing):
     try:
         _ = (e for e in thing)
@@ -204,7 +178,7 @@ def yaml_load(file=None, string=None):
 
 
 def parse_timedelta(str):
-    m = re.match(r"\s*(\d)+\s*(s)\s*$")
+    m = re.match(r"\s*(\d)+\s*(s|h)\s*$", str)
     if m:
         scale = m[1]
         try:
@@ -215,6 +189,8 @@ def parse_timedelta(str):
         unit = m[2]
         if unit == "s":
             return timedelta(seconds=scale)
+        elif unit == "h":
+            return timedelta(seconds=scale * 3600)
         else:
             raise ValueError(f"Unknown unit part of {str}: {unit}")
 

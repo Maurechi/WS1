@@ -32,7 +32,9 @@ export const DataTable = ({ columns = null, rows = null }) => {
           <TableHead>
             <TableRow>
               {columns.map((c, i) => (
-                <TableCell key={i}>{c.label}</TableCell>
+                <TableCell key={i} style={c.style}>
+                  {c.label}
+                </TableCell>
               ))}
             </TableRow>
           </TableHead>

@@ -159,7 +159,8 @@ def execute():
 def data_node_update(nid):
     req = Request()
     libds = g.user.current_data_stack.libds
-    return libds.data_node_update(nid=nid, state=req.require("state"))
+    assert req.require("state") == "STALE"
+    return libds.data_node_update(nid=nid)
 
 
 @api_v1.route("/data-nodes/<path:nid>", methods=["DELETE"])

@@ -7,7 +7,7 @@ import DagreGraph from "dagre-d3-react";
 import { formatDistance, formatDistanceToNow, parseISO } from "date-fns";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
@@ -18,6 +18,7 @@ import {
   CircularProgressWithLabel,
   DefinitionTable as DefTable,
   Literal,
+  Spinner,
   useResize,
   useTick,
 } from "diaas/ui.js";
@@ -128,7 +129,7 @@ const Nodes = observer(() => {
   return <DataGrid columns={columns} dataSource={rows} style={{ minHeight: 1000 }} />;
 });
 
-const TaskDialog = ({ tid, open }) => {
+const TaskDialog = ({ tid, open, onClose }) => {
   const { backend } = useAppState();
 
   const tasks = useDataTasks();
@@ -164,11 +165,36 @@ const TaskDialog = ({ tid, open }) => {
     taskState.v = task._state;
   }
 
+  const spinner = useMemo(() => <Spinner color="gray40" />, []);
+
+  let stdout;
+  let stderr;
+  if (task._state === "LOADED") {
+    stdout = task.info.stdout ? <Literal>{task.info.stdout}</Literal> : null;
+    stderr = task.info.stderr ? <Literal>{task.info.stderr}</Literal> : null;
+  } else if (task._state === "LOADING" || task._state === "INIT") {
+    stdout = task.info.stdout ? spinner : null;
+    stderr = task.info.stderr ? spinner : null;
+  } else {
+    stdout = null;
+    stderr = null;
+  }
+
+  if (stdout) {
+    stdout = <DefTable.Term label="stdout"> {stdout} </DefTable.Term>;
+  }
+  if (stderr) {
+    stderr = <DefTable.Term label="stderr"> {stderr} </DefTable.Term>;
+  }
+
   return (
     <Dialog
       fullWidth={true}
       maxWidth="lg"
-      onClose={() => open.toggle()}
+      onClose={() => {
+        open.toggle();
+        onClose();
+      }}
       aria-labelledby="task-details-dialog-title"
       open={open.v}
     >
@@ -177,16 +203,8 @@ const TaskDialog = ({ tid, open }) => {
         <DefTable>
           <DefTable.Term label="PID">{task.info.pid}</DefTable.Term>
           <DefTable.Term label="Started At">{task.info.started_at}</DefTable.Term>
-          {task.info.stdout && (
-            <DefTable.Term label="stdout">
-              <Literal>{task.info.stdout}</Literal>
-            </DefTable.Term>
-          )}
-          {task.info.stderr && (
-            <DefTable.Term label="stderr">
-              <Literal>{task.info.stderr}</Literal>
-            </DefTable.Term>
-          )}
+          {stdout}
+          {stderr}
           {task.info.otherInfo !== null && (
             <DefTable.Term label="Other">
               <Literal>{task.info.otherInfo}</Literal>
@@ -199,6 +217,9 @@ const TaskDialog = ({ tid, open }) => {
 };
 
 const Tasks = () => {
+  let { tid: tidFromURL } = useParams();
+  const history = useHistory();
+
   const columns = [
     { defaultFlex: 1, name: "nid", header: "Node ID", defaultWidth: 100 },
     { defaultFlex: 1, name: "state", header: "State" },
@@ -246,17 +267,22 @@ const Tasks = () => {
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .slice(0, 100);
 
-  const open = useStateV(false);
-  const tid = useStateV(null);
+  const open = useStateV(!!tidFromURL);
+  const tid = useStateV(tidFromURL || null);
 
   const select = ({ data }) => {
     tid.v = data.id;
     open.v = true;
+    history.push("/data-nodes/tasks/" + tid.v);
+  };
+
+  const onClose = () => {
+    history.push("/data-nodes/tasks/");
   };
 
   return (
     <>
-      <TaskDialog tid={tid} open={open} />
+      <TaskDialog tid={tid} open={open} onClose={onClose} />
       <DataGrid
         idProperty="id"
         columns={columns}
@@ -269,13 +295,14 @@ const Tasks = () => {
   );
 };
 
-const Content = observer(() => {
-  let { tab: tabParam } = useParams();
-  if (!_.includes(["graph", "nodes", "tasks"], tabParam)) {
-    tabParam = "graph";
+const Content = observer(({ tab: tabProp }) => {
+  console.log("tabProp", tabProp);
+  let defaultTab = tabProp || useParams().tab;
+  if (!_.includes(["graph", "nodes", "tasks"], defaultTab)) {
+    defaultTab = "graph";
   }
 
-  const [tab, setTab] = useState(tabParam);
+  const [tab, setTab] = useState(defaultTab);
 
   const history = useHistory();
 
@@ -292,7 +319,7 @@ const Content = observer(() => {
   const percentRemaining = Math.min(100, Math.round(100 * (secondsRemaining / refreshInterval)));
   const [loading, setLoading] = useState(null);
 
-  console.log(tick, secondsRemaining, percentRemaining);
+  // console.log(tick, secondsRemaining, percentRemaining);
 
   if (tick === 0 && loading === null) {
     setLoading(
@@ -334,8 +361,21 @@ export const DataNodesContent = () => {
   let { path } = useRouteMatch();
   return (
     <Switch>
-      <Route path={`${path}:tab`}>
-        <Content />
+      <Route path={`${path}tasks/:tid`}>
+        {" "}
+        <Content tab="tasks" />{" "}
+      </Route>
+      <Route path={`${path}tasks`}>
+        {" "}
+        <Content tab="tasks" />{" "}
+      </Route>
+      <Route path={`${path}graph`}>
+        {" "}
+        <Content tab="graph" />{" "}
+      </Route>
+      <Route path={`${path}nodes`}>
+        {" "}
+        <Content tab="nodes" />{" "}
       </Route>
     </Switch>
   );

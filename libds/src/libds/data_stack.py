@@ -98,7 +98,7 @@ class DataStack:
 
         self.data_orchestrator.post_load_backpatch()
 
-        self.data_orchestrator.load_states()
+        self.data_orchestrator.load_node_states()
 
     def sources_dir(self):
         dir = self.directory / "sources"

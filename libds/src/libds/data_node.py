@@ -13,10 +13,11 @@ from pathlib import Path
 from pprint import pformat, pprint  # noqa: F401
 from typing import Callable, Optional, Sequence, Union
 
+import arrow
 import psutil
 import setproctitle
 
-from libds.utils import parse_timedelta, timedelta_as_info
+from libds.utils import parse_timedelta
 
 
 class DataNodeState(Enum):
@@ -126,7 +127,16 @@ class DataOrchestrator:
         # TODO need to go and look for tasks whose pid is in the db but they don't exist, these are zombies and should be killed 20210408:mb
         return
 
-    def load_states(self):
+    def load_node_state(self, node_id):
+        conn = self.connect()
+        res = conn.execute("SELECT state FROM data_nodes WHERE nid = ?", [node_id])
+        row = res.fetchone()
+        if row is not None:
+            return row[0]
+        else:
+            return None
+
+    def load_node_states(self):
         conn = self.connect()
         nodes = self.data_nodes
 
@@ -150,7 +160,8 @@ class DataOrchestrator:
         conn.close()
 
     def tick(self):
-        ts = datetime.utcnow().isoformat() + "Z"
+        now = arrow.utcnow()
+        ts = now.isoformat() + "Z"
         log_dir = self.data_stack.directory / "logs" / f"{ts}-{uuid.uuid4()}"
         fork_and_check_for_zombies(self, log_dir)
         for node in self.data_nodes.values():
@@ -167,9 +178,11 @@ class DataOrchestrator:
                 stale_after = node.stale_after
                 if last_task is not None and stale_after is not None:
                     started_at = last_task.started_at
-                    stale_after = parse_timedelta(node.stale_after)
-                    if (started_at + stale_after) < now:
-                        self.set_node_stale(node.id)
+                    if node.stale_after is not None:
+                        stale_after = parse_timedelta(node.stale_after)
+                        started_at = arrow.get(started_at)
+                        if (started_at + stale_after) < now:
+                            self.set_node_stale(node.id)
 
         return dict(log_dir=log_dir)
 
@@ -189,23 +202,18 @@ class DataOrchestrator:
         tid = trigger_refresh(self, node, info, force=force)
         return (node, self.load_task(tid))
 
-    def set_node_state(self, node_id, state):
-        if state == DataNodeState.STALE:
-            node = self.data_nodes[node_id]
-            downstream = [node] + node.downstream_nodes()
-            downstream = [n.id for n in downstream]
-            with self.cursor() as cur:
-                cur.execute(
-                    f"update data_nodes set state = 'STALE' where state = 'FRESH' and nid in ({ ','.join(['?'] * len(downstream)) })",
-                    downstream,
-                )
-                cur.execute(
-                    f"update data_nodes set state = 'REFRESHING_STALE' where state = 'REFRESHING' and nid in ({ ','.join(['?'] * len(downstream)) })",
-                    downstream,
-                )
-        else:
-            raise ValueError(
-                "Want to set state of node {node_id} to {state} but that would break the orchestrator's internals."
+    def set_node_stale(self, node_id):
+        node = self.data_nodes[node_id]
+        downstream = [node] + node.downstream_nodes()
+        downstream = [n.id for n in downstream]
+        with self.cursor() as cur:
+            cur.execute(
+                f"update data_nodes set state = 'STALE' where state = 'FRESH' and nid in ({ ','.join(['?'] * len(downstream)) })",
+                downstream,
+            )
+            cur.execute(
+                f"update data_nodes set state = 'REFRESHING_STALE' where state = 'REFRESHING' and nid in ({ ','.join(['?'] * len(downstream)) })",
+                downstream,
             )
 
     @contextmanager
@@ -223,19 +231,46 @@ class DataOrchestrator:
         finally:
             conn.close()
 
+    def last_task_for_node(self, nid):
+        with self.cursor() as cur:
+            res = cur.execute(
+                """with s as (select max(started_at) as started_at from tasks where nid = ? group by nid)
+                   select tid, state, nid, started_at, completed_at, info
+                   from tasks
+                   where started_at in (select started_at from s) and nid = ? """,
+                [nid, nid],
+            )
+            row = res.fetchone()
+            if row is None:
+                return None
+            else:
+                return self._task_from_row(row)
+
+    def _task_from_row(self, row):
+        (tid, state, nid, started_at, completed_at, info_json) = row
+        return Task(
+            nid=nid,
+            id=tid,
+            state=state,
+            started_at=started_at,
+            completed_at=completed_at,
+            _info=json.loads(info_json),
+        )
+
     def load_task(self, tid):
         with self.cursor() as cur:
-            res = cur.execute("select tid, state, info from tasks")
-            (tid, state, info_json) = res.fetchone()
-            return Task(id=tid, state=state, _info=json.loads(info_json))
+            res = cur.execute(
+                "select tid, state, nid, started_at, completed_at, info from tasks where tid = ?",
+                [tid],
+            )
+            return self._task_from_row(res.fetchone())
 
     def tasks(self):
         with self.cursor() as cur:
-            res = cur.execute("select tid, state, info from tasks")
-            return [
-                Task(id=r[0], state=r[1], _info=json.loads(r[2]))
-                for r in res.fetchall()
-            ]
+            res = cur.execute(
+                "select tid, state, nid, started_at, completed_at, info from tasks"
+            )
+            return [self._task_from_row(row) for row in res.fetchall()]
 
     def info(self):
         return dict(
@@ -250,7 +285,7 @@ class DataNode:
     container: Optional[str] = None
     upstream: Optional[Sequence[Union[str, "DataNode"]]] = None
     details: Optional[dict] = None
-    expires_after: Optional[timedelta] = None
+    stale_after: Optional[timedelta] = None
     state: Optional[DataNodeState] = None
     refresher: Optional[Callable] = None
     orchestrator: Optional[DataOrchestrator] = None
@@ -298,8 +333,8 @@ class DataNode:
             i["container"] = self.container
         if self.details:
             i["details"] = self.details
-        if self.expires_after is not None:
-            i["expires_after"] = timedelta_as_info(self.expires_after)
+        if self.stale_after is not None:
+            i["stale_after"] = self.stale_after
 
         return i
 
@@ -309,9 +344,17 @@ class DataNode:
     def is_fresh(self):
         return self.state == DataNodeState.FRESH
 
+    def last_task(self):
+        if self.orchestrator is None:
+            raise ValueError(f"orchestrator for {self} is None.")
+        return self.orchestrator.last_task_for_node(self.id)
+
 
 class NoopDataNode(DataNode):
     def refresh(self, orchestrator):
+        return None
+
+    def last_task(self):
         return None
 
 
@@ -322,15 +365,28 @@ class OrphanDataNode(DataNode):
     def refresh(self, orchestrator):
         print(f"Not refreshing orphan node {self.id}.")
 
+    def last_task(self):
+        return None
+
 
 @dataclass
 class Task:
     id: str
     state: str
+    nid: str
+    started_at: str
+    completed_at: str
     _info: object
 
     def info(self):
-        i = dict(id=self.id, state=self.state, info=self._info.copy())
+        i = dict(
+            id=self.id,
+            state=self.state,
+            nid=self.nid,
+            started_at=self.started_at,
+            completed_at=self.completed_at,
+            info=self._info.copy(),
+        )
         for stream in ["stdout", "stderr"]:
             filename = i["info"].get(stream)
             contents = None
@@ -364,11 +420,18 @@ class IsNotStale(Exception):
         self.state = state
 
 
+def SQLITE_TIMESTAMP(value=None):
+    if value is None:
+        value = "'now'"
+    return f"strftime('%Y-%m-%dT%H:%M:%f', {value})"
+
+
 def _state_to_running(orchestrator, nid, tid, info):
     with orchestrator.cursor() as cur:
         cur.execute(
-            "insert into tasks (tid, state, info) values (?, 'RUNNING', ?)",
+            f"insert into tasks (started_at, nid, tid, state, info) values ({SQLITE_TIMESTAMP()}, ?, ?, 'RUNNING', ?)",
             [
+                nid,
                 tid,
                 json.dumps(info),
             ],
@@ -390,22 +453,15 @@ def _state_to_refreshing(orchestrator, nid, tid, info):
         raise IsNotStale(state)
 
 
-def timestamp():
-    return datetime.utcnow().isoformat() + "Z"
-
-
 def _task_complete(orchestrator, nid, tid):
     with orchestrator.cursor() as cur:
         cur.execute(
             "update data_nodes set state = ?, current_tid = null where nid = ? and current_tid = ?",
             [DataNodeState.FRESH.value, nid, tid],
         )
-        res = cur.execute("select info from tasks where tid = ?", [tid])
-        info = json.loads(res.fetchone()[0])
-        info["completed_at"] = timestamp()
         cur.execute(
-            "update tasks set state = 'DONE', info = ? where tid = ?",
-            [json.dumps(info), tid],
+            f"update tasks set state = 'DONE', completed_at = {SQLITE_TIMESTAMP()} where tid = ?",
+            [tid],
         )
 
 
@@ -417,11 +473,10 @@ def _task_failed(orchestrator, nid, tid, e, tb):
         )
         info = _fetch_one_value(cur, "select info from tasks where tid = ?", [tid])
         info = json.loads(info)
-        info["completed_at"] = timestamp()
         info["error"] = e
         info["traceback"] = tb
         cur.execute(
-            "update tasks set state = 'ERRORED', info = ? where tid = ?",
+            f"update tasks set state = 'ERRORED', completed_at = {SQLITE_TIMESTAMP()}, info = ? where tid = ?",
             [json.dumps(info), tid],
         )
 
@@ -432,7 +487,6 @@ def trigger_refresh(orchestrator, node, info, force=False):
     tid = datetime.utcnow().strftime("%Y%m%dT%H:%M:%S") + "-" + str(pid)
 
     info["pid"] = pid
-    info["started_at"] = timestamp()
     info["nid"] = node.id
 
     while True:
@@ -570,12 +624,12 @@ def check_for_zombies(orchestrator):
             count += 1
             tid = row[0]
             info = json.loads(row[1])
-            if not psutil.pid_exists(info["pid"]):
+            pid = info["pid"]
+            if not psutil.pid_exists(pid):
                 zombies += 1
-                info["completed_at"] = timestamp()
                 cur.execute(
-                    "update tasks set state = 'ZOMBIE', info = ? where tid = ?",
-                    [json.dumps(info), tid],
+                    "update tasks set state = 'ZOMBIE', completed_at = {SQLITE_TIMESTAMP()} where tid = ?",
+                    [tid],
                 )
 
         if zombies > 0:

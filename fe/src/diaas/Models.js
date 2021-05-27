@@ -14,7 +14,6 @@ export const Editor = observer(() => {
   const { user, backend } = useAppState();
   const history = useHistory();
   const routeMatch = useRouteMatch();
-  console.log(routeMatch);
 
   if (user.dataStack === null) {
     return <NotFound>No Data stacks for user</NotFound>;
