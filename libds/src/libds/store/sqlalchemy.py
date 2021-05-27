@@ -1,40 +1,18 @@
 import datetime
-import json
 from decimal import Decimal
 
 import sqlalchemy as sa
 
-from libds.store import BaseTable, Store
+from libds.store import BaseStore, BaseTable
 
 
-class SQLAlchemyStore(Store):
+class SQLAlchemyStore(BaseStore):
     def __init__(self, url=None, **kwargs):
         super().__init__(**kwargs)
         self.url = url
         self.metadata = sa.MetaData()
         if self.url is not None:
             self.engine = sa.create_engine(self.url, echo=False)
-
-    def _insert_rows(self, table_name, rows):
-        count = 0
-        conn = self.engine.connect()
-        inserted = []
-        with conn.begin():
-            for r in rows:
-                count += 1
-                inserted.append(r.data)
-                conn.execute(
-                    sa.text(f"INSERT INTO {table_name} (data) VALUES (:data)"),
-                    dict(data=json.dumps(r.data)),
-                )
-        return {"count": count, "rows": inserted}
-
-    def get_table(self, schema_name, table_name):
-        return Table(store=self, schema_name=schema_name, table_name=table_name)
-
-    def execute_sql(self, stmt):
-        with self.engine.connect() as conn:
-            conn.execute(sa.text(stmt))
 
 
 class Table(BaseTable):

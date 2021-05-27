@@ -132,10 +132,8 @@ class SQLModel(BaseModel):
         )
 
         def depends_on(model_id, *other_deps):
-            config["dependencies"] += [
-                _ensure_schema(table_name)
-                for table_name in [model_id] + list(other_deps)
-            ]
+            config["dependencies"] += [model_id]
+            config["dependencies"] += other_deps
             return model_id
 
         def table_name(table, schema=None):

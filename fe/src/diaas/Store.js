@@ -28,28 +28,6 @@ const StoreTable = ({ store, children }) => (
   </table>
 );
 
-const PostgreSQL = (store) => {
-  return (
-    <>
-      <StoreIcon icon="postgresql.svg" alt="PostgreSQL DB" />
-      <StoreTable store={store}>
-        <tr>
-          <td>Host:</td>
-          <td>{store.parameters.host}</td>
-        </tr>
-        <tr>
-          <td>Port:</td>
-          <td>{store.parameters.port}</td>
-        </tr>
-        <tr>
-          <td>User:</td>
-          <td>{store.parameters.user}</td>
-        </tr>
-      </StoreTable>
-    </>
-  );
-};
-
 const ClickHouse = ({ store }) => {
   return (
     <>
@@ -68,14 +46,28 @@ const ClickHouse = ({ store }) => {
   );
 };
 
+const SQLite = ({ store }) => {
+  return (
+    <>
+      <StoreIcon icon="sqlite.png" alt="SQLite" />
+      <StoreTable store={store}>
+        <tr>
+          <td>Path:</td>
+          <td>{store.parameters.path}</td>
+        </tr>
+      </StoreTable>
+    </>
+  );
+};
+
 export const StoreContent = () => {
   const { user } = useAppState();
   const store = user.dataStack ? user.dataStack.store : null;
   if (store === null) {
     return <Box>No Store.</Box>;
   } else {
-    if (store.type === "libds.store.postgresql.PostgreSQL") {
-      return <PostgreSQL store={store} />;
+    if (store.type === "libds.store.sqlite.SQLite") {
+      return <SQLite store={store} />;
     } else if (store.type === "libds.store.clickhouse.ClickHouse") {
       return <ClickHouse store={store} />;
     } else {

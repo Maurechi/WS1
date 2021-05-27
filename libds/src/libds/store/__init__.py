@@ -1,8 +1,12 @@
 import datetime
+import runpy
+import secrets
 from decimal import Decimal
 
+from libds.utils import yaml_load
 
-class Store:
+
+class BaseStore:
     def __init__(self, data_stack=None, id=None, filename=None):
         from libds.data_stack import (
             CURRENT_DATA_STACK,
@@ -20,6 +24,27 @@ class Store:
             self.filename = CURRENT_FILENAME.value
 
         LOCAL_STORES.append(self)
+
+    @staticmethod
+    def from_file(filename):
+        from libds.data_stack import CURRENT_FILENAME
+
+        filename = filename.resolve()
+        CURRENT_FILENAME.value = filename
+
+        if filename.suffix == ".py":
+            runpy.run_path(filename)
+
+        if filename.suffix == ".yaml":
+            spec = yaml_load(filename)
+            if spec["type"] == "libds.store.sqlite.SQLite":
+                from libds.store.sqlite import SQLite
+
+                return SQLite.from_yaml(spec)
+            else:
+                raise ValueError(
+                    f"Don't know how to build store of type {spec['type']} from {filename}"
+                )
 
     @property
     def type(self):
@@ -69,3 +94,14 @@ class BaseTable:
         if limit is None:
             limit = 23
         return self._sample(limit, order_by, where)
+
+
+def with_random_suffix(table_name, tag=""):
+    return "_".join(
+        [
+            table_name,
+            tag,
+            datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S"),
+            secrets.token_hex(4),
+        ]
+    )
