@@ -198,3 +198,5 @@ export const APP_STATE = new AppStateObject();
 export const AppState = ({ children }) => {
   return <AppStateContext.Provider value={APP_STATE}>{children}</AppStateContext.Provider>;
 };
+
+export const CONFIG = window.DIAAS;
