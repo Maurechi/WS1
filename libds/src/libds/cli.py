@@ -3,6 +3,7 @@ import functools
 import json
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -245,7 +246,9 @@ def execute(statement):
     except DSException as e:
         return {"error": e.as_json()}
     except Exception as e:
-        return {"error": {"code": "error", "details": str(e)}}
+        return {
+            "error": {"code": e.__class__.__name__, "details": traceback.format_exc()}
+        }
 
 
 @command()
