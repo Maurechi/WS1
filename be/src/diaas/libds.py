@@ -118,7 +118,9 @@ class LibDS:
         return self.call_ds(cmd=["inspect", type, id])
 
     def update_file(self, filename, text):
-        return self.call_ds(cmd=["update-file", filename, "-"], input=text)
+        return self.call_ds(
+            cmd=["update-file", "--set-nodes-stale", filename, "-"], input=text
+        )
 
     def move_file(self, src, dst):
         return self.call_ds(cmd=["move-file", src, dst])

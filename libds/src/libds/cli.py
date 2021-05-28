@@ -217,8 +217,12 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
 @command()
 @click.argument("filename")
 @click.argument("text")
-def update_file(filename, text):
-    COMMAND.ds.update_file(Path(filename), _arg_str(text))
+@click.option("--set-nodes-stale/--no-set-nodes-stale", default=True)
+def update_file(filename, text, set_nodes_stale):
+    path = Path(filename)
+    COMMAND.ds.update_file(path, _arg_str(text))
+    if set_nodes_stale:
+        COMMAND.reload_data_stack().set_file_nodes_stale(path)
     return COMMAND.reload_data_stack().info()
 
 

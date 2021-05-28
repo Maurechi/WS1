@@ -137,6 +137,19 @@ class DataStack:
         path.open("w").write(source)
         return path
 
+    def set_file_nodes_stale(self, filename):
+        dir = filename.parent.name
+        basename = filename.stem
+        if dir == "models":
+            resource = self.get_model(basename)
+        elif dir == "sources":
+            resource = self.get_source(basename)
+        else:
+            raise ValueError(f"{filename} is neither a model/ nor a source/")
+
+        for n in resource.data_nodes():
+            self.data_orchestrator.set_node_stale(n.id)
+
     def delete_file(self, filename):
         path = self.directory / filename
         if path.exists():
