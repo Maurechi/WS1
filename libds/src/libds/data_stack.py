@@ -209,9 +209,11 @@ class DataStack:
         self.store = LOCAL_STORES[0]
 
     def load(self):
+        # NOTE models can depend on the store, make sure to load that
+        # first. 20210528:mb
+        self.load_store()
         self.load_sources()
         self.load_models()
-        self.load_store()
         self.load_data_orchestrator()
 
         return self

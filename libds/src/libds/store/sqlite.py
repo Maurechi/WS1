@@ -37,7 +37,7 @@ class SQLite(SQLAlchemyStore):
         return res.one()["count"]
 
     def load_raw_from_records(self, schema_name, table_name, records):
-        final_name = schema_name + "." + table_name
+        final_name = table_name
         working_name = with_random_suffix(final_name, "working")
         tombstone_name = with_random_suffix(final_name, "tombstone")
 
@@ -120,6 +120,13 @@ class SQLite(SQLAlchemyStore):
 
     def execute(self, stmt):
         return _execute(self, stmt)
+
+    def model_id_to_table_name(self, model_id):
+        parts = model_id.split(".")
+        if len(parts) == 1:
+            return model_id
+        else:
+            return parts[1]
 
 
 def _execute(store, statement):

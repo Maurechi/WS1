@@ -72,6 +72,9 @@ class BaseStore:
     def execute(self, store):
         raise NotImplementedError()
 
+    def model_id_to_table_name(self, model_id):
+        return model_id
+
 
 def to_sample_value(value):
     if isinstance(value, Decimal):
