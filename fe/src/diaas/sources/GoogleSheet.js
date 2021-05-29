@@ -60,7 +60,7 @@ const SettingsTable = ({
 export const Creator = observer(() => {
   const spreadsheet = useFormValue("");
   const target_table = useFormValue("");
-  const range = useFormValue("A1:ZZ999");
+  const range = useFormValue("A:ZZ");
   const headerRow = useFormValue(true);
   const stale_after = useFormValue(null);
   const service_account_json_var = useFormValue("CARAVEL_SERVICE_ACCOUNT_JSON");
