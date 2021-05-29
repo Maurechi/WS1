@@ -5,6 +5,7 @@ import TabList from "@material-ui/lab/TabList";
 import TabPanel from "@material-ui/lab/TabPanel";
 import DagreGraph from "dagre-d3-react";
 import { formatDistance, formatDistanceToNow, parseISO } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React, { useMemo, useRef, useState } from "react";
@@ -223,7 +224,15 @@ const Tasks = () => {
   const columns = [
     { defaultFlex: 1, name: "nid", header: "Node ID", defaultWidth: 100 },
     { defaultFlex: 1, name: "state", header: "State" },
-    { defaultFlex: 1, name: "startedAt", header: "Started At", defaultWidth: 200 },
+    {
+      defaultFlex: 1,
+      name: "startedAt",
+      header: "Started At",
+      defaultWidth: 200,
+      render: ({ data: { startedAt } }) => {
+        return parseISO(startedAt).toLocaleString();
+      },
+    },
     {
       defaultFlex: 1,
       name: "completedAt",
@@ -231,9 +240,9 @@ const Tasks = () => {
       defaultWidth: 200,
       render: ({ data: { state, startedAt, completedAt } }) => {
         if (completedAt) {
-          return formatDistance(parseISO(startedAt), parseISO(completedAt));
+          return formatDistance(utcToZonedTime(parseISO(startedAt)), utcToZonedTime(parseISO(completedAt)));
         } else if (state === "RUNNING") {
-          return <i>running for {formatDistanceToNow(parseISO(startedAt))}</i>;
+          return <i>running for {formatDistanceToNow(utcToZonedTime(parseISO(startedAt)))}</i>;
         } else {
           return "";
         }
