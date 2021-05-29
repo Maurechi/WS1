@@ -59,6 +59,7 @@ class DataStack:
             raise Exception("No data stack defined.")
 
         ds.directory = dir
+        ds.load()
         return ds
 
     def info(self):
@@ -80,14 +81,20 @@ class DataStack:
         )
 
     def load_data_orchestrator(self):
-        # NOTE not the cleanest code, DataOrchestrator depends on the
-        # data_nodes having been initilized. but the whole data stack
-        # loading logic is weird, needs a long think and
-        # refactoring. 20210408:mb
+        # NOTE this is really bad code. There are a bunch of things
+        # which depend on things happening in a certain order (loading
+        # must be done source+model, then orchestrator, then
+        # backpatch), some objects change other objects (here we set
+        # the data_notes property on the Source/Model objects) without
+        # any way to mark it. While this works it is bad code and
+        # should be refactored with a sledgehammer. (20210408 was the
+        # first time this comment was written, on 20210529 I fixed a
+        # bug and made the code worse):mb
         self.data_orchestrator = DataOrchestrator(self)
 
         for data in self.sources + self.models:
-            self.data_orchestrator.collect_nodes(data.data_nodes())
+            data.data_nodes = data.load_data_nodes()
+            self.data_orchestrator.collect_nodes(data.data_nodes)
 
         self.data_orchestrator.post_load_backpatch()
 
@@ -147,7 +154,7 @@ class DataStack:
         else:
             raise ValueError(f"{filename} is neither a model/ nor a source/")
 
-        for n in resource.data_nodes():
+        for n in resource.data_nodes:
             self.data_orchestrator.set_node_stale(n.id)
 
     def delete_file(self, filename):

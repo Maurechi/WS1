@@ -103,7 +103,7 @@ class BaseSource:
             info["text"] = self.text()
         o = self.data_stack.data_orchestrator
         info["data_nodes"] = {
-            node.id: o.load_node_state(node).info() for node in self.data_nodes()
+            node.id: o.load_node_state(node).info() for node in self.data_nodes
         }
         return info
 
@@ -159,7 +159,7 @@ class BaseSource:
 
 
 class StaticSource(BaseSource):
-    def data_nodes(self):
+    def load_data_nodes(self):
         return [
             DataNode(
                 id=self.schema_name + "." + self.table_name + "_raw",
@@ -195,5 +195,5 @@ class BrokenSource(BaseSource):
             "error": self.error,
         }
 
-    def data_nodes(self):
+    def load_data_nodes(self):
         return []

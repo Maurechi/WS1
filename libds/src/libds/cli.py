@@ -41,11 +41,9 @@ class Command:
         self.ds = None
         if directory is not None:
             self.ds = DataStack.from_dir(directory)
-            self.ds.load()
 
     def reload_data_stack(self):
         self.ds = DataStack.from_dir(self.ds.directory)
-        self.ds.load()
         return self.ds
 
     def results(self, data):
@@ -210,7 +208,7 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
     ds = COMMAND.reload_data_stack()
     orchestrator = ds.data_orchestrator
     model = ds.get_model(model_id)
-    nodes = model.data_nodes()
+    nodes = model.data_nodes
     for n in nodes:
         orchestrator.set_node_stale(n.id)
 

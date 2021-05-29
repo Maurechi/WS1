@@ -82,7 +82,7 @@ class BaseModel:
     def table(self):
         return self.data_stack.store.get_table(self.schema_name, self.table_name)
 
-    def data_nodes(self):
+    def load_data_nodes(self):
         return [
             DataNode(
                 refresher=lambda orchestrator: self.load_data(),
