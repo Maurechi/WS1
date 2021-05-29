@@ -1,15 +1,13 @@
-image: registry.gitlab.com/leukosio/diaas/cicd-container:2021-01-23T164930_c68d0a150f7653d6
+image: registry.gitlab.com/leukosio/diaas/cicd-container:2021-05-29T124931_2779d953b0b50165
 
 stages: [pipeline]
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  VENV_DIR: "$CI_PROJECT_DIR/.venv"
 
 cache:
   paths:
     - .cache/pip/
-    - .venv/
     - fe/.npm/
   key: ${CI_COMMIT_REF_SLUG}
 

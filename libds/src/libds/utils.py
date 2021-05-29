@@ -178,7 +178,7 @@ def yaml_load(file=None, string=None):
 
 
 def parse_timedelta(str):
-    m = re.match(r"\s*(\d)+\s*(s|h)\s*$", str)
+    m = re.match(r"\s*(\d+)\s*(s|h|m|d)\s*$", str)
     if m:
         scale = m[1]
         try:
@@ -188,11 +188,16 @@ def parse_timedelta(str):
 
         unit = m[2]
         if unit == "s":
-            return timedelta(seconds=scale)
+            seconds = scale
+        elif unit == "m":
+            seconds = scale * 60
         elif unit == "h":
-            return timedelta(seconds=scale * 3600)
+            seconds = scale * 60 * 60
+        elif unit == "d":
+            seconds = scale * 24 * 60 * 60
         else:
             raise ValueError(f"Unknown unit part of {str}: {unit}")
+        return timedelta(seconds=seconds)
 
     else:
         raise ValueError(f"Unable to parse timedelta {str}")

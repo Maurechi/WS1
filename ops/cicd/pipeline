@@ -3,14 +3,20 @@ set -euo pipefail
 git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/leukosio/dev-tools.git /opt/dev-tools/
 source /opt/dev-tools/bash/bashrc
 
-set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}"
+set -u; source "${LEUKOS_SH_V1}";
 
-# Setup python
+pwd
 
-output-on-failure -- python3 -m venv "${VENV_DIR}"
-source "${VENV_DIR}"/bin/activate
-output-on-failure -- pip install -f /opt/downloads/ -U pip wheel
-output-on-failure -- pip install -f /opt/downloads/ -r requirements_dev.txt
+# Test libds
+
+(
+    cd ./libds/
+    output-on-failure -- python3 -m venv .venv
+    source .venv/bin/activate
+    output-on-failure -- pip install -f /opt/downloads/ -U pip wheel
+    output-on-failure -- pip install -f /opt/downloads/ -r ./requirements_dev.txt
+    output-on-failure -- ../ops/test-libds
+)
 
 # Setup node
 source "${NVM_DIR}/nvm.sh"
@@ -20,17 +26,9 @@ output-on-failure -- npm ci --cache .npm --prefer-offline
 
 cd "${__root__}"
 
-# Actually test the code base
+# Lint
+output-on-failure -- python3 -m venv .venv
+source .venv/bin/activate
+output-on-failure -- pip install -f /opt/downloads/ -U pip wheel
+output-on-failure -- pip install -f /opt/downloads/ -r requirements_dev.txt
 output-on-failure -- ./ops/do-lint
-
-echo "SKIPPING TESTS FOR NOW. What could possibly go wrong?"
-
-if [[ false = true ]]; then
-    (
-        output-on-failure -- python3 -m venv ./.testing-venv
-        source ./.testing-venv/bin/activate
-        output-on-failure -- pip3 install -f /opt/downloads/ -U pip wheel
-        output-on-failure -- pip3 install -f /opt/downloads/ -r be/requirements.in -r requirements_dev.txt
-        ./ops/be-test || true
-    )
-fi
