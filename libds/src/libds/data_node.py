@@ -657,7 +657,7 @@ def check_for_zombies(orchestrator):
             if not psutil.pid_exists(pid):
                 zombies += 1
                 cur.execute(
-                    "update tasks set state = 'ZOMBIE', completed_at = {SQLITE_TIMESTAMP()} where tid = ?",
+                    f"update tasks set state = 'ZOMBIE', completed_at = {SQLITE_TIMESTAMP()} where tid = ?",
                     [tid],
                 )
 
