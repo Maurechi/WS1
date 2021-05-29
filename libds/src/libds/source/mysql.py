@@ -100,7 +100,7 @@ class MySQL(BaseSource):
         init_args = {}
         for (
             prop
-        ) in "connect_args tables target_schema target_table_name_prefix".split():
+        ) in "connect_args tables target_schema target_table_name_prefix stale_after".split():
             if prop in data:
                 init_args[prop] = data[prop]
 
@@ -124,7 +124,13 @@ class MySQL(BaseSource):
             args["host"] = self.connect_args["host"]
 
         if "password_var" in self.connect_args:
-            args["passwd"] = os.environ.get(self.connect_args["password_var"])
+            passwd = os.environ.get(self.connect_args["password_var"])
+            if passwd is not None:
+                args["passwd"] = passwd
+            else:
+                raise ValueError(
+                    f"Missing password variable named {pformat(self.connect_args['password_var'])} in env"
+                )
         elif "password" in self.connect_args:
             args["passwd"] = self.connect_args["password"]
 
@@ -234,11 +240,11 @@ class MySQL(BaseSource):
             records=(as_record(row) for row in _fetchall(cur, query)),
         )
 
-    def data_nodes(self):
+    def load_data_nodes(self):
         nodes = [
             MySQLDatabaseNode(
                 mysql=self,
-                stale_after="6h",
+                stale_after=self.stale_after,
             )
         ]
         for t in self.table_spec().values():
