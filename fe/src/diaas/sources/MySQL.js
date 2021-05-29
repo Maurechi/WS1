@@ -156,9 +156,14 @@ export const Editor = observer(({ source }) => {
           <CheckMark state={n.state === "FRESH" ? "healthy" : "error"} />,
           n.id,
           n.state,
-          <>
-            <Link to={`/data-nodes/tasks/${n.last_task.id}`}>{n.last_task.state}</Link> at {n.last_task.completed_at}
-          </>,
+
+          n.last_task ? (
+            <>
+              <Link to={`/data-nodes/tasks/${n.last_task.id}`}>{n.last_task.state}</Link> at {n.last_task.completed_at}
+            </>
+          ) : (
+            <>-</>
+          ),
         ];
       });
       return <DataTable columns={columns} rows={rows} />;
