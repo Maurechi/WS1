@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import arrow
 import click
 
 from libds.__version__ import __version__
@@ -22,6 +23,8 @@ class OutputEncoder(json.JSONEncoder):
             return obj.isoformat()
         if isinstance(obj, Path):
             return str(obj)
+        if isinstance(obj, arrow.Arrow):
+            return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
 
 

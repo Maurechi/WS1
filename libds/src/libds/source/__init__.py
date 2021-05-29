@@ -45,6 +45,7 @@ class BaseSource:
         id=None,
         data_stack=None,
         table=None,
+        stale_after=None,
     ):
         from libds.data_stack import (
             CURRENT_DATA_STACK,
@@ -74,6 +75,8 @@ class BaseSource:
         self.schema_name = schema_name
         self.table_name = table_name
 
+        self.stale_after = stale_after
+
         LOCAL_SOURCES.append(self)
 
     @property
@@ -99,23 +102,9 @@ class BaseSource:
         else:
             info["text"] = self.text()
         o = self.data_stack.data_orchestrator
-        info["data_nodes"] = {}
-        for node in self.data_nodes():
-            node_state = o.load_node_state(node.id)
-            node_id = node.id
-            last_task = o.last_task_for_node(node_id)
-            if last_task is not None:
-                last_task = {
-                    "id": last_task.id,
-                    "state": last_task.state,
-                    "started_at": last_task.started_at,
-                    "completed_at": last_task.completed_at,
-                }
-            info["data_nodes"][node.id] = {
-                "id": node.id,
-                "state": node_state,
-                "last_task": last_task,
-            }
+        info["data_nodes"] = {
+            node.id: o.load_node_state(node).info() for node in self.data_nodes()
+        }
         return info
 
     def info(self):
@@ -177,6 +166,7 @@ class StaticSource(BaseSource):
                 container=self.fqid(),
                 upstream=[],
                 refresher=lambda o: self.refresh(),
+                stale_after=self.stale_after,
             )
         ]
 

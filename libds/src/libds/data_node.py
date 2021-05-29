@@ -7,7 +7,7 @@ import traceback
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from pprint import pformat, pprint  # noqa: F401
@@ -127,14 +127,16 @@ class DataOrchestrator:
         # TODO need to go and look for tasks whose pid is in the db but they don't exist, these are zombies and should be killed 20210408:mb
         return
 
-    def load_node_state(self, node_id):
+    def load_node_state(self, node):
         conn = self.connect()
-        res = conn.execute("SELECT state FROM data_nodes WHERE nid = ?", [node_id])
+        res = conn.execute("SELECT state FROM data_nodes WHERE nid = ?", [node.id])
         row = res.fetchone()
         if row is not None:
-            return row[0]
+            node.state = DataNodeState(row[0])
+            node.orchestrator = self
+            return node
         else:
-            return None
+            return OrphanDataNode(node.id)
 
     def load_node_states(self):
         conn = self.connect()
@@ -174,15 +176,9 @@ class DataOrchestrator:
                 if all(fresh):
                     fork_and_refresh(self, node, log_dir)
             else:
-                last_task = node.last_task()
-                stale_after = node.stale_after
-                if last_task is not None and stale_after is not None:
-                    started_at = last_task.started_at
-                    if node.stale_after is not None:
-                        stale_after = parse_timedelta(node.stale_after)
-                        started_at = arrow.get(started_at)
-                        if (started_at + stale_after) < now:
-                            self.set_node_stale(node.id)
+                refresh_at = node.next_refresh_at()
+                if refresh_at is not None and refresh_at < arrow.get():
+                    self.set_node_stale(node.id)
 
         return dict(log_dir=log_dir)
 
@@ -273,9 +269,11 @@ class DataOrchestrator:
             return [self._task_from_row(row) for row in res.fetchall()]
 
     def info(self):
+        nodes = self.data_nodes.values()
+        tasks = self.tasks()
         return dict(
-            nodes=[node.info() for node in self.data_nodes.values()],
-            tasks=[task.info() for task in self.tasks()],
+            nodes=[node.info() for node in nodes],
+            tasks=[task.info() for task in tasks],
         )
 
 
@@ -285,7 +283,7 @@ class DataNode:
     container: Optional[str] = None
     upstream: Optional[Sequence[Union[str, "DataNode"]]] = None
     details: Optional[dict] = None
-    stale_after: Optional[timedelta] = None
+    stale_after: Optional[str] = None
     state: Optional[DataNodeState] = None
     refresher: Optional[Callable] = None
     orchestrator: Optional[DataOrchestrator] = None
@@ -333,8 +331,20 @@ class DataNode:
             i["container"] = self.container
         if self.details:
             i["details"] = self.details
-        if self.stale_after is not None:
-            i["stale_after"] = self.stale_after
+
+        last_task = self.last_task()
+        if last_task is not None:
+            i["last_task"] = {
+                "id": last_task.id,
+                "state": last_task.state,
+                "started_at": last_task.started_at,
+                "completed_at": last_task.completed_at,
+            }
+        else:
+            i["last_task"] = None
+
+        i["stale_after"] = self.stale_after
+        i["next_refresh_at"] = self.next_refresh_at()
 
         return i
 
@@ -343,6 +353,22 @@ class DataNode:
 
     def is_fresh(self):
         return self.state == DataNodeState.FRESH
+
+    def next_refresh_at(self):
+        if self.orchestrator is None:
+            raise ValueError(f"orchestrator for {self} is None.")
+        if self.stale_after is None:
+            return None
+        else:
+            last_task = self.orchestrator.last_task_for_node(self.id)
+            if last_task is None:
+                return arrow.get()
+            else:
+                stale_after = parse_timedelta(self.stale_after)
+                stale_after_seconds = 86400 * stale_after.days + stale_after.seconds
+                return arrow.get(last_task.started_at).shift(
+                    seconds=stale_after_seconds
+                )
 
     def last_task(self):
         if self.orchestrator is None:
@@ -366,6 +392,9 @@ class OrphanDataNode(DataNode):
         print(f"Not refreshing orphan node {self.id}.")
 
     def last_task(self):
+        return None
+
+    def next_refresh_at(self):
         return None
 
 
