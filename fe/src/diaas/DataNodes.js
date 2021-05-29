@@ -229,9 +229,6 @@ const Tasks = () => {
       name: "startedAt",
       header: "Started At",
       defaultWidth: 200,
-      render: ({ data: { startedAt } }) => {
-        return parseISO(startedAt).toLocaleString();
-      },
     },
     {
       defaultFlex: 1,
