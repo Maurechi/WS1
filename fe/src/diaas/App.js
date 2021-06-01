@@ -1,4 +1,4 @@
-import { Box, Button, Divider, Grid } from "@material-ui/core";
+import { Box, Button, Grid } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
 import React, { useEffect } from "react";
 import { GoogleLogin } from "react-google-login";
@@ -14,8 +14,9 @@ import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
 import { AppNavigation, AppSplash, FallbackAppNavigation } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
+import { SourcesDashboard } from "diaas/Monitoring.js";
 import { SourcesContent } from "diaas/Sources";
-import { AppState, useAppState } from "diaas/state.js";
+import { AppState, CONFIG, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
 import { ThemeProvider } from "diaas/Theme.js";
 import { HCenter, useTick } from "diaas/ui.js";
@@ -54,7 +55,7 @@ const Loading = () => {
             fontSize: "calc(10px + 1vmin)",
           }}
         >
-          (welcome to {window.DIAAS.DEPLOYMENT_ENVIRONMENT} at {window.DIAAS.DEPLOYMENT_COMMIT_SHA})
+          (welcome to {CONFIG.DEPLOYMENT_ENVIRONMENT} at {CONFIG.DEPLOYMENT_COMMIT_SHA})
         </div>
       </header>
     </div>
@@ -74,7 +75,7 @@ const GoogleLoginButton = ({ loginHandler, loginInProgress }) => {
 
   return (
     <GoogleLogin
-      clientId={window.DIAAS.AUTH_GOOGLE_CLIENT_ID}
+      clientId={CONFIG.AUTH_GOOGLE_CLIENT_ID}
       disabled={loginInProgress.v}
       buttonText="Login via Google"
       onSuccess={googleLogin}
@@ -126,21 +127,14 @@ const Login = observer(() => {
   return (
     <div style={{ position: "static" }}>
       <AppSplash>
-        <Grid container>
-          <Grid item xs={12}>
+        <HCenter>
+          {CONFIG.AUTH_METHOD === "TRUST" && (
             <EmailLoginForm loginHandler={loginHandler} loginInProgress={loginInProgress} />
-          </Grid>
-          <Grid item xs={12}>
-            <HCenter my={2}>
-              <Divider width="33%" />
-            </HCenter>
-          </Grid>
-          <Grid item xs={12}>
-            <HCenter>
-              <GoogleLoginButton loginHandler={loginHandler} loginInProgress={loginInProgress} />
-            </HCenter>
-          </Grid>
-        </Grid>
+          )}
+          {CONFIG.AUTH_METHOD === "VERIFY" && (
+            <GoogleLoginButton loginHandler={loginHandler} loginInProgress={loginInProgress} />
+          )}
+        </HCenter>
       </AppSplash>
     </div>
   );
@@ -164,6 +158,15 @@ const SettingsContent = observer(() => {
     </>
   );
 });
+
+const HomePageContent = () => {
+  return (
+    <>
+      <p>Welcome to Caravel.</p>
+      <SourcesDashboard />
+    </>
+  );
+};
 
 const AppContent = () => (
   <div style={{ position: "static" }}>
@@ -192,7 +195,7 @@ const AppContent = () => (
             <AccountProfileContent />
           </Route>
           <Route path="/">
-            <p>Welcome to Caravel.</p>
+            <HomePageContent />
           </Route>
         </Switch>
       </AppNavigation>

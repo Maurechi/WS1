@@ -182,6 +182,10 @@ export const CircularProgressWithLabel = ({ children, value }) => {
   );
 };
 
+export const Spinner = ({ color }) => {
+  return <CircularProgress color={color} />;
+};
+
 export const useTick = ({ start = 0, bound, step = 1, interval = 1000 }) => {
   const [tick, setTick] = useState(start);
   useEffect(() => {

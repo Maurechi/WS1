@@ -118,7 +118,9 @@ class LibDS:
         return self.call_ds(cmd=["inspect", type, id])
 
     def update_file(self, filename, text):
-        return self.call_ds(cmd=["update-file", filename, "-"], input=text)
+        return self.call_ds(
+            cmd=["update-file", "--set-nodes-stale", filename, "-"], input=text
+        )
 
     def move_file(self, src, dst):
         return self.call_ds(cmd=["move-file", src, dst])
@@ -129,8 +131,8 @@ class LibDS:
     def execute(self, statement):
         return self.call_ds(cmd=["execute", "-"], input=statement)
 
-    def data_node_update(self, nid, state):
-        return self.call_ds(cmd=["data-node-update", "--state", state, nid])
+    def data_node_update(self, nid):
+        return self.call_ds(cmd=["data-node-update", nid])
 
     def data_node_delete(self, nid):
         return self.call_ds(cmd=["data-node-delete", nid])

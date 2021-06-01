@@ -3,10 +3,15 @@ LABEL registry=leukosio/diaas
 
 COPY --from=koalaman/shellcheck-alpine:stable /bin/shellcheck /bin/
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -y
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates git curl wget jq moreutils
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libpq-dev gcc
+# NOTE docker gotchya: if you adjust the list of pakcages that need to
+# be installed, but don't call apt-get update -y, then it will try to
+# install packages which no longer exist. so run this all as one
+# docker RUN command to force the apt-get update to be re-run every
+# time the list of pakcages to install changes (dockers cahcing is
+# base on the text of the command) 20210529:mb
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -y \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates git curl wget jq moreutils libpq-dev gcc libmariadb-dev
 
 RUN echo "dash dash/sh boolean false" | debconf-set-selections
 RUN DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
@@ -16,12 +21,17 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y python3-dev=3.7.3-1 python
 ADD ./requirements_dev.txt /opt/diaas/
 ADD ./be/requirements_dev.txt /opt/diaas/be/
 ADD ./be/requirements.txt /opt/diaas/be/
+ADD ./libds/requirements_dev.txt /opt/diaas/libds/
+ADD ./libds/requirements.txt /opt/diaas/libds/
+ADD ./libds/setup.py /opt/diaas/libds/
+ADD ./libds/src/libds/__version__.py /opt/diaas/libds/src/libds/
 
 RUN python3 -m venv /opt/venv
-RUN source /opt/venv/bin/activate; \
-    pip install -U pip wheel; \
-    mkdir /opt/downloads/; \
-    pip download -d /opt/downloads/ --no-clean -r /opt/diaas/be/requirements_dev.txt;
+RUN source /opt/venv/bin/activate \
+ && pip install -U pip wheel \
+ && mkdir /opt/downloads/ \
+ && (cd /opt/diaas/be    && pip download -d /opt/downloads/ --no-clean -r ./requirements_dev.txt) \
+ && (cd /opt/diaas/libds && pip download -d /opt/downloads/ --no-clean -r ./requirements_dev.txt)
 
 RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
 RUN /bin/bash --login -c 'nvm install v14'

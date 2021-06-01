@@ -72,7 +72,17 @@ export const useStateV = (initialValue) => {
 };
 
 export const useFormValue = (initialValue, config) => {
-  const { trim = true, transform = (x) => x } = config || {};
+  let { trim = true, parse = (x) => x, serialize = (x) => x } = config || {};
+
+  if (trim) {
+    const outer = serialize;
+    serialize = (x) => {
+      if (_.isString(x)) {
+        x = _.trim(x);
+      }
+      return outer(x);
+    };
+  }
 
   let [isDirty, setIsDirty] = useState(false);
   let [isTouched, setIsTouched] = useState(false);
@@ -80,15 +90,11 @@ export const useFormValue = (initialValue, config) => {
   let [value, setValue] = useState(initialValue);
 
   const store = (newValue) => {
-    newValue = transform(newValue);
-    if (trim && _.isString(newValue)) {
-      newValue = _.trim(newValue);
-    }
     setIsDirty(true);
-    setValue(newValue);
+    setValue(serialize(newValue));
   };
 
-  const load = () => value;
+  const load = () => parse(value);
 
   const o = makeValueObject(store, load);
 

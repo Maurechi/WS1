@@ -1,10 +1,13 @@
+import { Grid, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
 import React from "react";
-import { useHistory } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 
 import { DataTable } from "diaas/DataTable.js";
 import { Checkbox, makeValueObject, TextField, useFormValue } from "diaas/form.js";
+import { CheckMark, summarizeSourceDataNodes } from "diaas/Monitoring.js";
+import { IntervalSelector } from "diaas/sources/common.js";
 import { useAppState } from "diaas/state.js";
 import { ActionButton, ContentTitle } from "diaas/ui.js";
 
@@ -20,6 +23,7 @@ export const Editor = observer(({ source }) => {
       data: {
         connect_args: {},
       },
+      data_nodes: [],
       filename: null,
       id: null,
     };
@@ -31,6 +35,7 @@ export const Editor = observer(({ source }) => {
   const username = useFormValue(source.data.connect_args.username);
   const password_var = useFormValue(source.data.connect_args.password_var);
   const database = useFormValue(source.data.connect_args.database);
+  const stale_after = useFormValue(source.data.stale_after);
   const target_table_name_prefix = useFormValue(source.data.target_table_name_prefix);
   const target_schema = useFormValue(source.data.target_schema);
   const rows = [
@@ -40,6 +45,7 @@ export const Editor = observer(({ source }) => {
     ["Username", <TextField value={username} fullWidth={true} />],
     ["Password (var name)", <TextField value={password_var} fullWidth={true} />],
     ["Database", <TextField value={database} fullWidth={true} />],
+    ["Refresh Interval", <IntervalSelector value={stale_after} />],
     ["Target Schema", <TextField value={target_schema} fullWidth={true} />],
     ["Target Table Name Prefix", <TextField value={target_table_name_prefix} fullWidth={true} />],
   ];
@@ -52,6 +58,7 @@ export const Editor = observer(({ source }) => {
     data.connect_args["username"] = username.v;
     data.connect_args["password_var"] = password_var.v;
     data.connect_args["database"] = database.v;
+    data.stale_after = stale_after.v;
     data.target_table_name_prefix = target_table_name_prefix.v;
     data.target_schema = target_schema.v;
     data.tables = {};
@@ -132,18 +139,58 @@ export const Editor = observer(({ source }) => {
     return [<Checkbox value={load} />, <Checkbox value={unpack} />, name];
   });
 
+  const errorMessage = inspectError.v ? (
+    <>
+      <p>Error loading database details:</p> <pre>{JSON.stringify(inspectError.v, null, 4)}</pre>
+    </>
+  ) : null;
+
+  const dataSummary = summarizeSourceDataNodes(source);
+  const Health = () => {
+    if (!dataSummary.has_data_nodes) {
+      return <p>No data nodes yet.</p>;
+    } else {
+      const columns = [{ label: "" }, { label: "Node" }, { label: "State" }, { label: "Last Task" }];
+      const rows = _.sortBy(dataSummary.nodes, "id").map((n) => {
+        return [
+          <CheckMark state={n.state === "FRESH" ? "healthy" : "error"} />,
+          n.id,
+          n.state,
+
+          n.last_task ? (
+            <>
+              <Link to={`/data-nodes/tasks/${n.last_task.id}`}>{n.last_task.state}</Link> at {n.last_task.completed_at}
+            </>
+          ) : (
+            <>-</>
+          ),
+        ];
+      });
+      return <DataTable columns={columns} rows={rows} />;
+    }
+  };
+
   return (
     <>
       <ContentTitle iconURL="mysql.png">MySQL</ContentTitle>
-      <DataTable rows={rows} columns={[{ style: { width: "20%" } }, { style: {} }]} />
-      <ActionButton onClick={save}>Save</ActionButton>
-      <ActionButton onClick={inspect}>Load Tables</ActionButton>
-      {inspectError.v && (
-        <>
-          <p>Error loading database details:</p> <pre>{JSON.stringify(inspectError.v, null, 4)}</pre>
-        </>
-      )}
-      <DataTable rows={listingRows} columns={listingColumns} />
+      <Grid container>
+        <Grid item xs={6}>
+          <Typography variant="h6">Settings</Typography>
+          <DataTable rows={rows} columns={[{ style: { width: "20%" } }, { style: {} }]} />
+          <ActionButton onClick={save}>Save</ActionButton>
+          <Typography variant="h6">Tables</Typography>
+          <ActionButton onClick={inspect}>Load Tables</ActionButton>
+          {errorMessage}
+          <DataTable rows={listingRows} columns={listingColumns} />
+        </Grid>
+        <Grid item xs={6}>
+          <Typography variant="h6">
+            <CheckMark state={dataSummary.has_errors ? "error" : dataSummary.has_refreshing ? "warning" : "healthy"} />{" "}
+            Health
+          </Typography>
+          <Health />
+        </Grid>
+      </Grid>
     </>
   );
 });

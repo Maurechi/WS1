@@ -6,7 +6,6 @@ from functools import wraps
 from pathlib import Path
 from pprint import pformat
 
-import arrow
 from flask import g, session
 from flask_json import FlaskJSON, json_response, request
 from sentry_sdk import configure_scope
@@ -141,8 +140,6 @@ def encode(thing):
             return float(thing.quantize(EIGHT_PLACES))
         except decimal.InvalidOperation:
             return float(thing)
-    elif isinstance(thing, arrow.Arrow):
-        return thing.isoformat()
     elif isinstance(thing, Path):
         return str(thing)
     elif math.isnan(thing) or math.isinf(thing):

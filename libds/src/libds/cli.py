@@ -3,14 +3,15 @@ import functools
 import json
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import arrow
 import click
 
 from libds.__version__ import __version__
-from libds.data_node import DataNodeState
 from libds.data_stack import DataStack
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.utils import DoesNotExist, DSException, yaml_dump
@@ -22,6 +23,8 @@ class OutputEncoder(json.JSONEncoder):
             return obj.isoformat()
         if isinstance(obj, Path):
             return str(obj)
+        if isinstance(obj, arrow.Arrow):
+            return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
 
 
@@ -38,11 +41,9 @@ class Command:
         self.ds = None
         if directory is not None:
             self.ds = DataStack.from_dir(directory)
-            self.ds.load()
 
     def reload_data_stack(self):
         self.ds = DataStack.from_dir(self.ds.directory)
-        self.ds.load()
         return self.ds
 
     def results(self, data):
@@ -207,9 +208,9 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
     ds = COMMAND.reload_data_stack()
     orchestrator = ds.data_orchestrator
     model = ds.get_model(model_id)
-    nodes = model.data_nodes()
+    nodes = model.data_nodes
     for n in nodes:
-        orchestrator.set_node_state(n.id, DataNodeState.STALE)
+        orchestrator.set_node_stale(n.id)
 
     return COMMAND.reload_data_stack().get_model(model_id).info()
 
@@ -217,8 +218,12 @@ def model_update(model_id, type, if_exists, if_does_not_exist, current_id, sourc
 @command()
 @click.argument("filename")
 @click.argument("text")
-def update_file(filename, text):
-    COMMAND.ds.update_file(Path(filename), _arg_str(text))
+@click.option("--set-nodes-stale/--no-set-nodes-stale", default=True)
+def update_file(filename, text, set_nodes_stale):
+    path = Path(filename)
+    COMMAND.ds.update_file(path, _arg_str(text))
+    if set_nodes_stale:
+        COMMAND.reload_data_stack().set_file_nodes_stale(path)
     return COMMAND.reload_data_stack().info()
 
 
@@ -246,7 +251,9 @@ def execute(statement):
     except DSException as e:
         return {"error": e.as_json()}
     except Exception as e:
-        return {"error": {"code": "error", "details": str(e)}}
+        return {
+            "error": {"code": e.__class__.__name__, "details": traceback.format_exc()}
+        }
 
 
 @command()
@@ -266,20 +273,12 @@ def data_orchestrator_tick(loop):
         return COMMAND.ds.data_orchestrator.tick()
 
 
-@command(other_names=["dnu"])
-@click.option(
-    "--state",
-    "-s",
-    type=click.Choice(DataNodeState.__members__.keys(), case_sensitive=False),
-    default=None,
-)
+@command(other_names=["dnsns"])
 @click.argument("node_id")
-def data_node_update(node_id, state):
-    if state is not None:
-        state = DataNodeState[state]
-        orchestrator = COMMAND.ds.data_orchestrator
-        orchestrator.set_node_state(node_id, state)
-        orchestrator.load_states()
+def data_node_update(node_id):
+    orchestrator = COMMAND.ds.data_orchestrator
+    orchestrator.set_node_stale(node_id)
+    orchestrator.load_node_states()
 
     return orchestrator.info()
 
@@ -289,7 +288,7 @@ def data_node_update(node_id, state):
 def data_node_delete(node_id):
     orchestrator = COMMAND.ds.data_orchestrator
     orchestrator.delete_node(node_id)
-    orchestrator.load_states()
+    orchestrator.load_node_states()
 
     return orchestrator.info()
 

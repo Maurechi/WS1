@@ -1,0 +1,10 @@
+#!/bin/bash
+set -u; source "${LEUKOS_SH_V1}"; cd "$__root__";
+
+export MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}
+name="lcl-source-mysql5"
+docker volume create "${name}"
+docker stop "${name}" || true
+docker rm "${name}" || true
+
+docker run -it -v "${name}:/var/lib/mysql:rw" -p 3306:3306 -e MYSQL_ROOT_PASSWORD --name "${name}" mysql:5.7

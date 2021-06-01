@@ -1,25 +1,17 @@
-import secrets
-from datetime import datetime
 from pprint import pformat
 
 import clickhouse_driver.errors
 from clickhouse_driver import Client
 
 from libds.model import data_type
-from libds.store import BaseTable, Store, to_sample_value
+from libds.store import (
+    BaseStore,
+    BaseTable,
+    to_sample_value,
+    with_random_suffix,
+)
 from libds.store.clickhouse_error_codes import ERROR_CODES
 from libds.utils import DSException, GaugeProgress, InsertProgress
-
-
-def _with_random_suffix(table_name, tag=""):
-    return "_".join(
-        [
-            table_name,
-            tag,
-            datetime.utcnow().strftime("%Y%m%dT%H%M%S"),
-            secrets.token_hex(4),
-        ]
-    )
 
 
 def _data_type_to_clickhouse_type(t):
@@ -137,7 +129,7 @@ class ClickHouseClient:
         return res[0][0] > 0
 
 
-class ClickHouse(Store):
+class ClickHouse(BaseStore):
     def __init__(self, port=None, host=None, **store_kwargs):
         self.parameters = dict(port=9000, host="localhost")
         if port is not None:
@@ -162,8 +154,8 @@ class ClickHouse(Store):
 
     def load_unpacked_from_records(self, schema_name, table_name, columns, records):
         final = schema_name + "." + table_name
-        working = _with_random_suffix(final, "working")
-        tombstone = _with_random_suffix(final, "tombstone")
+        working = with_random_suffix(final, "working")
+        tombstone = with_random_suffix(final, "tombstone")
         self._ensure_schema(schema_name)
 
         p = InsertProgress(
@@ -208,8 +200,8 @@ class ClickHouse(Store):
 
     def load_raw_from_records(self, schema_name, table_name, records):
         final = schema_name + "." + table_name
-        working = _with_random_suffix(final, "working")
-        tombstone = _with_random_suffix(final, "tombstone")
+        working = with_random_suffix(final, "working")
+        tombstone = with_random_suffix(final, "tombstone")
         self._ensure_schema(schema_name)
 
         client = self.client()
@@ -258,8 +250,8 @@ class ClickHouse(Store):
 
     def create_or_replace_model(self, table_name, schema_name, select):
         final = schema_name + "." + table_name
-        working = _with_random_suffix(final, "working")
-        tombstone = _with_random_suffix(final, "tombstone")
+        working = with_random_suffix(final, "working")
+        tombstone = with_random_suffix(final, "tombstone")
 
         client = self.client()
 

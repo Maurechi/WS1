@@ -4,27 +4,25 @@
 #
 #    pip-compile
 #
-alembic==1.5.2
+alembic==1.6.4
     # via flask-alembic
-arrow==0.17.0
-    # via -r requirements.in
 cachecontrol==0.12.6
     # via -r requirements.in
 cached-property==1.5.2
     # via pygit2
 cachelib==0.1.1
     # via flask-session
-cachetools==4.2.1
+cachetools==4.2.2
     # via google-auth
 certifi==2020.12.5
     # via
     #   requests
     #   sentry-sdk
-cffi==1.14.4
+cffi==1.14.5
     # via pygit2
 chardet==4.0.0
     # via requests
-click==7.1.2
+click==8.0.1
     # via flask
 flask-alembic==2.0.1
     # via -r requirements.in
@@ -34,11 +32,11 @@ flask-json==0.3.4
     # via -r requirements.in
 git+https://github.com/segv/flask-session.git@8134a2e9c8ff5f2741376ceff6ff7bdee71cf295
     # via -r requirements.in
-flask-sqlalchemy==2.4.4
+flask-sqlalchemy==2.5.1
     # via
     #   -r requirements.in
     #   flask-alembic
-flask==1.1.2
+flask==2.0.1
     # via
     #   -r requirements.in
     #   flask-alembic
@@ -46,19 +44,21 @@ flask==1.1.2
     #   flask-json
     #   flask-session
     #   flask-sqlalchemy
-google-auth==1.27.0
+google-auth==1.30.1
     # via -r requirements.in
-gunicorn==20.0.4
+greenlet==1.1.0
+    # via sqlalchemy
+gunicorn==20.1.0
     # via -r requirements.in
 idna==2.10
     # via requests
-itsdangerous==1.1.0
+itsdangerous==2.0.1
     # via flask
-jinja2==2.11.2
+jinja2==3.0.1
     # via flask
 mako==1.1.4
     # via alembic
-markupsafe==1.1.1
+markupsafe==2.0.1
     # via
     #   jinja2
     #   mako
@@ -74,12 +74,10 @@ pyasn1==0.4.8
     #   rsa
 pycparser==2.20
     # via cffi
-pygit2==1.4.0
+pygit2==1.5.0
     # via -r requirements.in
 python-dateutil==2.8.1
-    # via
-    #   alembic
-    #   arrow
+    # via alembic
 python-editor==1.0.4
     # via alembic
 requests==2.25.1
@@ -88,23 +86,23 @@ rsa==4.7.2
     # via google-auth
 semver==2.13.0
     # via -r requirements.in
-sentry-sdk==0.19.5
+sentry-sdk==1.1.0
     # via -r requirements.in
-six==1.15.0
+six==1.16.0
     # via
     #   flask-cors
     #   google-auth
     #   python-dateutil
-sqlalchemy==1.3.22
+sqlalchemy==1.4.15
     # via
     #   alembic
     #   flask-alembic
     #   flask-sqlalchemy
-urllib3==1.26.2
+urllib3==1.26.4
     # via
     #   requests
     #   sentry-sdk
-werkzeug==1.0.1
+werkzeug==2.0.1
     # via flask
 
 # The following packages are considered to be unsafe in a requirements file:

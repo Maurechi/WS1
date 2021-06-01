@@ -1,9 +1,11 @@
 import hashlib
 import io
+import re
 import secrets
 import threading
 import time
 from collections import defaultdict
+from datetime import timedelta
 from pathlib import Path
 
 from ruamel.yaml import YAML
@@ -144,32 +146,6 @@ class DSException(Exception):
         return dict(code=self.code(), details=str(self))
 
 
-def timedelta_as_info(td):
-    info = {}
-    days = td.days
-
-    if days > 7:
-        info["weeks"] = int(days / 7)
-        days = days % 7
-
-    if days > 0:
-        info["days"] = days
-
-    secs = td.seconds
-    if secs > 3600:
-        info["hours"] = int(secs / 3600)
-        secs = secs % 3600
-
-    if secs > 60:
-        info["minutes"] = int(secs / 60)
-        secs = secs % 60
-
-    if secs > 0:
-        info["seconds"] = secs
-
-    return info
-
-
 def is_iterable(thing):
     try:
         _ = (e for e in thing)
@@ -199,3 +175,29 @@ def yaml_load(file=None, string=None):
         if isinstance(file, Path):
             file = file.open("r")
         return YAML(typ="rt").load(file)
+
+
+def parse_timedelta(str):
+    m = re.match(r"\s*(\d+)\s*(s|h|m|d)\s*$", str)
+    if m:
+        scale = m[1]
+        try:
+            scale = int(scale)
+        except ValueError as ve:
+            raise ValueError(f"Unable to parse scale part of {str}: {ve}")
+
+        unit = m[2]
+        if unit == "s":
+            seconds = scale
+        elif unit == "m":
+            seconds = scale * 60
+        elif unit == "h":
+            seconds = scale * 60 * 60
+        elif unit == "d":
+            seconds = scale * 24 * 60 * 60
+        else:
+            raise ValueError(f"Unknown unit part of {str}: {unit}")
+        return timedelta(seconds=seconds)
+
+    else:
+        raise ValueError(f"Unable to parse timedelta {str}")

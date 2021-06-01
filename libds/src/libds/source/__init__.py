@@ -45,6 +45,7 @@ class BaseSource:
         id=None,
         data_stack=None,
         table=None,
+        stale_after=None,
     ):
         from libds.data_stack import (
             CURRENT_DATA_STACK,
@@ -74,6 +75,8 @@ class BaseSource:
         self.schema_name = schema_name
         self.table_name = table_name
 
+        self.stale_after = stale_after
+
         LOCAL_SOURCES.append(self)
 
     @property
@@ -98,6 +101,10 @@ class BaseSource:
             info["data"] = yaml_load(string=self.text())
         else:
             info["text"] = self.text()
+        o = self.data_stack.data_orchestrator
+        info["data_nodes"] = {
+            node.id: o.load_node_state(node).info() for node in self.data_nodes
+        }
         return info
 
     def info(self):
@@ -152,13 +159,14 @@ class BaseSource:
 
 
 class StaticSource(BaseSource):
-    def data_nodes(self):
+    def load_data_nodes(self):
         return [
             DataNode(
                 id=self.schema_name + "." + self.table_name + "_raw",
                 container=self.fqid(),
                 upstream=[],
                 refresher=lambda o: self.refresh(),
+                stale_after=self.stale_after,
             )
         ]
 
@@ -187,5 +195,5 @@ class BrokenSource(BaseSource):
             "error": self.error,
         }
 
-    def data_nodes(self):
+    def load_data_nodes(self):
         return []

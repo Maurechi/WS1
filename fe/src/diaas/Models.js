@@ -14,7 +14,6 @@ export const Editor = observer(() => {
   const { user, backend } = useAppState();
   const history = useHistory();
   const routeMatch = useRouteMatch();
-  console.log(routeMatch);
 
   if (user.dataStack === null) {
     return <NotFound>No Data stacks for user</NotFound>;
@@ -51,15 +50,13 @@ export const Editor = observer(() => {
   };
 
   const save = () => {
-    let updateFile;
     if (creating) {
-      updateFile = backend.postFile(`models/${idValue.v}.sql`, textValue.v).then(() => {
+      return backend.postFile(`models/${idValue.v}.sql`, textValue.v).then(() => {
         return redirectToModel(idValue.v);
       });
     } else {
-      updateFile = backend.postFile(model.filename, textValue.v);
-      if (model.id !== idValue.v) {
-        updateFile = updateFile.then(() => {
+      return backend.postFile(model.filename, textValue.v).then(() => {
+        if (model.id !== idValue.v) {
           const m = model.filename.match(/^models(.*)\/.*(\.[^.]+)$/);
           if (m === null) {
             throw new Error(`filename does not match regexp: ${model.filename}`);
@@ -70,12 +67,11 @@ export const Editor = observer(() => {
             user.dataStack.models = _.filter(user.dataStack.models, (m) => m.id !== model.id);
             return redirectToModel(idValue.v);
           });
-        });
-      }
+        } else {
+          return Promise.resolve(null);
+        }
+      });
     }
-    return updateFile.then(() => {
-      return backend.updateDataNodeState("public." + idValue.v, "STALE");
-    });
   };
 
   if (!found) {

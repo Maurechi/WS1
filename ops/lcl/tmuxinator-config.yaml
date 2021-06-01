@@ -12,3 +12,4 @@ windows:
         - ./ops/lcl/run-bedb
         - ./ops/lcl/run-lcl-postgres
         - ./ops/lcl/run-lcl-clickhouse
+        - ./ops/lcl/run-lcl-mysql5

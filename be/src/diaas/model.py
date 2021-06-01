@@ -2,8 +2,6 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-import pygit2
-
 from diaas.config import CONFIG
 from diaas.db import db
 from diaas.libds import LibDS
@@ -53,7 +51,8 @@ class User(db.Model, ModifiedAtMixin):
             for path in (self.workbench_path / "data-stacks/").glob("*")
             if path.name not in [".", ".."]
         ]
-        return {d.id: d for d in stacks}
+        stacks = [DataStack("0", self.workbench_path / "data-stacks/0")]
+        return {d.id: d for d in stacks if d.path.exists()}
 
     @property
     def current_data_stack(self):
@@ -73,11 +72,7 @@ class User(db.Model, ModifiedAtMixin):
         u.workbench_path.mkdir(parents=True, exist_ok=True)
 
         if len(u.data_stacks) == 0:
-            origin_dir = CONFIG.DS_STORE / str(u.code)
-            DataStack.create_origin(origin_dir)
-            pygit2.clone_repository(
-                url=str(origin_dir), path=str(u.workbench_path / "data-stacks/0")
-            )
+            DataStack.create_at(u.workbench_path / "data-stacks/0")
 
         return u
 
@@ -88,7 +83,7 @@ class DataStack:
         self.path = Path(path)
 
     @classmethod
-    def create_origin(cls, path):
+    def create_at(cls, path):
         path = Path(path)
         run = path / "run"
         if not run.exists():

@@ -1,4 +1,4 @@
 #!/bin/bash
 set -u; source "${LEUKOS_SH_V1}"; cd "${__root__}"
 
-"${LEUKOS_BIN}/build-and-publish-container" ./ops/cicd/cicd-container
+build-and-publish-container ./ops/cicd/cicd-container

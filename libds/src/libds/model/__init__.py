@@ -82,7 +82,7 @@ class BaseModel:
     def table(self):
         return self.data_stack.store.get_table(self.schema_name, self.table_name)
 
-    def data_nodes(self):
+    def load_data_nodes(self):
         return [
             DataNode(
                 refresher=lambda orchestrator: self.load_data(),
@@ -132,11 +132,9 @@ class SQLModel(BaseModel):
         )
 
         def depends_on(model_id, *other_deps):
-            config["dependencies"] += [
-                _ensure_schema(table_name)
-                for table_name in [model_id] + list(other_deps)
-            ]
-            return model_id
+            config["dependencies"].append(model_id)
+            config["dependencies"].extend(other_deps)
+            return data_stack.store.model_id_to_table_name(model_id)
 
         def table_name(table, schema=None):
             if table is not None:

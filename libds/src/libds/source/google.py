@@ -49,11 +49,19 @@ class GoogleSheet(StaticSource):
         target_table = data["target_table"]
         range = data["range"]
         header_row = data["header_row"]
+        stale_after = data.get("stale_after", None)
         service_account_json_var = data["service_account_json_var"]
         service_account_json = os.environ.get(service_account_json_var)
         service_account_info = json.loads(service_account_json)
 
-        return cls(sheet_id, range, header_row, target_table, service_account_info)
+        return cls(
+            sheet_id=sheet_id,
+            range=range,
+            header_row=header_row,
+            target_table=target_table,
+            stale_after=stale_after,
+            service_account_info=service_account_info,
+        )
 
     def info(self):
         return self._info(

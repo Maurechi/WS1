@@ -8,10 +8,12 @@ import pygit2
 from libds.data_node import DataOrchestrator
 from libds.model import BaseModel
 from libds.source import BaseSource, BrokenSource
+from libds.store import BaseStore
 from libds.utils import (
     DoesNotExist,
     ThreadLocalList,
     ThreadLocalValue,
+    yaml_dump,
     yaml_load,
 )
 
@@ -57,16 +59,12 @@ class DataStack:
             raise Exception("No data stack defined.")
 
         ds.directory = dir
+        ds.load()
         return ds
 
     def info(self):
         repo = pygit2.Repository(self.directory)
         head = repo.revparse_single("HEAD")
-        remotes = repo.remotes
-        if len(remotes) == 1:
-            remote = remotes[0]
-        else:
-            remote = remotes["origin"]
         return dict(
             config=self.config,
             repo=dict(
@@ -75,10 +73,6 @@ class DataStack:
                     author=f'"{head.author.name}" <{head.author.email}>',
                 ),
                 branch=repo.head.shorthand,
-                origin=dict(
-                    name=remote.name,
-                    url=remote.url,
-                ),
             ),
             sources=[s.info() for s in self.sources],
             store=self.store.info(),
@@ -87,18 +81,24 @@ class DataStack:
         )
 
     def load_data_orchestrator(self):
-        # NOTE not the cleanest code, DataOrchestrator depends on the
-        # data_nodes having been initilized. but the whole data stack
-        # loading logic is weird, needs a long think and
-        # refactoring. 20210408:mb
+        # NOTE this is really bad code. There are a bunch of things
+        # which depend on things happening in a certain order (loading
+        # must be done source+model, then orchestrator, then
+        # backpatch), some objects change other objects (here we set
+        # the data_notes property on the Source/Model objects) without
+        # any way to mark it. While this works it is bad code and
+        # should be refactored with a sledgehammer. (20210408 was the
+        # first time this comment was written, on 20210529 I fixed a
+        # bug and made the code worse):mb
         self.data_orchestrator = DataOrchestrator(self)
 
         for data in self.sources + self.models:
-            self.data_orchestrator.collect_nodes(data.data_nodes())
+            data.data_nodes = data.load_data_nodes()
+            self.data_orchestrator.collect_nodes(data.data_nodes)
 
         self.data_orchestrator.post_load_backpatch()
 
-        self.data_orchestrator.load_states()
+        self.data_orchestrator.load_node_states()
 
     def sources_dir(self):
         dir = self.directory / "sources"
@@ -144,6 +144,19 @@ class DataStack:
         path.open("w").write(source)
         return path
 
+    def set_file_nodes_stale(self, filename):
+        dir = filename.parent.name
+        basename = filename.stem
+        if dir == "models":
+            resource = self.get_model(basename)
+        elif dir == "sources":
+            resource = self.get_source(basename)
+        else:
+            raise ValueError(f"{filename} is neither a model/ nor a source/")
+
+        for n in resource.data_nodes:
+            self.data_orchestrator.set_node_stale(n.id)
+
     def delete_file(self, filename):
         path = self.directory / filename
         if path.exists():
@@ -185,26 +198,42 @@ class DataStack:
         else:
             raise DoesNotExist(f"Model: {id}")
 
+    def stores_dir(self):
+        dir = self.directory / "stores"
+        dir.mkdir(parents=True, exist_ok=True)
+        return dir
+
+    def create_default_store(self):
+        path = self.stores_dir() / "store.yaml"
+        yaml_dump(
+            dict(
+                type="libds.store.sqlite.SQLite",
+                path="./store.sqlite3",
+            ),
+            path,
+        )
+        BaseStore.from_file(path)
+
     def load_store(self):
         LOCAL_STORES.reset()
         CURRENT_DATA_STACK.value = self
-        for store_py in (self.directory / "stores").glob("**/*.py"):
-            store_py = store_py.resolve()
-            CURRENT_FILENAME.value = store_py
-            runpy.run_path(store_py)
-        if len(LOCAL_STORES) == 0:
-            # raise Exception(f"No stores defined in {self.directory}")
-            return None
+        for filename in chain(
+            self.stores_dir().glob("**/*.py"), self.stores_dir().glob("**/*.yaml")
+        ):
+            BaseStore.from_file(filename)
         if len(LOCAL_STORES) > 1:
             raise Exception(f"Multiple Stores defined in {self.directory}")
-        CURRENT_FILENAME.value = None
+        if len(LOCAL_STORES) == 0:
+            self.create_default_store()
         CURRENT_DATA_STACK.value = None
         self.store = LOCAL_STORES[0]
 
     def load(self):
+        # NOTE models can depend on the store, make sure to load that
+        # first. 20210528:mb
+        self.load_store()
         self.load_sources()
         self.load_models()
-        self.load_store()
         self.load_data_orchestrator()
 
         return self
