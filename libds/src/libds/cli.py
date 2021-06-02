@@ -12,6 +12,7 @@ import arrow
 import click
 
 from libds.__version__ import __version__
+from libds.data_node import DataNodeState
 from libds.data_stack import DataStack
 from libds.model import PythonModel, SQLCodeModel, SQLQueryModel
 from libds.utils import DoesNotExist, DSException, yaml_dump
@@ -273,13 +274,25 @@ def data_orchestrator_tick(loop):
         return COMMAND.ds.data_orchestrator.tick()
 
 
-@command(other_names=["dnsns"])
+@command(other_names=["dnu"])
+@click.option(
+    "--state",
+    "-s",
+    type=click.Choice(DataNodeState.__members__.keys(), case_sensitive=False),
+    default=None,
+)
 @click.argument("node_id")
-def data_node_update(node_id):
-    orchestrator = COMMAND.ds.data_orchestrator
-    orchestrator.set_node_stale(node_id)
-    orchestrator.load_node_states()
+def data_node_update(node_id, state):
+    if state is not None:
+        state = DataNodeState[state]
 
+    orchestrator = COMMAND.ds.data_orchestrator
+    if state == DataNodeState.STALE:
+        orchestrator.set_node_stale(node_id)
+    else:
+        raise ValueError("Sorry, only STALE state is accepted for now.")
+
+    orchestrator.load_node_states()
     return orchestrator.info()
 
 
