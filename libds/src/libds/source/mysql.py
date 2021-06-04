@@ -129,7 +129,7 @@ class MySQL(BaseSource):
                 args["passwd"] = passwd
             else:
                 raise ValueError(
-                    f"Missing password variable named {pformat(self.connect_args['password_var'])} in env"
+                    f"Missing password variable named {pformat(self.connect_args['password_var'])} in env given config {pformat(self.connect_args)}"
                 )
         elif "password" in self.connect_args:
             args["passwd"] = self.connect_args["password"]
