@@ -38,6 +38,8 @@ export const summarizeSourceDataNodes = (source) => {
   if (summary.num_done > 0) {
     const max_completed_at = _.max(_.map(summary.done_nodes, (n) => n.last_task.completed_at));
     summary.age = formatDistance(new Date(max_completed_at), new Date());
+  } else {
+    summary.age = null;
   }
 
   return summary;
@@ -77,7 +79,7 @@ export const SourcesDashboard = observer(() => {
     } else if (summ.has_refreshing) {
       return [<CheckMark warning />, link, `${summ.num_fresh} completed out of ${summ.num_nodes}`];
     } else {
-      return [<CheckMark healthy />, link, `Done. Last completed ${summ.age} ago`];
+      return [<CheckMark healthy />, link, `Last updated ${summ.age === null ? "not applicable" : summ.age + " ago"}`];
     }
   });
 

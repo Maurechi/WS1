@@ -7,6 +7,7 @@ from libds.model import data_type
 from libds.store import (
     BaseStore,
     BaseTable,
+    random_suffix_regexp,
     to_sample_value,
     with_random_suffix,
 )
@@ -130,13 +131,17 @@ class ClickHouseClient:
 
 
 class ClickHouse(BaseStore):
-    def __init__(self, port=None, host=None, **store_kwargs):
+    def __init__(self, port=None, host=None):
         self.parameters = dict(port=9000, host="localhost")
         if port is not None:
             self.parameters["port"] = port
         if host is not None:
             self.parameters["host"] = host
         super().__init__()
+
+    @classmethod
+    def from_yaml(cls, yaml):
+        return cls(port=yaml["port"], host=yaml["host"])
 
     def info(self):
         return self._info(parameters=self.parameters)
@@ -151,6 +156,21 @@ class ClickHouse(BaseStore):
     def _ensure_schema(self, schema_name):
         default = self.client(schema_name="default")
         default.execute(f"CREATE DATABASE IF NOT EXISTS {schema_name} ENGINE = Atomic;")
+
+    def drop_tables_by_tag(self, schema_name, table_name, tag):
+        client = self.client()
+
+        res = client.execute(
+            "select name from system.tables where database = %(schema_name)s",
+            dict(schema_name=schema_name),
+        )
+        dropped = []
+        re = random_suffix_regexp(table_name, tag)
+        for table_name in [row[0] for row in res]:
+            if re.match(table_name):
+                client.execute(f'drop table "{schema_name}"."{table_name}";')
+                dropped.append(table_name)
+        return dropped
 
     def load_unpacked_from_records(self, schema_name, table_name, columns, records):
         final = schema_name + "." + table_name
@@ -198,6 +218,8 @@ class ClickHouse(BaseStore):
         else:
             client.execute(f"RENAME TABLE {working} to {final};")
 
+        self._cleanup_tables(p, schema_name, table_name)
+
     def load_raw_from_records(self, schema_name, table_name, records):
         final = schema_name + "." + table_name
         working = with_random_suffix(final, "working")
@@ -238,6 +260,8 @@ class ClickHouse(BaseStore):
         p.display(f"Renamed {working} to {final}")
 
         table = Table(store=self, schema_name=schema_name, table_name=table_name)
+
+        self._cleanup_tables(p, schema_name, table_name)
 
         return {
             "count": num_rows,
@@ -282,6 +306,8 @@ class ClickHouse(BaseStore):
             client.execute(f"DROP TABLE {tombstone};")
         else:
             client.execute(f"RENAME TABLE {working} to {final};")
+
+        self._cleanup_tables(p, schema_name, table_name)
 
     def get_table(self, schema_name, table_name):
         return Table(store=self, schema_name=schema_name, table_name=table_name)
