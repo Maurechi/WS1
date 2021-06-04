@@ -1,4 +1,5 @@
 import datetime
+import re
 import runpy
 import secrets
 from decimal import Decimal
@@ -79,6 +80,12 @@ class BaseStore:
     def model_id_to_table_name(self, model_id):
         return model_id
 
+    def _cleanup_tables(self, p, schema_name, table_name):
+        working = self.drop_tables_by_tag(schema_name, table_name, "working")
+        p.display(f"Cleaned up working tables: {working}")
+        tombstone = self.drop_tables_by_tag(schema_name, table_name, "tombstone")
+        p.display(f"Cleaned up tombstone tables: {tombstone}")
+
 
 def to_sample_value(value):
     if isinstance(value, Decimal):
@@ -111,4 +118,17 @@ def with_random_suffix(table_name, tag=""):
             datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S"),
             secrets.token_hex(4),
         ]
+    )
+
+
+def random_suffix_regexp(table_name, tag=""):
+    return re.compile(
+        "_".join(
+            [
+                re.escape(table_name),
+                re.escape(tag),
+                "[0-9]{8}T[0-9]{6}",
+                "[a-f0-9]{8}",
+            ]
+        )
     )

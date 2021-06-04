@@ -1,9 +1,15 @@
 import json
 from pathlib import Path
+from pprint import pprint  # noqa: F401
 
 import sqlalchemy as sa
 
-from libds.store import BaseTable, to_sample_value, with_random_suffix
+from libds.store import (
+    BaseTable,
+    random_suffix_regexp,
+    to_sample_value,
+    with_random_suffix,
+)
 from libds.store.sqlalchemy import SQLAlchemyStore
 from libds.utils import InsertProgress
 
@@ -35,6 +41,16 @@ class SQLite(SQLAlchemyStore):
             dict(name=table_name),
         )
         return res.one()["count"]
+
+    def drop_tables_by_tag(self, schema_name, table_name, tag):
+        with self.engine.connect() as conn:
+            re = random_suffix_regexp(table_name, tag)
+            res = conn.execute("select name from sqlite_schema where type = 'table'")
+            table_names = [row["name"] for row in res.all() if re.match(row["name"])]
+            for table in table_names:
+                conn.execute(f'drop table "{table}";')
+
+        return table_names
 
     def load_raw_from_records(self, schema_name, table_name, records):
         final_name = table_name
@@ -79,6 +95,8 @@ class SQLite(SQLAlchemyStore):
 
             p.display(f"Renamed {working_name} to {final_name}")
 
+            self._cleanup_tables(p, schema_name, final_name)
+
         table = Table(store=self, schema_name=schema_name, table_name=table_name)
 
         return {
@@ -117,6 +135,8 @@ class SQLite(SQLAlchemyStore):
                 conn.execute(f"ALTER TABLE {working_name} RENAME TO {final_name};")
 
             p.display(f"Renamed {working_name} to {final_name}")
+
+            self._cleanup_tables(p, schema_name, final_name)
 
     def execute(self, stmt):
         return _execute(self, stmt)

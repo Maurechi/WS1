@@ -323,6 +323,20 @@ def data_node_refresh(node_id):
 
 
 @command()
+@click.argument("table")
+@click.option("-s", "--schema", type=str, default="public")
+def cleanup(table, schema):
+    ds = COMMAND.ds
+    working = ds.store.drop_tables_by_tag(schema, table, "working")
+    tombstone = ds.store.drop_tables_by_tag(schema, table, "tombstone")
+    return dict(
+        table_name=table,
+        schema_name=schema,
+        tables_dropped=dict(working=working, tombstone=tombstone),
+    )
+
+
+@command()
 @click.pass_context
 def help(ctx):
     click.echo(ctx.parent.get_help())
