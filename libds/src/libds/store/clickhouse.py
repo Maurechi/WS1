@@ -130,13 +130,17 @@ class ClickHouseClient:
 
 
 class ClickHouse(BaseStore):
-    def __init__(self, port=None, host=None, **store_kwargs):
+    def __init__(self, port=None, host=None):
         self.parameters = dict(port=9000, host="localhost")
         if port is not None:
             self.parameters["port"] = port
         if host is not None:
             self.parameters["host"] = host
         super().__init__()
+
+    @classmethod
+    def from_yaml(cls, yaml):
+        return cls(port=yaml["port"], host=yaml["host"])
 
     def info(self):
         return self._info(parameters=self.parameters)

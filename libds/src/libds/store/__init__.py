@@ -41,6 +41,10 @@ class BaseStore:
                 from libds.store.sqlite import SQLite
 
                 return SQLite.from_yaml(spec)
+            if spec["type"] == "libds.store.clickhouse.ClickHouse":
+                from libds.store.clickhouse import ClickHouse
+
+                return ClickHouse.from_yaml(spec)
             else:
                 raise ValueError(
                     f"Don't know how to build store of type {spec['type']} from {filename}"
