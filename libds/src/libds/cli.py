@@ -279,12 +279,11 @@ def data_orchestrator_tick(loop):
     "--state",
     "-s",
     type=click.Choice(DataNodeState.__members__.keys(), case_sensitive=False),
-    default=None,
+    default="STALE",
 )
 @click.argument("node_id")
 def data_node_update(node_id, state):
-    if state is not None:
-        state = DataNodeState[state]
+    state = DataNodeState[state]
 
     orchestrator = COMMAND.ds.data_orchestrator
     if state == DataNodeState.STALE:
