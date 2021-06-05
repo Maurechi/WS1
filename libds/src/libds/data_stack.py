@@ -243,6 +243,7 @@ class DataStack:
     def render_model_sql(self, template):
         config = dict(
             dependencies=[],
+            tests={},
             table_name=None,
             schema_name=None,
             is_query=None,
@@ -268,11 +269,19 @@ class DataStack:
             config["is_query"] = False
             return _pprint_call("is_statement")
 
+        def test(id=None, caller=None):
+            test_query = caller()
+            if id is None:
+                id = str(len(config["tests"].values()))
+            config["tests"][id] = test_query
+            return _pprint_call("test", id=id)
+
         sql = template.render(
             depends_on=depends_on,
             table_name=table_name,
             is_query=is_query,
             is_statement=is_statement,
+            test=test,
         )
         return sql, config
 

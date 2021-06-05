@@ -14,7 +14,7 @@ import { DataNodesContent } from "diaas/DataNodes";
 import { TextField, useFormValue } from "diaas/form.js";
 import { AppNavigation, AppSplash, FallbackAppNavigation } from "diaas/layout.js";
 import { ModelsContent } from "diaas/Models.js";
-import { SourcesDashboard } from "diaas/Monitoring.js";
+import { ModelsDashboard, SourcesDashboard } from "diaas/Monitoring.js";
 import { SourcesContent } from "diaas/Sources";
 import { AppState, CONFIG, useAppState } from "diaas/state.js";
 import { StoreContent } from "diaas/Store.js";
@@ -163,7 +163,14 @@ const HomePageContent = () => {
   return (
     <>
       <p>Welcome to Caravel.</p>
-      <SourcesDashboard />
+      <Grid container>
+        <Grid item xs={6}>
+          <SourcesDashboard />
+        </Grid>
+        <Grid item xs={6}>
+          <ModelsDashboard />
+        </Grid>
+      </Grid>
     </>
   );
 };

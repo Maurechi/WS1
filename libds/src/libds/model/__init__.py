@@ -17,6 +17,7 @@ class BaseModel:
         table_name=None,
         schema_name=None,
         dependencies=None,
+        tests=None,
     ):
         if data_stack is None:
             from libds.data_stack import CURRENT_DATA_STACK
@@ -29,6 +30,9 @@ class BaseModel:
         if dependencies is None:
             dependencies = []
         self.dependencies = dependencies
+        if tests is None:
+            tests = {}
+        self.tests = tests
 
     @classmethod
     def from_file(cls, data_stack, filename):
@@ -125,7 +129,15 @@ class SQLModel(BaseModel):
         self.type = "sql"
 
     def info(self):
-        return {**super().info(), "sql": self.sql}
+        i = super().info()
+        i["sql"] = self.sql
+        i["tests"] = {}
+        for t in self.tests.keys():
+            query = self.tests[t]
+            failures = list(self.data_stack.store.execute_sql(query))
+            i["tests"][t] = dict(ok=len(failures) == 0, failures=failures)
+
+        return i
 
     @classmethod
     def from_file(cls, data_stack, filename):
@@ -145,6 +157,7 @@ class SQLModel(BaseModel):
             table_name=config["table_name"],
             schema_name=config["schema_name"],
             dependencies=list(set(config["dependencies"])),
+            tests=config["tests"],
         )
 
     def __repr__(self):
