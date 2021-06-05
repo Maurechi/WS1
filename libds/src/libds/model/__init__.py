@@ -1,7 +1,6 @@
 import runpy
 from datetime import datetime
 from pathlib import Path
-from pprint import pformat
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -93,15 +92,6 @@ class BaseModel:
         ]
 
 
-def _pprint_call(func, **args):
-    str = func + "("
-    str += ", ".join([key + "=" + pformat(args[key]) for key in sorted(args.keys())])
-    str += ")"
-    str = str.replace("\n", "")
-    str = "/* " + str + " */"
-    return str
-
-
 def _ensure_schema(table_name):
     if "." in table_name:
         return table_name
@@ -124,41 +114,11 @@ class SQLModel(BaseModel):
         env = Environment(loader=FileSystemLoader([str(models_dir)]), autoescape=False)
 
         template = env.get_template(str(filename.relative_to(models_dir)))
-        config = dict(
-            dependencies=[],
-            table_name=None,
-            schema_name=None,
-            is_query=not filename.stem.startswith("lib"),
-        )
-
-        def depends_on(model_id, *other_deps):
-            config["dependencies"].append(model_id)
-            config["dependencies"].extend(other_deps)
-            return data_stack.store.model_id_to_table_name(model_id)
-
-        def table_name(table, schema=None):
-            if table is not None:
-                config["table_name"] = table
-            if schema is not None:
-                config["schema_name"] = schema
-            return _pprint_call("table_name", table=table, schema=schema)
-
-        def is_query():
-            config["is_query"] = True
-
-        def is_statement():
-            config["is_query"] = False
-
-        sql = template.render(
-            depends_on=depends_on,
-            table_name=table_name,
-            is_query=is_query,
-            is_statement=is_statement,
-        )
-        if config["is_query"]:
-            cls = SQLQueryModel
-        else:
-            cls = SQLCodeModel
+        sql, config = data_stack.render_model_sql(template)
+        is_query = config["is_query"]
+        if is_query is None:
+            is_query = not filename.stem.startswith("lib")
+        cls = SQLQueryModel if is_query else SQLCodeModel
         return cls(
             data_stack=data_stack,
             filename=filename,

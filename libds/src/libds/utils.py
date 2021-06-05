@@ -7,6 +7,7 @@ import time
 from collections import defaultdict
 from datetime import timedelta
 from pathlib import Path
+from pprint import pformat
 
 from ruamel.yaml import YAML
 
@@ -201,3 +202,12 @@ def parse_timedelta(str):
 
     else:
         raise ValueError(f"Unable to parse timedelta {str}")
+
+
+def _pprint_call(func, **args):
+    str = func + "("
+    str += ", ".join([key + "=" + pformat(args[key]) for key in sorted(args.keys())])
+    str += ")"
+    str = str.replace("\n", "")
+    str = "/* " + str + " */"
+    return str
