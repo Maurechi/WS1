@@ -128,8 +128,12 @@ class LibDS:
     def delete_file(self, filename):
         return self.call_ds(cmd=["delete-file", filename])
 
-    def execute(self, statement):
-        return self.call_ds(cmd=["execute", "-"], input=statement)
+    def execute(self, statement, limit=None):
+        if limit is None:
+            cmd = ["execute", "-"]
+        else:
+            cmd = ["execute", "--limit", str(limit), "-"]
+        return self.call_ds(cmd=cmd, input=statement)
 
     def data_node_update(self, nid):
         return self.call_ds(cmd=["data-node-update", nid])

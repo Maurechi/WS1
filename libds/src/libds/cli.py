@@ -4,6 +4,7 @@ import json
 import sys
 import time
 import traceback
+import types
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +27,8 @@ class OutputEncoder(json.JSONEncoder):
             return str(obj)
         if isinstance(obj, arrow.Arrow):
             return obj.isoformat()
+        if isinstance(obj, types.GeneratorType):
+            return list(obj)
         return json.JSONEncoder.default(self, obj)
 
 
@@ -245,10 +248,12 @@ def move_file(src, dst):
 
 @command()
 @click.argument("statement")
-def execute(statement):
+@click.option("-l", "--limit", type=int)
+def execute(statement, limit):
     statement = _arg_str(statement)
     try:
-        return list(COMMAND.ds.store.execute(statement))
+        rows, sql = COMMAND.ds.execute_sql(statement, limit)
+        return dict(rows=list(rows), sql=sql)
     except DSException as e:
         return {"error": e.as_json()}
     except Exception as e:

@@ -7,7 +7,7 @@ import { CodeEditor, useLocalStorage } from "diaas/form.js";
 import { useAppState } from "diaas/state.js";
 import { ActionButton, StandardButton as Button, useResize } from "diaas/ui.js";
 
-const CellData = React.memo((props) => <SampleDataTable {...props} />);
+export const CellData = React.memo((props) => <SampleDataTable {...props} />);
 
 export const Cell = observer(({ value }) => {
   const { backend } = useAppState();
@@ -16,7 +16,7 @@ export const Cell = observer(({ value }) => {
   const { width } = useResize(ref);
   const run = () => {
     return backend.execute({ statement: value.v }).then((data) => {
-      setRows(data);
+      setRows(data.rows);
     });
   };
 

@@ -1,14 +1,14 @@
 import { Box, Divider, Grid, Typography } from "@material-ui/core";
 import _ from "lodash";
 import { observer } from "mobx-react-lite";
-import React from "react";
+import React, { createRef } from "react";
 import { generatePath, Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 
 import { DataGrid } from "diaas/DataGrid.js";
-import { CodeEditor, TextField, useFormValue } from "diaas/form.js";
-import { Notebook } from "diaas/Notebook.js";
+import { CodeEditor, TextField, useFormValue, useStateV } from "diaas/form.js";
+import { CellData, Notebook } from "diaas/Notebook.js";
 import { useAppState } from "diaas/state.js";
-import { ActionButton, ButtonLink, NotFound, VCenter } from "diaas/ui.js";
+import { ActionButton, ButtonLink, NotFound, useResize, VCenter } from "diaas/ui.js";
 
 export const Editor = observer(() => {
   const { user, backend } = useAppState();
@@ -49,36 +49,46 @@ export const Editor = observer(() => {
     });
   };
 
-  const save = () => {
-    if (creating) {
-      return backend.postFile(`models/${idValue.v}.sql`, textValue.v).then(() => {
-        return redirectToModel(idValue.v);
-      });
-    } else {
-      return backend.postFile(model.filename, textValue.v).then(() => {
-        if (model.id !== idValue.v) {
-          const m = model.filename.match(/^models(.*)\/.*(\.[^.]+)$/);
-          if (m === null) {
-            throw new Error(`filename does not match regexp: ${model.filename}`);
-          }
-          const dirs = m[1];
-          const ext = m[2];
-          return backend.moveFile(model.filename, "models" + dirs + "/" + idValue.v + ext).then(() => {
-            user.dataStack.models = _.filter(user.dataStack.models, (m) => m.id !== model.id);
-            return redirectToModel(idValue.v);
-          });
-        } else {
-          return Promise.resolve(null);
-        }
-      });
-    }
+  const saveAndRedirect = () => {
+    return backend.postFile(`models/${idValue.v}.sql`, textValue.v).then(() => {
+      return redirectToModel(idValue.v);
+    });
   };
+
+  const rows = useStateV([]);
+  const ref = createRef();
+  const { width } = useResize(ref);
+
+  const saveAndRun = () => {
+    return backend.postFile(model.filename, textValue.v).then(() => {
+      if (model.id !== idValue.v) {
+        const m = model.filename.match(/^models(.*)\/.*(\.[^.]+)$/);
+        if (m === null) {
+          throw new Error(`filename does not match regexp: ${model.filename}`);
+        }
+        const dirs = m[1];
+        const ext = m[2];
+        return backend.moveFile(model.filename, "models" + dirs + "/" + idValue.v + ext).then(() => {
+          user.dataStack.models = _.filter(user.dataStack.models, (m) => m.id !== model.id);
+          return redirectToModel(idValue.v);
+        });
+      } else {
+        return backend.execute({ statement: textValue.v, limit: 23 }).then((data) => {
+          rows.v = data.rows;
+          return null;
+        });
+      }
+    });
+  };
+
+  const submitAction = creating ? saveAndRedirect : saveAndRun;
+  const submitLabel = creating ? "Save" : "Save and Run";
 
   if (!found) {
     return <NotFound>No Model with id {modelId}</NotFound>;
   } else {
     return (
-      <form onSubmit={save}>
+      <form onSubmit={submitAction}>
         <Box>
           <Box display="flex" mb={3}>
             <Box style={{ flexGrow: 1 }}>
@@ -90,19 +100,31 @@ export const Editor = observer(() => {
                 </Box>
               </VCenter>
             </Box>
-            <Box>
-              <Box display="flex">
-                <Box mx={1}>
-                  <ActionButton onClick={save}>Save</ActionButton>
-                </Box>
-              </Box>
-            </Box>
           </Box>
           <Divider />
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h4">Model</Typography>
+            <Grid ref={ref} item xs={12} md={6}>
+              <Typography variant="h4">
+                Model {model.type === "broken" && <span style={{ color: "red" }}>(Invalid)</span>}
+              </Typography>
               <CodeEditor mode={model.type} value={textValue} />
+              <Box>
+                <Box display="flex">
+                  <Box py={1}>
+                    <ActionButton onClick={submitAction}>{submitLabel}</ActionButton>
+                  </Box>
+                </Box>
+              </Box>
+              {model.type === "broken" ? (
+                <>
+                  <pre>{model.error.exception}</pre>
+                  <pre>{model.error.traceback}</pre>
+                </>
+              ) : (
+                <Box py={1} style={{ overflow: "scroll", maxWidth: width }}>
+                  <CellData rows={rows.v} />
+                </Box>
+              )}
             </Grid>
             <Grid item xs={12} md={6}>
               <Typography variant="h4">Notebook</Typography>

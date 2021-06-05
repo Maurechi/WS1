@@ -1,7 +1,7 @@
 import runpy
+import traceback
 from datetime import datetime
 from pathlib import Path
-from pprint import pformat
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -17,6 +17,7 @@ class BaseModel:
         table_name=None,
         schema_name=None,
         dependencies=None,
+        tests=None,
     ):
         if data_stack is None:
             from libds.data_stack import CURRENT_DATA_STACK
@@ -29,13 +30,21 @@ class BaseModel:
         if dependencies is None:
             dependencies = []
         self.dependencies = dependencies
+        if tests is None:
+            tests = {}
+        self.tests = tests
 
     @classmethod
     def from_file(cls, data_stack, filename):
-        if filename.suffix == ".sql":
-            return SQLModel.from_file(data_stack, filename)
-        elif filename.suffix == ".py":
-            return PythonModel.from_file(data_stack, filename)
+        try:
+            if filename.suffix == ".sql":
+                return SQLModel.from_file(data_stack, filename)
+            elif filename.suffix == ".py":
+                return PythonModel.from_file(data_stack, filename)
+        except Exception as e:
+            return BrokenModel(
+                data_stack, filename, exception=e, traceback=traceback.format_exc()
+            )
 
     def _init_properties(self, filename, id, table_name, schema_name):
         self.filename = Path(filename)
@@ -93,20 +102,24 @@ class BaseModel:
         ]
 
 
-def _pprint_call(func, **args):
-    str = func + "("
-    str += ", ".join([key + "=" + pformat(args[key]) for key in sorted(args.keys())])
-    str += ")"
-    str = str.replace("\n", "")
-    str = "/* " + str + " */"
-    return str
-
-
 def _ensure_schema(table_name):
     if "." in table_name:
         return table_name
     else:
         return "public." + table_name
+
+
+class BrokenModel(BaseModel):
+    def __init__(self, data_stack, filename, exception, traceback):
+        super().__init__(data_stack=data_stack, filename=filename)
+        self.type = "broken"
+        self.exception = exception
+        self.traceback = traceback
+
+    def info(self):
+        i = super().info()
+        i.update(error=dict(exception=str(self.exception), traceback=self.traceback))
+        return i
 
 
 class SQLModel(BaseModel):
@@ -116,7 +129,15 @@ class SQLModel(BaseModel):
         self.type = "sql"
 
     def info(self):
-        return {**super().info(), "sql": self.sql}
+        i = super().info()
+        i["sql"] = self.sql
+        i["tests"] = {}
+        for t in self.tests.keys():
+            query = self.tests[t]
+            failures = list(self.data_stack.store.execute_sql(query))
+            i["tests"][t] = dict(ok=len(failures) == 0, failures=failures)
+
+        return i
 
     @classmethod
     def from_file(cls, data_stack, filename):
@@ -124,41 +145,11 @@ class SQLModel(BaseModel):
         env = Environment(loader=FileSystemLoader([str(models_dir)]), autoescape=False)
 
         template = env.get_template(str(filename.relative_to(models_dir)))
-        config = dict(
-            dependencies=[],
-            table_name=None,
-            schema_name=None,
-            is_query=not filename.stem.startswith("lib"),
-        )
-
-        def depends_on(model_id, *other_deps):
-            config["dependencies"].append(model_id)
-            config["dependencies"].extend(other_deps)
-            return data_stack.store.model_id_to_table_name(model_id)
-
-        def table_name(table, schema=None):
-            if table is not None:
-                config["table_name"] = table
-            if schema is not None:
-                config["schema_name"] = schema
-            return _pprint_call("table_name", table=table, schema=schema)
-
-        def is_query():
-            config["is_query"] = True
-
-        def is_statement():
-            config["is_query"] = False
-
-        sql = template.render(
-            depends_on=depends_on,
-            table_name=table_name,
-            is_query=is_query,
-            is_statement=is_statement,
-        )
-        if config["is_query"]:
-            cls = SQLQueryModel
-        else:
-            cls = SQLCodeModel
+        sql, config = data_stack.render_model_sql(template)
+        is_query = config["is_query"]
+        if is_query is None:
+            is_query = not filename.stem.startswith("lib")
+        cls = SQLQueryModel if is_query else SQLCodeModel
         return cls(
             data_stack=data_stack,
             filename=filename,
@@ -166,6 +157,7 @@ class SQLModel(BaseModel):
             table_name=config["table_name"],
             schema_name=config["schema_name"],
             dependencies=list(set(config["dependencies"])),
+            tests=config["tests"],
         )
 
     def __repr__(self):

@@ -4,6 +4,7 @@ from itertools import chain
 from pathlib import Path
 
 import pygit2
+from jinja2 import BaseLoader, Environment
 
 from libds.data_node import DataOrchestrator
 from libds.model import BaseModel
@@ -13,6 +14,7 @@ from libds.utils import (
     DoesNotExist,
     ThreadLocalList,
     ThreadLocalValue,
+    _pprint_call,
     yaml_dump,
     yaml_load,
 )
@@ -237,3 +239,53 @@ class DataStack:
         self.load_data_orchestrator()
 
         return self
+
+    def render_model_sql(self, template):
+        config = dict(
+            dependencies=[],
+            tests={},
+            table_name=None,
+            schema_name=None,
+            is_query=None,
+        )
+
+        def depends_on(model_id, *other_deps):
+            config["dependencies"].append(model_id)
+            config["dependencies"].extend(other_deps)
+            return self.store.model_id_to_table_name(model_id)
+
+        def table_name(table, schema=None):
+            if table is not None:
+                config["table_name"] = table
+            if schema is not None:
+                config["schema_name"] = schema
+            return _pprint_call("table_name", table=table, schema=schema)
+
+        def is_query():
+            config["is_query"] = True
+            return _pprint_call("is_query")
+
+        def is_statement():
+            config["is_query"] = False
+            return _pprint_call("is_statement")
+
+        def test(id=None, caller=None):
+            test_query = caller()
+            if id is None:
+                id = str(len(config["tests"].values()))
+            config["tests"][id] = test_query
+            return _pprint_call("test", id=id)
+
+        sql = template.render(
+            depends_on=depends_on,
+            table_name=table_name,
+            is_query=is_query,
+            is_statement=is_statement,
+            test=test,
+        )
+        return sql, config
+
+    def execute_sql(self, sql, limit=None):
+        template = Environment(loader=BaseLoader()).from_string(sql)
+        sql, config = self.render_model_sql(template)
+        return self.store.execute_sql(sql, limit), sql
