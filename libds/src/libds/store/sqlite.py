@@ -138,7 +138,7 @@ class SQLite(SQLAlchemyStore):
 
             self._cleanup_tables(p, schema_name, final_name)
 
-    def execute(self, stmt):
+    def execute_sql(self, stmt):
         return _execute(self, stmt)
 
     def model_id_to_table_name(self, model_id):

@@ -312,7 +312,7 @@ class ClickHouse(BaseStore):
     def get_table(self, schema_name, table_name):
         return Table(store=self, schema_name=schema_name, table_name=table_name)
 
-    def execute(self, statement):
+    def execute_sql(self, statement):
         return _execute(self.client(), statement)
 
 

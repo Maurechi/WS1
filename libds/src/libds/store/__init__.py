@@ -74,7 +74,7 @@ class BaseStore:
     def info(self):
         return self._info()
 
-    def execute(self, store):
+    def execute_sql(self, store):
         raise NotImplementedError()
 
     def model_id_to_table_name(self, model_id):

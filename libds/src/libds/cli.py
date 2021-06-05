@@ -248,7 +248,7 @@ def move_file(src, dst):
 def execute(statement):
     statement = _arg_str(statement)
     try:
-        return list(COMMAND.ds.store.execute(statement))
+        return list(COMMAND.ds.execute_sql(statement))
     except DSException as e:
         return {"error": e.as_json()}
     except Exception as e:
