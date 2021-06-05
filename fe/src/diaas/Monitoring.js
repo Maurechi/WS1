@@ -90,32 +90,41 @@ export const ModelsDashboard = observer(() => {
   const { user } = useAppState();
   const models = _.sortBy(user.data_stacks[0].models, "id");
 
-  let rows = [];
+  const failures = [];
+  const successes = [];
   models.forEach((m) => {
+    let isOK = true;
     _.forEach(m.tests, (t, tid) => {
       let testId = m.id;
       if (_.size(m.tests) > 1) {
         testId += ":" + tid;
       }
       if (!t.ok) {
+        isOK = false;
         _.forEach(t.failures, (f, index) => {
           let failureId = testId;
           if (_.size(t.failures) > 1) {
             failureId += "#" + index;
           }
           const row = [
-            <ErrorIcon style={{ color: "red" }} />,
+            <CheckMark error />,
             <Link to={`/models/${m.id}`}>{failureId}</Link>,
             f.message,
             JSON.stringify(_.omit(f, ["message"])),
           ];
           row.key = failureId;
-          rows.push(row);
+          failures.push(row);
         });
       }
     });
+
+    if (isOK) {
+      const row = [<CheckMark healthy />, <Link to={`/models/${m.id}`}>{m.id}</Link>, "", ""];
+      row.key = m.id;
+      successes.push(row);
+    }
   });
-  rows = _.sortBy(rows, ["key"]);
+  const rows = _.sortBy(failures, ["key"]).concat(_.sortBy(successes, ["key"]));
 
   const columns = [
     { label: "", style: { width: "10%" } },
