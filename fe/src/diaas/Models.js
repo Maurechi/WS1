@@ -105,8 +105,7 @@ export const Editor = observer(() => {
           <Grid container spacing={2}>
             <Grid ref={ref} item xs={12} md={6}>
               <Typography variant="h4">
-                {model.type === "broken" && <span style={{ color: "red" }}>BROKEN </span>}
-                Model
+                Model {model.type === "broken" && <span style={{ color: "red" }}>(Invalid)</span>}
               </Typography>
               <CodeEditor mode={model.type} value={textValue} />
               <Box>
@@ -116,13 +115,12 @@ export const Editor = observer(() => {
                   </Box>
                 </Box>
               </Box>
-              {model.type === "broken" && (
+              {model.type === "broken" ? (
                 <>
                   <pre>{model.error.exception}</pre>
                   <pre>{model.error.traceback}</pre>
                 </>
-              )}
-              {model.type !== "borken" && (
+              ) : (
                 <Box py={1} style={{ overflow: "scroll", maxWidth: width }}>
                   <CellData rows={rows.v} />
                 </Box>
