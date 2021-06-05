@@ -1,4 +1,5 @@
 import runpy
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -31,10 +32,15 @@ class BaseModel:
 
     @classmethod
     def from_file(cls, data_stack, filename):
-        if filename.suffix == ".sql":
-            return SQLModel.from_file(data_stack, filename)
-        elif filename.suffix == ".py":
-            return PythonModel.from_file(data_stack, filename)
+        try:
+            if filename.suffix == ".sql":
+                return SQLModel.from_file(data_stack, filename)
+            elif filename.suffix == ".py":
+                return PythonModel.from_file(data_stack, filename)
+        except Exception as e:
+            return BrokenModel(
+                data_stack, filename, exception=e, traceback=traceback.format_exc()
+            )
 
     def _init_properties(self, filename, id, table_name, schema_name):
         self.filename = Path(filename)
@@ -97,6 +103,19 @@ def _ensure_schema(table_name):
         return table_name
     else:
         return "public." + table_name
+
+
+class BrokenModel(BaseModel):
+    def __init__(self, data_stack, filename, exception, traceback):
+        super().__init__(data_stack=data_stack, filename=filename)
+        self.type = "broken"
+        self.exception = exception
+        self.traceback = traceback
+
+    def info(self):
+        i = super().info()
+        i.update(error=dict(exception=str(self.exception), traceback=self.traceback))
+        return i
 
 
 class SQLModel(BaseModel):
