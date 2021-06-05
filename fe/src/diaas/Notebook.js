@@ -16,7 +16,7 @@ export const Cell = observer(({ value }) => {
   const { width } = useResize(ref);
   const run = () => {
     return backend.execute({ statement: value.v }).then((data) => {
-      setRows(data);
+      setRows(data.rows);
     });
   };
 

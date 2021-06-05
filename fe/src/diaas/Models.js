@@ -74,7 +74,8 @@ export const Editor = observer(() => {
         });
       } else {
         return backend.execute({ statement: textValue.v, limit: 23 }).then((data) => {
-          return (rows.v = data);
+          rows.v = data.rows;
+          return null;
         });
       }
     });
