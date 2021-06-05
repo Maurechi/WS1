@@ -253,7 +253,7 @@ def execute(statement, limit):
     statement = _arg_str(statement)
     try:
         rows, sql = COMMAND.ds.execute_sql(statement, limit)
-        return dict(rows=rows, sql=sql)
+        return dict(rows=list(rows), sql=sql)
     except DSException as e:
         return {"error": e.as_json()}
     except Exception as e:
