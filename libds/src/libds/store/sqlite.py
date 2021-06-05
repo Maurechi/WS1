@@ -138,8 +138,8 @@ class SQLite(SQLAlchemyStore):
 
             self._cleanup_tables(p, schema_name, final_name)
 
-    def execute_sql(self, stmt):
-        return _execute(self, stmt)
+    def execute_sql(self, stmt, limit=None):
+        return _execute(self, stmt, limit)
 
     def model_id_to_table_name(self, model_id):
         parts = model_id.split(".")
@@ -149,10 +149,15 @@ class SQLite(SQLAlchemyStore):
             return parts[1]
 
 
-def _execute(store, statement):
+def _execute(store, statement, limit):
     with store.engine.connect() as conn:
         res = conn.execute(statement, with_column_types=True)
+        count = 0
         for row in res.all():
+            if limit is not None and count >= limit:
+                return
+            count += 1
+
             yield {f: to_sample_value(row[f]) for f in row._fields}
 
 
@@ -163,6 +168,6 @@ class Table(BaseTable):
             stmt += f" WHERE {where} "
         if order_by is not None:
             stmt += f" ORDER BY {order_by} "
-        if limit is not None:
-            stmt += f" LIMIT {limit} "
-        return _execute(self.store, stmt)
+        if limit is None:
+            limit = 23
+        return _execute(self.store, stmt, limit)

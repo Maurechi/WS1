@@ -276,7 +276,7 @@ class DataStack:
         )
         return sql, config
 
-    def execute_sql(self, sql):
+    def execute_sql(self, sql, limit=None):
         template = Environment(loader=BaseLoader()).from_string(sql)
         sql, config = self.render_model_sql(template)
-        return self.store.execute_sql(sql)
+        return self.store.execute_sql(sql, limit)

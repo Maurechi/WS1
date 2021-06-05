@@ -225,7 +225,7 @@ class Request:
     def json(self):
         return self.r.get_json(force=True)
 
-    def param(self, name, required=False, default=None):
+    def param(self, name, required=False, default=None, type=str):
         v = self.json.get(name, None)
         if v is None:
             if required:
@@ -233,7 +233,12 @@ class Request:
             else:
                 return default
         else:
-            return v
+            if type in (None, str):
+                return v
+            elif type is int:
+                return int(v)
+            else:
+                raise ValueError(f"Don't know how to parse `{v}` as a `{type}`")
 
     def require(self, name):
         return self.param(name, required=True)

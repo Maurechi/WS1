@@ -150,6 +150,7 @@ def execute():
     libds = g.user.current_data_stack.libds
     return libds.execute(
         statement=req.require("statement"),
+        limit=req.param("limit", type=int),
     )
 
 

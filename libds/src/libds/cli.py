@@ -245,10 +245,11 @@ def move_file(src, dst):
 
 @command()
 @click.argument("statement")
-def execute(statement):
+@click.option("-l", "--limit", type=int)
+def execute(statement, limit):
     statement = _arg_str(statement)
     try:
-        return list(COMMAND.ds.execute_sql(statement))
+        return list(COMMAND.ds.execute_sql(statement, limit))
     except DSException as e:
         return {"error": e.as_json()}
     except Exception as e:

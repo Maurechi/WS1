@@ -312,18 +312,23 @@ class ClickHouse(BaseStore):
     def get_table(self, schema_name, table_name):
         return Table(store=self, schema_name=schema_name, table_name=table_name)
 
-    def execute_sql(self, statement):
-        return _execute(self.client(), statement)
+    def execute_sql(self, statement, limit=None):
+        return _execute(self.client(), statement, limit)
 
 
-def _execute(client, statement):
+def _execute(client, statement, limit):
     res = client.execute_iter(statement, with_column_types=True)
     cols = next(res)
 
+    count = 0
     for data in res:
+        if limit is not None and count >= limit:
+            return
         row = {}
         for value, col in zip(data, cols):
             row[col[0]] = to_sample_value(value)
+        count += 1
+
         yield row
 
 
@@ -334,6 +339,6 @@ class Table(BaseTable):
             stmt += f" WHERE {where} "
         if order_by is not None:
             stmt += f" ORDER BY {order_by} "
-        if limit is not None:
-            stmt += f" LIMIT {limit} "
-        return _execute(self.store.client(), stmt)
+        if limit is None:
+            limit = 23
+        return _execute(self.store.client(), stmt, limit)
