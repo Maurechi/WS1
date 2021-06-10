@@ -1,4 +1,4 @@
-import { Box, Button, Grid } from "@material-ui/core";
+import { Box, Button, Grid, Typography } from "@material-ui/core";
 import { observer } from "mobx-react-lite";
 import React, { useEffect } from "react";
 import { GoogleLogin } from "react-google-login";
@@ -162,13 +162,22 @@ const SettingsContent = observer(() => {
 const HomePageContent = () => {
   return (
     <>
-      <p>Welcome to Caravel.</p>
-      <Grid container>
-        <Grid item xs={6}>
-          <SourcesDashboard />
+      <Grid container spacing={4}>
+        <Grid item sm={12} md={6}>
+          <Box>
+            <HCenter>
+              <Typography variant="h4">Source Health</Typography>
+            </HCenter>
+            <SourcesDashboard />
+          </Box>
         </Grid>
-        <Grid item xs={6}>
-          <ModelsDashboard />
+        <Grid item sm={12} md={6}>
+          <Box>
+            <HCenter>
+              <Typography variant="h4">Model Health</Typography>
+            </HCenter>
+            <ModelsDashboard />
+          </Box>
         </Grid>
       </Grid>
     </>
